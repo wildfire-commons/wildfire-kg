@@ -27,7 +27,7 @@ fastapi==0.101.1
 uvicorn==0.24.0
 
 # Data Validation and Parsing
-pydantic==2.3.0
+pydantic==2.4.0
 
 # Graph Manipulation
 networkx==3.1
