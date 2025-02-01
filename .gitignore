@@ -1,0 +1,80 @@
+# VS Code settings
+.vscode/
+.vscodeignore
+
+# IntelliJ IDEA settings
+.idea/
+*.iml
+*.iws
+out/
+
+# General Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.egg-info/
+*.eggs/
+*.manifest
+*.spec
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+.ipynb_checkpoints/
+pip-wheel-metadata/
+pip-log.txt
+poetry.lock
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+.jupyter/
+
+# Logs & system files
+*.log
+logs/
+*.out
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg
+*.manifest
+*.spec
+*.pyc
+*.pyo
+*.pyd
+*.whl
+
+# Cache files
+.cache/
+.pytest_cache/
+.tox/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Docker & Kubernetes
+docker-compose.override.yml
+*.dockerfile
+*.dockerignore
+.kube/
+
+# Miscellaneous
+*.bak
+*.orig
+*.rej
+node_modules/
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+lerna-debug.log
