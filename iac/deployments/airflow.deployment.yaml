@@ -75,7 +75,7 @@ spec:
               --firstname admin
               --lastname admin
               --role Admin
-              --email admin@example.com
+              --email nischerer@ucsd.edu
           envFrom:
             - configMapRef:
                 name: airflow-config
