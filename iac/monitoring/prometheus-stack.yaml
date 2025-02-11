@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: graphdb-monitor
+  namespace: wifire-kg
+spec:
+  selector:
+    matchLabels:
+      app: graphdb
+  endpoints:
+  - port: http
+    interval: 30s 
