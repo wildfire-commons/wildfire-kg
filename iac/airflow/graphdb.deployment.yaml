@@ -1,0 +1,113 @@
+# === GraphDB Configuration Map ===
+# Stores environment variables and license information
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: graphdb-config
+  namespace: wifire-kg
+data:
+  # Reduced memory settings and additional debug options
+  GDB_JAVA_OPTS: >-
+    -Xmx2G
+    -Xms1G
+    -Dgraphdb.home=/graphdb/data
+    -Dgraphdb.workbench.home=/graphdb/data/work
+  
+  # License file content (paste actual license if required)
+  GDB_LICENSE: |
+    # Add GraphDB license here if required
+
+---
+# === Basic GraphDB Deployment ===
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphdb
+  namespace: wifire-kg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphdb
+  template:
+    metadata:
+      labels:
+        app: graphdb
+    spec:
+      containers:
+      - name: graphdb
+        image: ontotext/graphdb:10.4.2
+        ports:
+        - containerPort: 7200
+        # Required by Nautilus
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "1"
+        volumeMounts:
+        - name: graphdb-data
+          mountPath: /opt/graphdb/home
+        env:
+        - name: GDB_JAVA_OPTS
+          value: "-Xmx2G -Xms1G"
+      volumes:
+      - name: graphdb-data
+        persistentVolumeClaim:
+          claimName: graphdb-pvc
+
+---
+# === Basic Service ===
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphdb
+  namespace: wifire-kg
+spec:
+  selector:
+    app: graphdb
+  ports:
+  - port: 7200
+    targetPort: 7200
+
+---
+# === Basic PVC ===
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: graphdb-pvc
+  namespace: wifire-kg
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# === Ingress Configuration ===
+# External access configuration for Nautilus cluster
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: graphdb-ingress
+  namespace: wifire-kg
+spec:
+  ingressClassName: haproxy  # Modern replacement for deprecated annotation
+  rules:
+  - host: graphdb.nrp-nautilus.io  # External DNS name
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: graphdb
+            port:
+              number: 7200
+  # TLS configuration for HTTPS
+  tls:
+  - hosts:
+    - graphdb.nrp-nautilus.io

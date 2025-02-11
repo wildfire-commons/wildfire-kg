@@ -1,0 +1,96 @@
+###############################################################################
+# DEV GraphDB Helm values 
+#
+# The full list of values can be found here:
+# https://github.com/Ontotext-AD/graphdb-helm/blob/main/values.yaml
+###############################################################################
+
+##########################
+# Scaling Configurations #
+##########################
+
+# Number of GraphDB nodes to be deployed as part of the StatefulSet.
+# Set value to 1 to run a standalone GraphDB instance
+# Set value to more than 1 to form a GraphDB cluster with GraphDB cluster proxies.
+# This setting control the deployment of the cluster proxies and cluster jobs as well.
+# Ref: https://graphdb.ontotext.com/documentation/10.8/creating-a-cluster.html
+replicas: 1
+
+##########################
+# GraphDB Configurations #
+##########################
+
+# GraphDB runtime configuration settings.
+# For reference, see https://graphdb.ontotext.com/documentation/10.8/directories-and-config-properties.html
+configuration:
+  externalUrl: https://graphdb-dev-wildfire-kg.nrp-nautilus.io/
+
+##########################
+# Ingress Configurations #
+##########################
+
+# Configurations for the default Ingress resource for GraphDB.
+ingress:
+  enabled: true
+  className: haproxy
+  host: graphdb-dev-wildfire-kg.nrp-nautilus.io
+  tls:
+    enabled: true
+    secretName: graphdb-dev-tls
+  
+  # TODO: Fix TLS
+  # Configures SSL termination on Ingress level.
+  # Ref: https://kubernetes.github.io/ingress-nginx/examples/tls-termination/ 
+
+##########################
+# Service Configurations #
+##########################
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 7200
+
+##############################
+# Persistence Configurations #
+##############################
+
+persistence:
+  # Toggles the persistence of GraphDB data.
+  # - If enabled, the StatefulSet will use a PVC template and rely on the CSI to dynamically provision Persistent Volumes.
+  # - If disabled, it falls back to an emptyDir volume.
+  enabled: true
+  volumeClaimTemplate:
+    # Specification for a PVC to be created by the StatefulSet.
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+
+##########################
+# Resource Configuration #
+##########################
+
+# Resource configurations for the GraphDB containers.
+# For resizing to your needs, refer to the GraphDB documentation https://graphdb.ontotext.com/documentation/10.8/requirements.html
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
+resources:
+  limits:
+    memory: 4Gi
+    cpu: 1
+  requests:
+    memory: 2Gi
+    cpu: 500m
+
+########################################
+# Pod Disruption Budget Configurations #
+########################################
+
+# Configurations for GraphDB's default Pod Disruption Budget.
+# The GraphDB cluster requires a quorum of replicas/2 + 1 amount of GraphDB nodes (>50%) in order to work properly.
+# The default configuration protects against losing quorum in the GraphDB cluster.
+# Ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/#pod-disruption-budgets
+podDisruptionBudget:
+  # Set to false to disable the PDB since we're running a single replica.
+  enabled: false
