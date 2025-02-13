@@ -1,0 +1,25 @@
+# Development environment configuration
+serviceAccount:
+  name: wifire-kg-airflow
+
+# Database configuration
+data:
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://airflow:airflow@postgres:5432/airflow"
+  AIRFLOW__CELERY__RESULT_BACKEND: "db+postgresql://airflow:airflow@postgres:5432/airflow"
+  AIRFLOW__CELERY__BROKER_URL: "redis://redis:6379/0"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+  AIRFLOW__CORE__EXECUTOR: "CeleryExecutor"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+ingress:
+  enabled: true
+  className: haproxy
+  hosts:
+    - airflow.wifire-kg.nrp-nautilus.io 
