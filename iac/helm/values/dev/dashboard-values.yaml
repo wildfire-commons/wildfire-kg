@@ -1,0 +1,17 @@
+# Development environment configuration
+serviceAccount:
+  name: wifire-kg-airflow
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  className: haproxy
+  hosts:
+    - dashboard.wifire-kg.nrp-nautilus.io 

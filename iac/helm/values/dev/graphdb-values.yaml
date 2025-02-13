@@ -1,0 +1,64 @@
+# GraphDB Helm values for development environment
+
+# Basic deployment settings
+replicaCount: 1
+workloadType: "Deployment"  # Use Deployment instead of StatefulSet
+
+# Resource limits and requests
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "4Gi"
+    cpu: "1"
+
+# Java options for GraphDB
+graphdb:
+  java:
+    options: >-
+      -Xmx2G
+      -Xms1G
+      -Dgraphdb.home=/graphdb/data
+      -Dgraphdb.workbench.home=/graphdb/data/work
+  
+# Explicitly disable PDB for single replica
+podDisruptionBudget:
+  enabled: false
+
+# Persistence configuration
+persistence:
+  enabled: true
+  volumeClaimTemplate:
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: haproxy
+  host: graphdb-dev.wifire-kg.nrp-nautilus.io
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 7200
+
+# Startup probe configuration (to avoid premature restarts)
+startupProbe:
+  failureThreshold: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Readiness probe configuration
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Also check if there's a configuration.externalUrl that needs to be set
+configuration:
+  externalUrl: https://graphdb-dev.wifire-kg.nrp-nautilus.io/
