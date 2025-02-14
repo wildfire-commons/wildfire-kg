@@ -1,0 +1,295 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llama-config
+  namespace: wifire-kg
+data:
+  MODEL_PATH: "/models/llama-v3"
+  MAX_INPUT_LENGTH: "4096"
+  MAX_TOTAL_TOKENS: "8192"
+  TEMPERATURE: "0.7"
+  TOP_P: "0.95"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-llm
+  namespace: wifire-kg
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: llama-llm
+  template:
+    metadata:
+      labels:
+        app: llama-llm
+    spec:
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "nautilus.io/gitlab-issue"
+        operator: "Exists"
+      # affinity:
+      #   nodeAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       nodeSelectorTerms:
+      #       - matchExpressions:
+      #         - key: nvidia.com/gpu
+      #           operator: Exists
+      containers:
+      - name: llama-llm
+        image: huggingface/transformers-pytorch-gpu:latest
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            pip install --upgrade transformers torch fastapi uvicorn &&
+            python3 -c "
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            import torch
+            from fastapi import FastAPI
+            import uvicorn
+            from pydantic import BaseModel
+
+            app = FastAPI()
+
+            class CompletionRequest(BaseModel):
+                prompt: str
+                max_tokens: int = 1024
+                temperature: float = 0.7
+
+            print('Loading TinyLlama model...')
+            model = AutoModelForCausalLM.from_pretrained('TinyLlama/TinyLlama-1.1B-Chat-v1.0', 
+                                                        device_map='cpu',
+                                                        trust_remote_code=True,
+                                                        torch_dtype=torch.float32)
+            tokenizer = AutoTokenizer.from_pretrained('TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+                                                     trust_remote_code=True)
+
+            @app.post('/v1/completions')
+            async def generate(request: CompletionRequest):
+                # Format prompt for chat
+                formatted_prompt = f'<|system|>You are a helpful AI assistant.</s><|user|>{request.prompt}</s><|assistant|>'
+                inputs = tokenizer(formatted_prompt, return_tensors='pt')
+                outputs = model.generate(
+                    **inputs, 
+                    max_length=request.max_tokens,
+                    temperature=request.temperature,
+                    do_sample=True
+                )
+                response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                # Remove the prompt from the response
+                response = response.split('<|assistant|>')[-1].strip()
+                return {'choices': [{'text': response}]}
+
+            @app.get('/health')
+            async def health():
+                return {'status': 'healthy'}
+
+            uvicorn.run(app, host='0.0.0.0', port=8080)
+            "
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: llama-config
+        resources:
+          requests:
+            cpu: "16"
+            memory: "32Gi"
+          limits:
+            cpu: "32"
+            memory: "64Gi"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /models
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 300
+          periodSeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 300
+          periodSeconds: 30
+      volumes:
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: llama-model-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-llm
+  namespace: wifire-kg
+spec:
+  type: ClusterIP
+  selector:
+    app: llama-llm
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llama-model-pvc
+  namespace: wifire-kg
+spec:
+  storageClassName: "rook-cephfs"
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llama-ingress
+  namespace: wifire-kg
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+spec:
+  rules:
+  - host: llama.nrp-nautilus.io
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: llama-api
+            port:
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: llama-llm
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - llama.nrp-nautilus.io
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llama-api-code
+  namespace: wifire-kg
+data:
+  llama_api.py: |
+    from fastapi import FastAPI, HTTPException
+    from pydantic import BaseModel
+    import requests
+
+    app = FastAPI()
+
+    class Query(BaseModel):
+        prompt: str
+        max_tokens: int = 1024
+        temperature: float = 0.7
+
+    class Response(BaseModel):
+        text: str
+
+    @app.post("/generate")
+    async def generate_text(query: Query):
+        try:
+            response = requests.post(
+                "http://llama-llm:8080/v1/completions",
+                json={
+                    "prompt": query.prompt,
+                    "max_tokens": query.max_tokens,
+                    "temperature": query.temperature
+                }
+            )
+            return Response(text=response.json()["choices"][0]["text"])
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/health")
+    async def health():
+        return {"status": "healthy"}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-api
+  namespace: wifire-kg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-api
+  template:
+    metadata:
+      labels:
+        app: llama-api
+    spec:
+      containers:
+      - name: llama-api
+        image: python:3.9-slim
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            pip install fastapi uvicorn requests pydantic &&
+            cd /app &&
+            uvicorn api.llama_api:app --host 0.0.0.0 --port 8000
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        volumeMounts:
+        - name: api-code
+          mountPath: /app/api
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: api-code
+        configMap:
+          name: llama-api-code
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-api
+  namespace: wifire-kg
+spec:
+  type: ClusterIP
+  selector:
+    app: llama-api
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP

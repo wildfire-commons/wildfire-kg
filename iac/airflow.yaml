@@ -63,22 +63,6 @@ spec:
         - name: dags-volume
           persistentVolumeClaim:
             claimName: airflow-dags-pvc
-      initContainers:
-        - name: init-airflow
-          image: apache/airflow:latest
-          command: ['bash', '-c']
-          args:
-            - airflow db init &&
-              airflow users create
-              --username admin
-              --password admin
-              --firstname admin
-              --lastname admin
-              --role Admin
-              --email nischerer@ucsd.edu
-          envFrom:
-            - configMapRef:
-                name: airflow-config
 
 ---
 apiVersion: v1
@@ -125,6 +109,13 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+      volumes:
+        - name: dags-volume
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc
 
 ---
 apiVersion: apps/v1
@@ -156,6 +147,13 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+      volumes:
+        - name: dags-volume
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc
 
 ---
 apiVersion: apps/v1
