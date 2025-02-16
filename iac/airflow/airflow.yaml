@@ -9,6 +9,11 @@ data:
   AIRFLOW__CELERY__BROKER_URL: "redis://redis:6379/0"
   AIRFLOW__CORE__LOAD_EXAMPLES: "False"
   AIRFLOW__CORE__EXECUTOR: "CeleryExecutor"
+  AIRFLOW__WEBSERVER__SECRET_KEY: "your-secret-key-here"
+  AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+  AIRFLOW__WEBSERVER__WORKERS: "2"
+  AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+  AIRFLOW__CORE__FERNET_KEY: "your-fernet-key-here"
 
 ---
 apiVersion: apps/v1
@@ -26,6 +31,26 @@ spec:
       labels:
         app: airflow-webserver
     spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z postgres 5432 && nc -z redis 6379; do echo waiting for dependencies; sleep 2; done']
+        - name: init-airflow
+          image: apache/airflow:latest
+          command: ['bash', '-c']
+          args:
+            - |
+              airflow db init &&
+              airflow users create \
+                --username admin \
+                --password admin \
+                --firstname admin \
+                --lastname admin \
+                --role Admin \
+                --email nischerer@ucsd.edu || true
+          envFrom:
+            - configMapRef:
+                name: airflow-config
       containers:
         - name: airflow-webserver
           image: apache/airflow:latest
@@ -61,23 +86,7 @@ spec:
             periodSeconds: 10
       volumes:
         - name: dags-volume
-          persistentVolumeClaim:
-            claimName: airflow-dags-pvc
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: airflow-webserver
-  namespace: wifire-kg
-spec:
-  type: ClusterIP
-  selector:
-    app: airflow-webserver
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
+          emptyDir: {}
 
 ---
 apiVersion: apps/v1
@@ -95,6 +104,10 @@ spec:
       labels:
         app: airflow-scheduler
     spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z postgres 5432 && nc -z redis 6379; do echo waiting for dependencies; sleep 2; done']
       containers:
         - name: airflow-scheduler
           image: apache/airflow:latest
@@ -109,13 +122,6 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
-          volumeMounts:
-            - name: dags-volume
-              mountPath: /opt/airflow/dags
-      volumes:
-        - name: dags-volume
-          persistentVolumeClaim:
-            claimName: airflow-dags-pvc
 
 ---
 apiVersion: apps/v1
@@ -124,7 +130,7 @@ metadata:
   name: airflow-worker
   namespace: wifire-kg
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: airflow-worker
@@ -133,6 +139,10 @@ spec:
       labels:
         app: airflow-worker
     spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z postgres 5432 && nc -z redis 6379; do echo waiting for dependencies; sleep 2; done']
       containers:
         - name: airflow-worker
           image: apache/airflow:latest
@@ -147,141 +157,21 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
-          volumeMounts:
-            - name: dags-volume
-              mountPath: /opt/airflow/dags
-      volumes:
-        - name: dags-volume
-          persistentVolumeClaim:
-            claimName: airflow-dags-pvc
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: wifire-kg
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:latest
-          env:
-            - name: POSTGRES_USER
-              value: "airflow"
-            - name: POSTGRES_PASSWORD
-              value: "airflow"
-            - name: POSTGRES_DB
-              value: "airflow"
-          ports:
-            - containerPort: 5432
-          resources:
-            requests:
-              cpu: "200m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "1Gi"
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-data
-          persistentVolumeClaim:
-            claimName: postgres-pvc
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redis
-  namespace: wifire-kg
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redis
-  template:
-    metadata:
-      labels:
-        app: redis
-    spec:
-      containers:
-        - name: redis
-          image: redis:latest
-          ports:
-            - containerPort: 6379
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
-              cpu: "200m"
-              memory: "512Mi"
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: airflow-dags-pvc
-  namespace: wifire-kg
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: airflow-webserver
   namespace: wifire-kg
 spec:
   type: ClusterIP
   selector:
-    app: postgres
+    app: airflow-webserver
   ports:
     - protocol: TCP
-      port: 5432
-      targetPort: 5432
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis
-  namespace: wifire-kg
-spec:
-  type: ClusterIP
-  selector:
-    app: redis
-  ports:
-    - protocol: TCP
-      port: 6379
-      targetPort: 6379
-
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: wifire-kg
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+      port: 8080
+      targetPort: 8080
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -293,7 +183,7 @@ metadata:
     kubernetes.io/ingress.class: haproxy
 spec:
   rules:
-  - host: airflow.nrp-nautilus.io
+  - host: wifire-kg-airflow.nrp-nautilus.io
     http:
       paths:
       - path: /
@@ -305,4 +195,4 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - airflow.nrp-nautilus.io
+    - wifire-kg-airflow.nrp-nautilus.io

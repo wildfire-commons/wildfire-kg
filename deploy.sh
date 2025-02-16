@@ -1,71 +1,54 @@
-# #!/bin/bash
+#!/bin/bash
 
-# # Exit on any error
-# set -e
+# Exit on any error
+set -e
 
-# # Variables
-# NAMESPACE="wifire-kg"
+# Variables
+NAMESPACE="wifire-kg"
+TIMEOUT="300s"  # 5 minutes timeout
 
-# # Check if an argument is provided
-# if [ "$1" != "airflow" ]; then
-#     echo "Usage: ./deploy.sh airflow"
-#     echo "Please specify 'airflow' as an argument to deploy Airflow"
-#     exit 1
-# fi
+# Check if an argument is provided
+if [ "$1" != "airflow" ]; then
+    echo "Usage: ./deploy.sh airflow"
+    echo "Please specify 'airflow' as an argument to deploy Airflow"
+    exit 1
+fi
 
-# # Add Neo4j helm repo if not already added
-# helm repo add neo4j https://helm.neo4j.com/neo4j
-# helm repo update
+echo "Deploying Airflow to namespace: $NAMESPACE"
 
-# # Install/upgrade Neo4j using values file
-# helm upgrade --install neo4j neo4j/neo4j \
-#   --namespace $NAMESPACE \
-#   -f iac/neo4j-values.yaml
+# Delete existing resources if they exist
+echo "Cleaning up existing resources..."
+kubectl delete deployment postgres redis airflow-webserver airflow-scheduler airflow-worker --namespace $NAMESPACE --ignore-not-found
+kubectl delete service postgres redis airflow-webserver --namespace $NAMESPACE --ignore-not-found
+kubectl delete configmap airflow-config --namespace $NAMESPACE --ignore-not-found
 
-# # Print info
-# echo "Deploying Airflow to namespace: $NAMESPACE"
+# Deploy Redis and Postgres first
+echo "Deploying Redis and Postgres..."
+kubectl apply -f iac/airflow/airflow.redis.yaml
+kubectl apply -f iac/airflow/airflow.postgres.yaml
 
-# # Delete existing resources
-# echo "Cleaning up existing resources..."
-# kubectl delete deployment postgres redis --namespace $NAMESPACE --ignore-not-found
-# kubectl delete service postgres redis --namespace $NAMESPACE --ignore-not-found
-# kubectl delete pvc postgres-pvc --namespace $NAMESPACE --ignore-not-found
+# Give the deployments a moment to create pods
+echo "Waiting for pods to be created..."
+sleep 10
 
-# # Delete existing Helm release
-# echo "Deleting existing Airflow Helm release..."
-# helm delete airflow --namespace $NAMESPACE --ignore-not-found
+# Wait for Redis and Postgres to be ready using deployment conditions instead of pod labels
+echo "Waiting for Redis and Postgres deployments to be ready..."
+kubectl wait --for=condition=Available=True deployment/redis -n $NAMESPACE --timeout=$TIMEOUT
+kubectl wait --for=condition=Available=True deployment/postgres -n $NAMESPACE --timeout=$TIMEOUT
 
-# # Add the official Apache Airflow Helm repository
-# helm repo add apache-airflow https://airflow.apache.org
-# helm repo update
+# Deploy main Airflow configuration
+echo "Deploying Airflow components..."
+kubectl apply -f iac/airflow/airflow.yaml
 
-# # Install/Upgrade Airflow with minimal permissions required
-# helm install $NAMESPACE apache-airflow/airflow --namespace $NAMESPACE
-# # helm upgrade --install airflow apache-airflow/airflow \
-# #     --namespace $NAMESPACE \
-# #     --set webserver.service.type=ClusterIP \
-# #     --set ingress.enabled=true \
-# #     --set ingress.web.host=airflow.nrp-nautilus.io \
-# #     --set ingress.web.ingressClassName=haproxy \
-# #     --set executor=LocalExecutor \
-# #     --set postgresql.enabled=true \
-# #     --set redis.enabled=false \
-# #     --set webserver.defaultUser.enabled=true \
-# #     --set webserver.defaultUser.username=admin \
-# #     --set webserver.defaultUser.password=admin \
-# #     --set rbac.create=false \
-# #     --set serviceAccount.create=false \
-# #     --set migrateDatabaseJob.enabled=false \
-# #     --set flower.enabled=false \
-# #     --set statsd.enabled=false \
-# #     --set "webserver.resources.requests.cpu=500m" \
-# #     --set "webserver.resources.requests.memory=1Gi" \
-# #     --set "webserver.resources.limits.cpu=600m" \
-# #     --set "webserver.resources.limits.memory=1.2Gi" \
-# #     --set "scheduler.resources.requests.cpu=500m" \
-# #     --set "scheduler.resources.requests.memory=1Gi" \
-# #     --set "scheduler.resources.limits.cpu=600m" \
-# #     --set "scheduler.resources.limits.memory=1.2Gi"
+# Wait for Airflow deployments to be ready
+echo "Waiting for Airflow components..."
+kubectl wait --for=condition=Available=True deployment/airflow-webserver -n $NAMESPACE --timeout=$TIMEOUT
+kubectl wait --for=condition=Available=True deployment/airflow-scheduler -n $NAMESPACE --timeout=$TIMEOUT
+kubectl wait --for=condition=Available=True deployment/airflow-worker -n $NAMESPACE --timeout=$TIMEOUT
 
-# echo "Airflow deployment completed successfully!"
-# echo "You can access the Airflow UI at: https://airflow.nrp-nautilus.io"
+echo "Airflow deployment completed successfully!"
+echo "You can access the Airflow UI at: https://wifire-kg-airflow.nrp-nautilus.io"
+
+# Print pod status
+echo "Current pod status:"
+kubectl get pods -n $NAMESPACE
