@@ -40,14 +40,17 @@ spec:
           command: ['bash', '-c']
           args:
             - |
-              airflow db init &&
-              airflow users create \
-                --username admin \
-                --password admin \
-                --firstname admin \
-                --lastname admin \
-                --role Admin \
-                --email nischerer@ucsd.edu || true
+              airflow db init
+              sleep 5
+              if ! airflow users list | grep -q "admin"; then
+                airflow users create \
+                  --username admin \
+                  --password admin \
+                  --firstname admin \
+                  --lastname admin \
+                  --role Admin \
+                  --email nischerer@ucsd.edu
+              fi
           envFrom:
             - configMapRef:
                 name: airflow-config
