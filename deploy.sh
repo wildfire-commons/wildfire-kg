@@ -5,7 +5,7 @@ set -e
 
 # Variables
 NAMESPACE="wifire-kg"
-TIMEOUT="300s"  # 5 minutes timeout
+TIMEOUT="600s"  # 10 minutes timeout
 
 # Check if an argument is provided
 if [ "$1" != "airflow" ]; then
