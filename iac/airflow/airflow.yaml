@@ -12,7 +12,7 @@ data:
   AIRFLOW__WEBSERVER__SECRET_KEY: "your-secret-key-here"
   AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
   AIRFLOW__WEBSERVER__WORKERS: "2"
-  AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+  AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags/repo/dags"
   AIRFLOW__CORE__FERNET_KEY: "your-fernet-key-here"
 
 ---
@@ -100,9 +100,11 @@ spec:
             - name: GIT_SYNC_ROOT
               value: "/opt/airflow/dags"
             - name: GIT_SYNC_DEST
-              value: "."
+              value: "repo"
             - name: GIT_SYNC_PERIOD
               value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "0"
           volumeMounts:
             - name: dags-volume
               mountPath: /opt/airflow/dags
@@ -145,6 +147,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: airflow-config
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
           resources:
             requests:
               cpu: "500m"
@@ -152,6 +157,38 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
+
+        - name: git-sync
+          image: k8s.gcr.io/git-sync/git-sync:v3.6.3
+          securityContext:
+            runAsUser: 50000
+          env:
+            - name: GIT_SYNC_REPO
+              value: "https://github.com/wildfire-commons/wildfire-kg.git"
+            - name: GIT_SYNC_BRANCH
+              value: "dev"
+            - name: GIT_SYNC_ROOT
+              value: "/opt/airflow/dags"
+            - name: GIT_SYNC_DEST
+              value: "repo"
+            - name: GIT_SYNC_PERIOD
+              value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "0"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      volumes:
+        - name: dags-volume
+          emptyDir: {}
 
 ---
 apiVersion: apps/v1
