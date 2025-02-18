@@ -4,33 +4,18 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 
 def create_lidar_scan_triple(**context):
-    """Creates a LiDAR scan triple in GraphDB using SPARQL."""
+    """Mocks creating a LiDAR scan triple in GraphDB."""
     # Import dependencies after they're installed
     from rdflib import Graph, Namespace, Literal, URIRef
-    from rdflib.plugins.stores.sparqlstore import SPARQLUpdateStore
     
-    # GraphDB connection details
+    # GraphDB connection details (for reference)
     GRAPHDB_URL = "http://graphdb:7200"
     REPOSITORY = "wifire-kg"
-    SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
-    UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
     
     # Define namespaces
     WIFIRE = Namespace("http://wifire.ucsd.edu/ontology/")
     GEO = Namespace("http://www.opengis.net/ont/geosparql#")
     TIME = Namespace("http://www.w3.org/2006/time#")
-    
-    # Initialize the SPARQL store with both query and update endpoints
-    store = SPARQLUpdateStore()
-    store.open((SPARQL_ENDPOINT, UPDATE_ENDPOINT))
-    
-    # Create a new graph
-    g = Graph(store)
-    
-    # Bind namespaces
-    g.bind('wifire', WIFIRE)
-    g.bind('geo', GEO)
-    g.bind('time', TIME)
     
     # Create URIs and literals for our triple
     scan_id = "LIDAR_001"
@@ -38,22 +23,27 @@ def create_lidar_scan_triple(**context):
     location_uri = URIRef(f"{WIFIRE}Location_SanDiego")
     timestamp = Literal(datetime.now().isoformat())
     
-    # Add triples to the graph
-    g.add((scan_uri, WIFIRE.hasID, Literal(scan_id)))
-    g.add((scan_uri, WIFIRE.capturedAt, location_uri))
-    g.add((scan_uri, TIME.hasTime, timestamp))
-    g.add((scan_uri, WIFIRE.type, WIFIRE.LidarScan))
-    g.add((location_uri, WIFIRE.type, GEO.Feature))
-    g.add((location_uri, WIFIRE.name, Literal("San Diego")))
+    # Log what would be added to the graph
+    print("Would execute the following operations:")
+    print(f"# Initialize SPARQL store")
+    print(f"# store = SPARQLUpdateStore()")
+    print(f"# store.open((SPARQL_ENDPOINT, UPDATE_ENDPOINT))")
+    print("\n# Would add these triples:")
+    print(f"Triple 1: {scan_uri} hasID {scan_id}")
+    print(f"Triple 2: {scan_uri} capturedAt {location_uri}")
+    print(f"Triple 3: {scan_uri} hasTime {timestamp}")
+    print(f"Triple 4: {scan_uri} type LidarScan")
+    print(f"Triple 5: {location_uri} type Feature")
+    print(f"Triple 6: {location_uri} name 'San Diego'")
     
-    return f"Created LiDAR scan triple with ID: {scan_id}"
+    return f"Successfully mocked creation of LiDAR scan triple with ID: {scan_id}"
 
 with DAG(
     'lidar_scan_dag',
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
-    description='DAG for creating LiDAR scan triples in GraphDB'
+    description='DAG for mocking LiDAR scan triples in GraphDB'
 ) as dag:
 
     # Install required dependencies
