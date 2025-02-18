@@ -17,11 +17,13 @@ x-airflow-common: &airflow-common
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./requirements.txt:/requirements.txt
   depends_on: &airflow-common-depends-on
     redis:
       condition: service_healthy
     postgres:
       condition: service_healthy
+  command: bash -c "pip install -r /requirements.txt && airflow ${AIRFLOW_COMMAND}"
 
 services:
   postgres:
