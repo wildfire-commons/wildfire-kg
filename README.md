@@ -1,24 +1,55 @@
 # wildfire-kg
 
-wildfire-kg is a collection of data pipelines, APIs and knowledge graphs that serve a conversational AI data product for the Immersive Forest project.
+## Project Overview
 
-# Project Description
-The initial scope and write up for this project can be found at: https://docs.google.com/document/d/1U_JBXRhjHzgEpl6_ECNciltwSGd2Baq9bNVNV1CQiUQ/edit?usp=sharing
+This project implements a knowledge graph-based system for forest and wildfire data analysis. It integrates multiple data sources into a unified graph database, enabling complex queries and spatial reasoning for fuel management and forest health monitoring.   
 
-## Overview
-Contains the code and infrastructure templates for the Conversational AI portion of the conversational AI project at:https://burnpro3d.sdsc.edu/pano/?plot=CATNF_6022&ts=20240731&m=Basalarea
+## Key Components
 
-# Infrastructure
+- **Knowledge Graph**: Neo4j-based graph database for storing and querying forest and wildfire data
+- **ETL Pipeline**: Airflow-orchestrated data processing workflows
+- **GraphDB**: Ontotext GraphDB instance for semantic data storage
+- **API Layer**: FastAPI-based REST API for data access
+- **Dashboard**: Interactive visualization interface
+
+## Infrastructure
+
+The project is deployed on Kubernetes using Helm charts with the following components:
+- Apache Airflow for workflow orchestration
+- GraphDB/Neo4j for knowledge graph storage
+- Soon: 
+  - LangGraph for LLM workflow orchestration
 
 ## Prerequisites
 
 - A valid `config` file in ~/.kube/config for `wifire-kg` namespace
 - `kubectl` CLI installed
+- `helm` CLI installed
 - `docker` installed
 
-## Airflow
+## Setup and Installation
 
-### Local Development
+### Scripts Setup
+The `scripts/` directory contains utility scripts for deployment and management:
+
+Make scripts executable and source the functions file:
+```bash
+chmod +x scripts/*.sh
+source scripts/functions.sh
+```
+   
+### Deployment to Nautilus (Kubernetes)
+Use the deployment script to deploy components. Note: You will need a valid `config` file in ~/.kube/config for `wifire-kg` namespace in order to deploy.
+```bash
+deploy <environment> <component>
+```
+- Environments: dev, prod
+- Components: airflow, graphdb, neo4j, all
+
+### Airflow
+
+#### Local Development
+
 We use docker compose to run the airflow webserver, scheduler, redis and postgres locally.
 
 Start airflow locally at http://localhost:8080. It will load the DAGs from the `dags` folder in the repo.
@@ -33,12 +64,24 @@ Tear down airflow locally
 docker-compose down
 ```
 
-### Deploying to Nautilus (Kubernetes)
-
-Use utility script to deploy airflow to nautilus which runs the underlying commands. Note: You will need a valid `config` file in ~/.kube/config for `wifire-kg` namespace in order to deploy.
-
-```bash
-./deploy.sh airflow
+## Project Structure
 ```
-
-
+wildfire-kg/
+├── src/                   # Source code
+│   ├── api/               # API endpoints
+│   ├── kg/                # Knowledge graph operations
+│   ├── model/             # Machine learning models
+│   └── utils/             # Utility functions
+├── data/                  # Data directory
+│   ├── raw/               # Raw input data
+│   ├── intermediate/      # Processed data
+│   └── mart/              # Final data products
+├── notebooks/             # Jupyter notebooks
+├── iac/                   # Infrastructure as Code
+│   ├── helm/              # Helm charts and values
+│   │   └── values/        # Values for overriding default Helm chart values
+│   │       ├── dev/       # Dev values
+│   │       └── prod/      # Prod values
+│   └── manifests/         # Historical Manifests for the project
+└── scripts/               # Deployment and utility scripts
+```
