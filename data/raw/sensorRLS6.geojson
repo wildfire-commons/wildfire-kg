@@ -1,0 +1,4297 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05285959999999,
+                    34.692195999999996
+                ]
+            },
+            "properties": {
+                "id": 428707,
+                "geom": "POINT (-120.05285959999999 34.692195999999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:25:21",
+                "longitude": -120.05285959999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494523415",
+                "sensor_type_id": "30",
+                "latitude": 34.692195999999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19203,
+                "barometricPa": 96776,
+                "humidityRh": 39,
+                "CO2Ppm": 627,
+                "mos_gasResistance": 319910
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05286179999999,
+                    34.6921691
+                ]
+            },
+            "properties": {
+                "id": 428708,
+                "geom": "POINT (-120.05286179999999 34.6921691)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:24:19",
+                "longitude": -120.05286179999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494585415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921691,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19394,
+                "barometricPa": 96777,
+                "humidityRh": 39,
+                "CO2Ppm": 697,
+                "mos_gasResistance": 283099
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05285049999999,
+                    34.6921263
+                ]
+            },
+            "properties": {
+                "id": 428709,
+                "geom": "POINT (-120.05285049999999 34.6921263)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:27:27",
+                "longitude": -120.05285049999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494397415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921263,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18751,
+                "barometricPa": 96771,
+                "humidityRh": 39,
+                "CO2Ppm": 568,
+                "mos_gasResistance": 349419
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528633,
+                    34.692211799999995
+                ]
+            },
+            "properties": {
+                "id": 428710,
+                "geom": "POINT (-120.0528633 34.692211799999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:26:26",
+                "longitude": -120.0528633,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494458415",
+                "sensor_type_id": "30",
+                "latitude": 34.692211799999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18967,
+                "barometricPa": 96776,
+                "humidityRh": 39,
+                "CO2Ppm": 586,
+                "mos_gasResistance": 340681
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05288379999999,
+                    34.692278
+                ]
+            },
+            "properties": {
+                "id": 428711,
+                "geom": "POINT (-120.05288379999999 34.692278)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:29:31",
+                "longitude": -120.05288379999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494273415",
+                "sensor_type_id": "30",
+                "latitude": 34.692278,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18744,
+                "barometricPa": 96776,
+                "humidityRh": 41,
+                "CO2Ppm": 669,
+                "mos_gasResistance": 294145
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05292259999999,
+                    34.692136
+                ]
+            },
+            "properties": {
+                "id": 428712,
+                "geom": "POINT (-120.05292259999999 34.692136)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:28:29",
+                "longitude": -120.05292259999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494335415",
+                "sensor_type_id": "30",
+                "latitude": 34.692136,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18638,
+                "barometricPa": 96782,
+                "humidityRh": 41,
+                "CO2Ppm": 602,
+                "mos_gasResistance": 215423
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05292379999999,
+                    34.692111499999996
+                ]
+            },
+            "properties": {
+                "id": 428713,
+                "geom": "POINT (-120.05292379999999 34.692111499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:33:04",
+                "longitude": -120.05292379999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494060415",
+                "sensor_type_id": "30",
+                "latitude": 34.692111499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17564,
+                "barometricPa": 96804,
+                "humidityRh": 39,
+                "CO2Ppm": 498,
+                "mos_gasResistance": 420465
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.052914,
+                    34.6921183
+                ]
+            },
+            "properties": {
+                "id": 428714,
+                "geom": "POINT (-120.052914 34.6921183)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:32:04",
+                "longitude": -120.052914,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494120415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921183,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17918,
+                "barometricPa": 96795,
+                "humidityRh": 39,
+                "CO2Ppm": 496,
+                "mos_gasResistance": 402740
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529218,
+                    34.692097
+                ]
+            },
+            "properties": {
+                "id": 428715,
+                "geom": "POINT (-120.0529218 34.692097)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:30:53",
+                "longitude": -120.0529218,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494191415",
+                "sensor_type_id": "30",
+                "latitude": 34.692097,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18459,
+                "barometricPa": 96777,
+                "humidityRh": 39,
+                "CO2Ppm": 545,
+                "mos_gasResistance": 365862
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528878,
+                    34.6922865
+                ]
+            },
+            "properties": {
+                "id": 428717,
+                "geom": "POINT (-120.0528878 34.6922865)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:35:04",
+                "longitude": -120.0528878,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493940415",
+                "sensor_type_id": "30",
+                "latitude": 34.6922865,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17143,
+                "barometricPa": 96786,
+                "humidityRh": 40,
+                "CO2Ppm": 505,
+                "mos_gasResistance": 429089
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528975,
+                    34.692918
+                ]
+            },
+            "properties": {
+                "id": 428750,
+                "geom": "POINT (-120.0528975 34.692918)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:15:12",
+                "longitude": -120.0528975,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491532415",
+                "sensor_type_id": "30",
+                "latitude": 34.692918,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19897,
+                "barometricPa": 96769,
+                "humidityRh": 40,
+                "CO2Ppm": 723,
+                "mos_gasResistance": 264839
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05292949999999,
+                    34.6928993
+                ]
+            },
+            "properties": {
+                "id": 428751,
+                "geom": "POINT (-120.05292949999999 34.6928993)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:14:11",
+                "longitude": -120.05292949999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491593415",
+                "sensor_type_id": "30",
+                "latitude": 34.6928993,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19539,
+                "barometricPa": 96776,
+                "humidityRh": 41,
+                "CO2Ppm": 944,
+                "mos_gasResistance": 208846
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529528,
+                    34.6928438
+                ]
+            },
+            "properties": {
+                "id": 428752,
+                "geom": "POINT (-120.0529528 34.6928438)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:12:51",
+                "longitude": -120.0529528,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491673415",
+                "sensor_type_id": "30",
+                "latitude": 34.6928438,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18656,
+                "barometricPa": 96773,
+                "humidityRh": 44,
+                "CO2Ppm": 1547,
+                "mos_gasResistance": 105562
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05301279999999,
+                    34.6929278
+                ]
+            },
+            "properties": {
+                "id": 428754,
+                "geom": "POINT (-120.05301279999999 34.6929278)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:17:22",
+                "longitude": -120.05301279999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491402415",
+                "sensor_type_id": "30",
+                "latitude": 34.6929278,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20462,
+                "barometricPa": 96785,
+                "humidityRh": 40,
+                "CO2Ppm": 547,
+                "mos_gasResistance": 306608
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05302329999999,
+                    34.6928568
+                ]
+            },
+            "properties": {
+                "id": 428755,
+                "geom": "POINT (-120.05302329999999 34.6928568)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:16:15",
+                "longitude": -120.05302329999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491469415",
+                "sensor_type_id": "30",
+                "latitude": 34.6928568,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20164,
+                "barometricPa": 96779,
+                "humidityRh": 40,
+                "CO2Ppm": 598,
+                "mos_gasResistance": 292489
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05295059999999,
+                    34.6929886
+                ]
+            },
+            "properties": {
+                "id": 428756,
+                "geom": "POINT (-120.05295059999999 34.6929886)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:18:32",
+                "longitude": -120.05295059999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491332415",
+                "sensor_type_id": "30",
+                "latitude": 34.6929886,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20841,
+                "barometricPa": 96783,
+                "humidityRh": 40,
+                "CO2Ppm": 510,
+                "mos_gasResistance": 307919
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05301809999999,
+                    34.6932021
+                ]
+            },
+            "properties": {
+                "id": 428757,
+                "geom": "POINT (-120.05301809999999 34.6932021)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:22:45",
+                "longitude": -120.05301809999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491079415",
+                "sensor_type_id": "30",
+                "latitude": 34.6932021,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22649,
+                "barometricPa": 96777,
+                "humidityRh": 41,
+                "CO2Ppm": 530,
+                "mos_gasResistance": 297826
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0530036,
+                    34.6931763
+                ]
+            },
+            "properties": {
+                "id": 428758,
+                "geom": "POINT (-120.0530036 34.6931763)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:21:43",
+                "longitude": -120.0530036,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491141415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931763,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21856,
+                "barometricPa": 96779,
+                "humidityRh": 42,
+                "CO2Ppm": 532,
+                "mos_gasResistance": 298237
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05301809999999,
+                    34.6931051
+                ]
+            },
+            "properties": {
+                "id": 428759,
+                "geom": "POINT (-120.05301809999999 34.6931051)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:20:32",
+                "longitude": -120.05301809999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491212415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931051,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21242,
+                "barometricPa": 96775,
+                "humidityRh": 40,
+                "CO2Ppm": 511,
+                "mos_gasResistance": 317224
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053073,
+                    34.6932875
+                ]
+            },
+            "properties": {
+                "id": 428760,
+                "geom": "POINT (-120.053073 34.6932875)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:24:49",
+                "longitude": -120.053073,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490955415",
+                "sensor_type_id": "30",
+                "latitude": 34.6932875,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23447,
+                "barometricPa": 96771,
+                "humidityRh": 38,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 309837
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05479349999999,
+                    34.6931158
+                ]
+            },
+            "properties": {
+                "id": 428946,
+                "geom": "POINT (-120.05479349999999 34.6931158)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:12:21",
+                "longitude": -120.05479349999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484503415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931158,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22419,
+                "barometricPa": 96836,
+                "humidityRh": 33,
+                "CO2Ppm": 674,
+                "mos_gasResistance": 247356
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0549056,
+                    34.6931028
+                ]
+            },
+            "properties": {
+                "id": 428947,
+                "geom": "POINT (-120.0549056 34.6931028)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:11:22",
+                "longitude": -120.0549056,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484562415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931028,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23515,
+                "barometricPa": 96888,
+                "humidityRh": 34,
+                "CO2Ppm": 789,
+                "mos_gasResistance": 140698
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0547768,
+                    34.6930841
+                ]
+            },
+            "properties": {
+                "id": 428950,
+                "geom": "POINT (-120.0547768 34.6930841)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:14:23",
+                "longitude": -120.0547768,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484381415",
+                "sensor_type_id": "30",
+                "latitude": 34.6930841,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22103,
+                "barometricPa": 96826,
+                "humidityRh": 33,
+                "CO2Ppm": 630,
+                "mos_gasResistance": 234329
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05481979999999,
+                    34.6930628
+                ]
+            },
+            "properties": {
+                "id": 428951,
+                "geom": "POINT (-120.05481979999999 34.6930628)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:13:22",
+                "longitude": -120.05481979999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484442415",
+                "sensor_type_id": "30",
+                "latitude": 34.6930628,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22230,
+                "barometricPa": 96829,
+                "humidityRh": 33,
+                "CO2Ppm": 647,
+                "mos_gasResistance": 259542
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0540838,
+                    34.6929593
+                ]
+            },
+            "properties": {
+                "id": 428964,
+                "geom": "POINT (-120.0540838 34.6929593)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:20:48",
+                "longitude": -120.0540838,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860483996415",
+                "sensor_type_id": "30",
+                "latitude": 34.6929593,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22315,
+                "barometricPa": 97070,
+                "humidityRh": 34,
+                "CO2Ppm": 554,
+                "mos_gasResistance": 195164
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05289259999999,
+                    34.6923246
+                ]
+            },
+            "properties": {
+                "id": 428718,
+                "geom": "POINT (-120.05289259999999 34.6923246)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:37:16",
+                "longitude": -120.05289259999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493808415",
+                "sensor_type_id": "30",
+                "latitude": 34.6923246,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 16854,
+                "barometricPa": 96782,
+                "humidityRh": 41,
+                "CO2Ppm": 500,
+                "mos_gasResistance": 447067
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529016,
+                    34.692310299999995
+                ]
+            },
+            "properties": {
+                "id": 428719,
+                "geom": "POINT (-120.0529016 34.692310299999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:36:15",
+                "longitude": -120.0529016,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493869415",
+                "sensor_type_id": "30",
+                "latitude": 34.692310299999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17042,
+                "barometricPa": 96780,
+                "humidityRh": 41,
+                "CO2Ppm": 503,
+                "mos_gasResistance": 426294
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05290149999999,
+                    34.6922961
+                ]
+            },
+            "properties": {
+                "id": 428720,
+                "geom": "POINT (-120.05290149999999 34.6922961)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:38:59",
+                "longitude": -120.05290149999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493705415",
+                "sensor_type_id": "30",
+                "latitude": 34.6922961,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 16236,
+                "barometricPa": 96777,
+                "humidityRh": 43,
+                "CO2Ppm": 494,
+                "mos_gasResistance": 435919
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529105,
+                    34.6923715
+                ]
+            },
+            "properties": {
+                "id": 428721,
+                "geom": "POINT (-120.0529105 34.6923715)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:41:35",
+                "longitude": -120.0529105,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493549415",
+                "sensor_type_id": "30",
+                "latitude": 34.6923715,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15839,
+                "barometricPa": 96775,
+                "humidityRh": 43,
+                "CO2Ppm": 485,
+                "mos_gasResistance": 438254
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05290459999999,
+                    34.6923491
+                ]
+            },
+            "properties": {
+                "id": 428722,
+                "geom": "POINT (-120.05290459999999 34.6923491)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:40:06",
+                "longitude": -120.05290459999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493638415",
+                "sensor_type_id": "30",
+                "latitude": 34.6923491,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15986,
+                "barometricPa": 96769,
+                "humidityRh": 43,
+                "CO2Ppm": 485,
+                "mos_gasResistance": 458369
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.052917,
+                    34.6924935
+                ]
+            },
+            "properties": {
+                "id": 428726,
+                "geom": "POINT (-120.052917 34.6924935)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:47:08",
+                "longitude": -120.052917,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493216415",
+                "sensor_type_id": "30",
+                "latitude": 34.6924935,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 14967,
+                "barometricPa": 96754,
+                "humidityRh": 45,
+                "CO2Ppm": 487,
+                "mos_gasResistance": 448869
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528686,
+                    34.692443499999996
+                ]
+            },
+            "properties": {
+                "id": 428727,
+                "geom": "POINT (-120.0528686 34.692443499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:45:47",
+                "longitude": -120.0528686,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493297415",
+                "sensor_type_id": "30",
+                "latitude": 34.692443499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15176,
+                "barometricPa": 96762,
+                "humidityRh": 44,
+                "CO2Ppm": 488,
+                "mos_gasResistance": 461647
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528901,
+                    34.6925138
+                ]
+            },
+            "properties": {
+                "id": 428728,
+                "geom": "POINT (-120.0528901 34.6925138)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:48:15",
+                "longitude": -120.0528901,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493149415",
+                "sensor_type_id": "30",
+                "latitude": 34.6925138,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 14944,
+                "barometricPa": 96755,
+                "humidityRh": 45,
+                "CO2Ppm": 480,
+                "mos_gasResistance": 458343
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529246,
+                    34.6924323
+                ]
+            },
+            "properties": {
+                "id": 428729,
+                "geom": "POINT (-120.0529246 34.6924323)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:51:18",
+                "longitude": -120.0529246,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492966415",
+                "sensor_type_id": "30",
+                "latitude": 34.6924323,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15458,
+                "barometricPa": 96768,
+                "humidityRh": 45,
+                "CO2Ppm": 503,
+                "mos_gasResistance": 438604
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05286699999999,
+                    34.692451
+                ]
+            },
+            "properties": {
+                "id": 428730,
+                "geom": "POINT (-120.05286699999999 34.692451)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:50:16",
+                "longitude": -120.05286699999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493028415",
+                "sensor_type_id": "30",
+                "latitude": 34.692451,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15312,
+                "barometricPa": 96776,
+                "humidityRh": 46,
+                "CO2Ppm": 507,
+                "mos_gasResistance": 409400
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05292379999999,
+                    34.692453799999996
+                ]
+            },
+            "properties": {
+                "id": 428731,
+                "geom": "POINT (-120.05292379999999 34.692453799999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:53:36",
+                "longitude": -120.05292379999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492828415",
+                "sensor_type_id": "30",
+                "latitude": 34.692453799999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15369,
+                "barometricPa": 96771,
+                "humidityRh": 44,
+                "CO2Ppm": 479,
+                "mos_gasResistance": 455816
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05288809999999,
+                    34.6925045
+                ]
+            },
+            "properties": {
+                "id": 428732,
+                "geom": "POINT (-120.05288809999999 34.6925045)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:52:29",
+                "longitude": -120.05288809999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492895415",
+                "sensor_type_id": "30",
+                "latitude": 34.6925045,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15460,
+                "barometricPa": 96775,
+                "humidityRh": 44,
+                "CO2Ppm": 483,
+                "mos_gasResistance": 456469
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528291,
+                    34.6921781
+                ]
+            },
+            "properties": {
+                "id": 428734,
+                "geom": "POINT (-120.0528291 34.6921781)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:56:09",
+                "longitude": -120.0528291,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492675415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921781,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15619,
+                "barometricPa": 96788,
+                "humidityRh": 46,
+                "CO2Ppm": 658,
+                "mos_gasResistance": 71957
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05301209999999,
+                    34.6932051
+                ]
+            },
+            "properties": {
+                "id": 428761,
+                "geom": "POINT (-120.05301209999999 34.6932051)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:23:46",
+                "longitude": -120.05301209999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491018415",
+                "sensor_type_id": "30",
+                "latitude": 34.6932051,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23082,
+                "barometricPa": 96774,
+                "humidityRh": 40,
+                "CO2Ppm": 528,
+                "mos_gasResistance": 302158
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05304559999999,
+                    34.693338499999996
+                ]
+            },
+            "properties": {
+                "id": 428763,
+                "geom": "POINT (-120.05304559999999 34.693338499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:27:12",
+                "longitude": -120.05304559999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490812415",
+                "sensor_type_id": "30",
+                "latitude": 34.693338499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23619,
+                "barometricPa": 96778,
+                "humidityRh": 34,
+                "CO2Ppm": 518,
+                "mos_gasResistance": 327029
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0531015,
+                    34.693286
+                ]
+            },
+            "properties": {
+                "id": 428764,
+                "geom": "POINT (-120.0531015 34.693286)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:25:51",
+                "longitude": -120.0531015,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490893415",
+                "sensor_type_id": "30",
+                "latitude": 34.693286,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23678,
+                "barometricPa": 96776,
+                "humidityRh": 37,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 322534
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053055,
+                    34.6934263
+                ]
+            },
+            "properties": {
+                "id": 428765,
+                "geom": "POINT (-120.053055 34.6934263)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:29:15",
+                "longitude": -120.053055,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490689415",
+                "sensor_type_id": "30",
+                "latitude": 34.6934263,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22557,
+                "barometricPa": 96755,
+                "humidityRh": 33,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 373534
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05311599999999,
+                    34.693338499999996
+                ]
+            },
+            "properties": {
+                "id": 428766,
+                "geom": "POINT (-120.05311599999999 34.693338499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:28:13",
+                "longitude": -120.05311599999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490751415",
+                "sensor_type_id": "30",
+                "latitude": 34.693338499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23162,
+                "barometricPa": 96761,
+                "humidityRh": 33,
+                "CO2Ppm": 504,
+                "mos_gasResistance": 357508
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0531128,
+                    34.6933923
+                ]
+            },
+            "properties": {
+                "id": 428767,
+                "geom": "POINT (-120.0531128 34.6933923)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:32:29",
+                "longitude": -120.0531128,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490495415",
+                "sensor_type_id": "30",
+                "latitude": 34.6933923,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20608,
+                "barometricPa": 96769,
+                "humidityRh": 34,
+                "CO2Ppm": 503,
+                "mos_gasResistance": 403323
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0530871,
+                    34.693345799999996
+                ]
+            },
+            "properties": {
+                "id": 428768,
+                "geom": "POINT (-120.0530871 34.693345799999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:31:28",
+                "longitude": -120.0530871,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490556415",
+                "sensor_type_id": "30",
+                "latitude": 34.693345799999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21147,
+                "barometricPa": 96757,
+                "humidityRh": 33,
+                "CO2Ppm": 502,
+                "mos_gasResistance": 402452
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05314449999999,
+                    34.693427299999996
+                ]
+            },
+            "properties": {
+                "id": 428769,
+                "geom": "POINT (-120.05314449999999 34.693427299999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:30:26",
+                "longitude": -120.05314449999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490618415",
+                "sensor_type_id": "30",
+                "latitude": 34.693427299999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21839,
+                "barometricPa": 96764,
+                "humidityRh": 33,
+                "CO2Ppm": 500,
+                "mos_gasResistance": 389303
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0531675,
+                    34.693463
+                ]
+            },
+            "properties": {
+                "id": 428770,
+                "geom": "POINT (-120.0531675 34.693463)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:34:42",
+                "longitude": -120.0531675,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490362415",
+                "sensor_type_id": "30",
+                "latitude": 34.693463,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20174,
+                "barometricPa": 96784,
+                "humidityRh": 36,
+                "CO2Ppm": 499,
+                "mos_gasResistance": 393073
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053125,
+                    34.6934415
+                ]
+            },
+            "properties": {
+                "id": 428771,
+                "geom": "POINT (-120.053125 34.6934415)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:33:30",
+                "longitude": -120.053125,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490434415",
+                "sensor_type_id": "30",
+                "latitude": 34.6934415,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20233,
+                "barometricPa": 96767,
+                "humidityRh": 34,
+                "CO2Ppm": 502,
+                "mos_gasResistance": 404232
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0532095,
+                    34.6935253
+                ]
+            },
+            "properties": {
+                "id": 428773,
+                "geom": "POINT (-120.0532095 34.6935253)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:35:44",
+                "longitude": -120.0532095,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490300415",
+                "sensor_type_id": "30",
+                "latitude": 34.6935253,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20371,
+                "barometricPa": 96795,
+                "humidityRh": 36,
+                "CO2Ppm": 563,
+                "mos_gasResistance": 390561
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053246,
+                    34.693664
+                ]
+            },
+            "properties": {
+                "id": 428787,
+                "geom": "POINT (-120.053246 34.693664)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:46:04",
+                "longitude": -120.053246,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489680415",
+                "sensor_type_id": "30",
+                "latitude": 34.693664,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20581,
+                "barometricPa": 96792,
+                "humidityRh": 34,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 401868
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05325149999999,
+                    34.693609099999996
+                ]
+            },
+            "properties": {
+                "id": 428788,
+                "geom": "POINT (-120.05325149999999 34.693609099999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:45:02",
+                "longitude": -120.05325149999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489742415",
+                "sensor_type_id": "30",
+                "latitude": 34.693609099999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20772,
+                "barometricPa": 96791,
+                "humidityRh": 33,
+                "CO2Ppm": 532,
+                "mos_gasResistance": 411307
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0534273,
+                    34.693935599999996
+                ]
+            },
+            "properties": {
+                "id": 428802,
+                "geom": "POINT (-120.0534273 34.693935599999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:52:26",
+                "longitude": -120.0534273,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489298415",
+                "sensor_type_id": "30",
+                "latitude": 34.693935599999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20260,
+                "barometricPa": 96783,
+                "humidityRh": 33,
+                "CO2Ppm": 486,
+                "mos_gasResistance": 406297
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0536345,
+                    34.694458
+                ]
+            },
+            "properties": {
+                "id": 428836,
+                "geom": "POINT (-120.0536345 34.694458)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:12:33",
+                "longitude": -120.0536345,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488091415",
+                "sensor_type_id": "30",
+                "latitude": 34.694458,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18629,
+                "barometricPa": 96769,
+                "humidityRh": 38,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 361891
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0536365,
+                    34.694473099999996
+                ]
+            },
+            "properties": {
+                "id": 428837,
+                "geom": "POINT (-120.0536365 34.694473099999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:11:32",
+                "longitude": -120.0536365,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488152415",
+                "sensor_type_id": "30",
+                "latitude": 34.694473099999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18336,
+                "barometricPa": 96768,
+                "humidityRh": 36,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 379615
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0536411,
+                    34.6944118
+                ]
+            },
+            "properties": {
+                "id": 428838,
+                "geom": "POINT (-120.0536411 34.6944118)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:10:22",
+                "longitude": -120.0536411,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488222415",
+                "sensor_type_id": "30",
+                "latitude": 34.6944118,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18225,
+                "barometricPa": 96769,
+                "humidityRh": 36,
+                "CO2Ppm": 530,
+                "mos_gasResistance": 392745
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053787,
+                    34.6945583
+                ]
+            },
+            "properties": {
+                "id": 428841,
+                "geom": "POINT (-120.053787 34.6945583)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:14:42",
+                "longitude": -120.053787,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487962415",
+                "sensor_type_id": "30",
+                "latitude": 34.6945583,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19783,
+                "barometricPa": 96758,
+                "humidityRh": 38,
+                "CO2Ppm": 531,
+                "mos_gasResistance": 344651
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05370309999999,
+                    34.6945281
+                ]
+            },
+            "properties": {
+                "id": 428842,
+                "geom": "POINT (-120.05370309999999 34.6945281)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:13:41",
+                "longitude": -120.05370309999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488023415",
+                "sensor_type_id": "30",
+                "latitude": 34.6945281,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19337,
+                "barometricPa": 96769,
+                "humidityRh": 39,
+                "CO2Ppm": 533,
+                "mos_gasResistance": 346985
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.054126,
+                    34.6949453
+                ]
+            },
+            "properties": {
+                "id": 428851,
+                "geom": "POINT (-120.054126 34.6949453)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:20:13",
+                "longitude": -120.054126,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487631415",
+                "sensor_type_id": "30",
+                "latitude": 34.6949453,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20837,
+                "barometricPa": 96616,
+                "humidityRh": 34,
+                "CO2Ppm": 517,
+                "mos_gasResistance": 360158
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0540805,
+                    34.6949095
+                ]
+            },
+            "properties": {
+                "id": 428852,
+                "geom": "POINT (-120.0540805 34.6949095)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:19:07",
+                "longitude": -120.0540805,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487697415",
+                "sensor_type_id": "30",
+                "latitude": 34.6949095,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20943,
+                "barometricPa": 96645,
+                "humidityRh": 35,
+                "CO2Ppm": 520,
+                "mos_gasResistance": 339441
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0539455,
+                    34.6947498
+                ]
+            },
+            "properties": {
+                "id": 428853,
+                "geom": "POINT (-120.0539455 34.6947498)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:18:05",
+                "longitude": -120.0539455,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487759415",
+                "sensor_type_id": "30",
+                "latitude": 34.6947498,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20970,
+                "barometricPa": 96673,
+                "humidityRh": 36,
+                "CO2Ppm": 513,
+                "mos_gasResistance": 347510
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0541595,
+                    34.6949311
+                ]
+            },
+            "properties": {
+                "id": 428857,
+                "geom": "POINT (-120.0541595 34.6949311)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:22:07",
+                "longitude": -120.0541595,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487517415",
+                "sensor_type_id": "30",
+                "latitude": 34.6949311,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20163,
+                "barometricPa": 96612,
+                "humidityRh": 33,
+                "CO2Ppm": 511,
+                "mos_gasResistance": 374706
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0540908,
+                    34.6949538
+                ]
+            },
+            "properties": {
+                "id": 428859,
+                "geom": "POINT (-120.0540908 34.6949538)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:24:11",
+                "longitude": -120.0540908,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487393415",
+                "sensor_type_id": "30",
+                "latitude": 34.6949538,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19213,
+                "barometricPa": 96589,
+                "humidityRh": 33,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 444100
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05412709999999,
+                    34.6949633
+                ]
+            },
+            "properties": {
+                "id": 428860,
+                "geom": "POINT (-120.05412709999999 34.6949633)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:23:10",
+                "longitude": -120.05412709999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487454415",
+                "sensor_type_id": "30",
+                "latitude": 34.6949633,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19698,
+                "barometricPa": 96595,
+                "humidityRh": 32,
+                "CO2Ppm": 497,
+                "mos_gasResistance": 427222
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05405359999999,
+                    34.6948618
+                ]
+            },
+            "properties": {
+                "id": 428863,
+                "geom": "POINT (-120.05405359999999 34.6948618)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:26:26",
+                "longitude": -120.05405359999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487258415",
+                "sensor_type_id": "30",
+                "latitude": 34.6948618,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18345,
+                "barometricPa": 96599,
+                "humidityRh": 34,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 286190
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0540413,
+                    34.6948666
+                ]
+            },
+            "properties": {
+                "id": 428864,
+                "geom": "POINT (-120.0540413 34.6948666)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:25:12",
+                "longitude": -120.0540413,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487332415",
+                "sensor_type_id": "30",
+                "latitude": 34.6948666,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18767,
+                "barometricPa": 96595,
+                "humidityRh": 33,
+                "CO2Ppm": 493,
+                "mos_gasResistance": 378848
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05448129999999,
+                    34.6948285
+                ]
+            },
+            "properties": {
+                "id": 428869,
+                "geom": "POINT (-120.05448129999999 34.6948285)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:28:28",
+                "longitude": -120.05448129999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487136415",
+                "sensor_type_id": "30",
+                "latitude": 34.6948285,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17842,
+                "barometricPa": 96666,
+                "humidityRh": 36,
+                "CO2Ppm": 446,
+                "mos_gasResistance": 367172
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0544978,
+                    34.6948046
+                ]
+            },
+            "properties": {
+                "id": 428870,
+                "geom": "POINT (-120.0544978 34.6948046)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:27:27",
+                "longitude": -120.0544978,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487197415",
+                "sensor_type_id": "30",
+                "latitude": 34.6948046,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18018,
+                "barometricPa": 96627,
+                "humidityRh": 34,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 288917
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05454209999999,
+                    34.6947875
+                ]
+            },
+            "properties": {
+                "id": 428873,
+                "geom": "POINT (-120.05454209999999 34.6947875)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:30:41",
+                "longitude": -120.05454209999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487003415",
+                "sensor_type_id": "30",
+                "latitude": 34.6947875,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18161,
+                "barometricPa": 96668,
+                "humidityRh": 36,
+                "CO2Ppm": 486,
+                "mos_gasResistance": 391810
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.054428,
+                    34.6948001
+                ]
+            },
+            "properties": {
+                "id": 428874,
+                "geom": "POINT (-120.054428 34.6948001)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:29:29",
+                "longitude": -120.054428,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487075415",
+                "sensor_type_id": "30",
+                "latitude": 34.6948001,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17970,
+                "barometricPa": 96673,
+                "humidityRh": 36,
+                "CO2Ppm": 480,
+                "mos_gasResistance": 400466
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0549106,
+                    34.6943925
+                ]
+            },
+            "properties": {
+                "id": 428901,
+                "geom": "POINT (-120.0549106 34.6943925)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:45:12",
+                "longitude": -120.0549106,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486132415",
+                "sensor_type_id": "30",
+                "latitude": 34.6943925,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20094,
+                "barometricPa": 96723,
+                "humidityRh": 35,
+                "CO2Ppm": 504,
+                "mos_gasResistance": 383837
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0548671,
+                    34.6944096
+                ]
+            },
+            "properties": {
+                "id": 428902,
+                "geom": "POINT (-120.0548671 34.6944096)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:44:06",
+                "longitude": -120.0548671,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486198415",
+                "sensor_type_id": "30",
+                "latitude": 34.6944096,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19913,
+                "barometricPa": 96735,
+                "humidityRh": 35,
+                "CO2Ppm": 498,
+                "mos_gasResistance": 392064
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05470349999999,
+                    34.6946188
+                ]
+            },
+            "properties": {
+                "id": 428877,
+                "geom": "POINT (-120.05470349999999 34.6946188)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:33:51",
+                "longitude": -120.05470349999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486813415",
+                "sensor_type_id": "30",
+                "latitude": 34.6946188,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18342,
+                "barometricPa": 96712,
+                "humidityRh": 34,
+                "CO2Ppm": 501,
+                "mos_gasResistance": 421442
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0546773,
+                    34.6946558
+                ]
+            },
+            "properties": {
+                "id": 428878,
+                "geom": "POINT (-120.0546773 34.6946558)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:32:50",
+                "longitude": -120.0546773,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486874415",
+                "sensor_type_id": "30",
+                "latitude": 34.6946558,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18408,
+                "barometricPa": 96707,
+                "humidityRh": 35,
+                "CO2Ppm": 505,
+                "mos_gasResistance": 418685
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0546411,
+                    34.6947311
+                ]
+            },
+            "properties": {
+                "id": 428879,
+                "geom": "POINT (-120.0546411 34.6947311)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:31:42",
+                "longitude": -120.0546411,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486942415",
+                "sensor_type_id": "30",
+                "latitude": 34.6947311,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18328,
+                "barometricPa": 96674,
+                "humidityRh": 35,
+                "CO2Ppm": 496,
+                "mos_gasResistance": 413457
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0545961,
+                    34.694737499999995
+                ]
+            },
+            "properties": {
+                "id": 428883,
+                "geom": "POINT (-120.0545961 34.694737499999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:36:54",
+                "longitude": -120.0545961,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486630415",
+                "sensor_type_id": "30",
+                "latitude": 34.694737499999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18604,
+                "barometricPa": 96680,
+                "humidityRh": 34,
+                "CO2Ppm": 502,
+                "mos_gasResistance": 422963
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0545738,
+                    34.6947385
+                ]
+            },
+            "properties": {
+                "id": 428884,
+                "geom": "POINT (-120.0545738 34.6947385)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:35:53",
+                "longitude": -120.0545738,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486691415",
+                "sensor_type_id": "30",
+                "latitude": 34.6947385,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18412,
+                "barometricPa": 96697,
+                "humidityRh": 35,
+                "CO2Ppm": 502,
+                "mos_gasResistance": 419285
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0546236,
+                    34.694659099999996
+                ]
+            },
+            "properties": {
+                "id": 428885,
+                "geom": "POINT (-120.0546236 34.694659099999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:34:52",
+                "longitude": -120.0546236,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486752415",
+                "sensor_type_id": "30",
+                "latitude": 34.694659099999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18334,
+                "barometricPa": 96713,
+                "humidityRh": 34,
+                "CO2Ppm": 500,
+                "mos_gasResistance": 419951
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05479179999999,
+                    34.694478499999995
+                ]
+            },
+            "properties": {
+                "id": 428897,
+                "geom": "POINT (-120.05479179999999 34.694478499999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:43:05",
+                "longitude": -120.05479179999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486259415",
+                "sensor_type_id": "30",
+                "latitude": 34.694478499999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19713,
+                "barometricPa": 96733,
+                "humidityRh": 35,
+                "CO2Ppm": 497,
+                "mos_gasResistance": 394808
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05481879999999,
+                    34.694554499999995
+                ]
+            },
+            "properties": {
+                "id": 428898,
+                "geom": "POINT (-120.05481879999999 34.694554499999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:42:02",
+                "longitude": -120.05481879999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486322415",
+                "sensor_type_id": "30",
+                "latitude": 34.694554499999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19482,
+                "barometricPa": 96727,
+                "humidityRh": 35,
+                "CO2Ppm": 504,
+                "mos_gasResistance": 402150
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05492729999999,
+                    34.6942433
+                ]
+            },
+            "properties": {
+                "id": 428905,
+                "geom": "POINT (-120.05492729999999 34.6942433)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:48:29",
+                "longitude": -120.05492729999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485935415",
+                "sensor_type_id": "30",
+                "latitude": 34.6942433,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20631,
+                "barometricPa": 96715,
+                "humidityRh": 36,
+                "CO2Ppm": 503,
+                "mos_gasResistance": 286118
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05489109999999,
+                    34.694301599999996
+                ]
+            },
+            "properties": {
+                "id": 428906,
+                "geom": "POINT (-120.05489109999999 34.694301599999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:47:13",
+                "longitude": -120.05489109999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486011415",
+                "sensor_type_id": "30",
+                "latitude": 34.694301599999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20414,
+                "barometricPa": 96716,
+                "humidityRh": 35,
+                "CO2Ppm": 508,
+                "mos_gasResistance": 328370
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0549183,
+                    34.694201
+                ]
+            },
+            "properties": {
+                "id": 428910,
+                "geom": "POINT (-120.0549183 34.694201)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:50:41",
+                "longitude": -120.0549183,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485803415",
+                "sensor_type_id": "30",
+                "latitude": 34.694201,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21110,
+                "barometricPa": 96694,
+                "humidityRh": 36,
+                "CO2Ppm": 509,
+                "mos_gasResistance": 229250
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.054891,
+                    34.6942405
+                ]
+            },
+            "properties": {
+                "id": 428911,
+                "geom": "POINT (-120.054891 34.6942405)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:49:30",
+                "longitude": -120.054891,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485874415",
+                "sensor_type_id": "30",
+                "latitude": 34.6942405,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20828,
+                "barometricPa": 96709,
+                "humidityRh": 36,
+                "CO2Ppm": 505,
+                "mos_gasResistance": 219447
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05490379999999,
+                    34.6940345
+                ]
+            },
+            "properties": {
+                "id": 428914,
+                "geom": "POINT (-120.05490379999999 34.6940345)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:52:49",
+                "longitude": -120.05490379999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485675415",
+                "sensor_type_id": "30",
+                "latitude": 34.6940345,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21586,
+                "barometricPa": 96691,
+                "humidityRh": 36,
+                "CO2Ppm": 528,
+                "mos_gasResistance": 283343
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0549283,
+                    34.6941695
+                ]
+            },
+            "properties": {
+                "id": 428915,
+                "geom": "POINT (-120.0549283 34.6941695)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:51:48",
+                "longitude": -120.0549283,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485736415",
+                "sensor_type_id": "30",
+                "latitude": 34.6941695,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21354,
+                "barometricPa": 96692,
+                "humidityRh": 36,
+                "CO2Ppm": 518,
+                "mos_gasResistance": 267381
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05448059999999,
+                    34.693398
+                ]
+            },
+            "properties": {
+                "id": 428929,
+                "geom": "POINT (-120.05448059999999 34.693398)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:00:00",
+                "longitude": -120.05448059999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485244415",
+                "sensor_type_id": "30",
+                "latitude": 34.693398,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22327,
+                "barometricPa": 96861,
+                "humidityRh": 35,
+                "CO2Ppm": 515,
+                "mos_gasResistance": 165387
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05489229999999,
+                    34.693514799999996
+                ]
+            },
+            "properties": {
+                "id": 428930,
+                "geom": "POINT (-120.05489229999999 34.693514799999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:59:00",
+                "longitude": -120.05489229999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485304415",
+                "sensor_type_id": "30",
+                "latitude": 34.693514799999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22224,
+                "barometricPa": 96749,
+                "humidityRh": 35,
+                "CO2Ppm": 519,
+                "mos_gasResistance": 333569
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0551175,
+                    34.6937686
+                ]
+            },
+            "properties": {
+                "id": 428919,
+                "geom": "POINT (-120.0551175 34.6937686)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:54:57",
+                "longitude": -120.0551175,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485547415",
+                "sensor_type_id": "30",
+                "latitude": 34.6937686,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22000,
+                "barometricPa": 96711,
+                "humidityRh": 36,
+                "CO2Ppm": 527,
+                "mos_gasResistance": 312271
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0549758,
+                    34.6939166
+                ]
+            },
+            "properties": {
+                "id": 428920,
+                "geom": "POINT (-120.0549758 34.6939166)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:53:56",
+                "longitude": -120.0549758,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485608415",
+                "sensor_type_id": "30",
+                "latitude": 34.6939166,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21824,
+                "barometricPa": 96687,
+                "humidityRh": 36,
+                "CO2Ppm": 517,
+                "mos_gasResistance": 286826
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0550178,
+                    34.693523
+                ]
+            },
+            "properties": {
+                "id": 428923,
+                "geom": "POINT (-120.0550178 34.693523)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:58:00",
+                "longitude": -120.0550178,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485364415",
+                "sensor_type_id": "30",
+                "latitude": 34.693523,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22126,
+                "barometricPa": 96737,
+                "humidityRh": 35,
+                "CO2Ppm": 524,
+                "mos_gasResistance": 352267
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0550925,
+                    34.6936068
+                ]
+            },
+            "properties": {
+                "id": 428924,
+                "geom": "POINT (-120.0550925 34.6936068)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:56:59",
+                "longitude": -120.0550925,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485425415",
+                "sensor_type_id": "30",
+                "latitude": 34.6936068,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22101,
+                "barometricPa": 96732,
+                "humidityRh": 35,
+                "CO2Ppm": 526,
+                "mos_gasResistance": 350223
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05506249999999,
+                    34.6937013
+                ]
+            },
+            "properties": {
+                "id": 428925,
+                "geom": "POINT (-120.05506249999999 34.6937013)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:55:58",
+                "longitude": -120.05506249999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485486415",
+                "sensor_type_id": "30",
+                "latitude": 34.6937013,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22091,
+                "barometricPa": 96716,
+                "humidityRh": 35,
+                "CO2Ppm": 528,
+                "mos_gasResistance": 336580
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05406409999999,
+                    34.6932736
+                ]
+            },
+            "properties": {
+                "id": 428934,
+                "geom": "POINT (-120.05406409999999 34.6932736)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:02:22",
+                "longitude": -120.05406409999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860485102415",
+                "sensor_type_id": "30",
+                "latitude": 34.6932736,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 23558,
+                "barometricPa": 97016,
+                "humidityRh": 35,
+                "CO2Ppm": 667,
+                "mos_gasResistance": 66133
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05472809999999,
+                    34.6931868
+                ]
+            },
+            "properties": {
+                "id": 428954,
+                "geom": "POINT (-120.05472809999999 34.6931868)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:16:25",
+                "longitude": -120.05472809999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484259415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931868,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22010,
+                "barometricPa": 96814,
+                "humidityRh": 33,
+                "CO2Ppm": 601,
+                "mos_gasResistance": 254367
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05286459999999,
+                    34.6921323
+                ]
+            },
+            "properties": {
+                "id": 428704,
+                "geom": "POINT (-120.05286459999999 34.6921323)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:17:06",
+                "longitude": -120.05286459999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860495018415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921323,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20090,
+                "barometricPa": 96789,
+                "humidityRh": 41,
+                "CO2Ppm": 652,
+                "mos_gasResistance": 221515
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528343,
+                    34.6921001
+                ]
+            },
+            "properties": {
+                "id": 428705,
+                "geom": "POINT (-120.0528343 34.6921001)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:19:36",
+                "longitude": -120.0528343,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494868415",
+                "sensor_type_id": "30",
+                "latitude": 34.6921001,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19692,
+                "barometricPa": 96793,
+                "humidityRh": 40,
+                "CO2Ppm": 579,
+                "mos_gasResistance": 329152
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05286509999999,
+                    34.692161999999996
+                ]
+            },
+            "properties": {
+                "id": 428706,
+                "geom": "POINT (-120.05286509999999 34.692161999999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:23:16",
+                "longitude": -120.05286509999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860494648415",
+                "sensor_type_id": "30",
+                "latitude": 34.692161999999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19425,
+                "barometricPa": 96782,
+                "humidityRh": 41,
+                "CO2Ppm": 689,
+                "mos_gasResistance": 215140
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05282079999999,
+                    34.692105
+                ]
+            },
+            "properties": {
+                "id": 428735,
+                "geom": "POINT (-120.05282079999999 34.692105)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:54:43",
+                "longitude": -120.05282079999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492761415",
+                "sensor_type_id": "30",
+                "latitude": 34.692105,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15349,
+                "barometricPa": 96777,
+                "humidityRh": 44,
+                "CO2Ppm": 478,
+                "mos_gasResistance": 282746
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.052931,
+                    34.6924341
+                ]
+            },
+            "properties": {
+                "id": 428736,
+                "geom": "POINT (-120.052931 34.6924341)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:58:12",
+                "longitude": -120.052931,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492552415",
+                "sensor_type_id": "30",
+                "latitude": 34.6924341,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 16740,
+                "barometricPa": 96809,
+                "humidityRh": 46,
+                "CO2Ppm": 771,
+                "mos_gasResistance": 166556
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05293909999999,
+                    34.692503099999996
+                ]
+            },
+            "properties": {
+                "id": 428737,
+                "geom": "POINT (-120.05293909999999 34.692503099999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:57:11",
+                "longitude": -120.05293909999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492613415",
+                "sensor_type_id": "30",
+                "latitude": 34.692503099999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 16224,
+                "barometricPa": 96778,
+                "humidityRh": 47,
+                "CO2Ppm": 775,
+                "mos_gasResistance": 88134
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529565,
+                    34.692568099999995
+                ]
+            },
+            "properties": {
+                "id": 428738,
+                "geom": "POINT (-120.0529565 34.692568099999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:00:35",
+                "longitude": -120.0529565,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492409415",
+                "sensor_type_id": "30",
+                "latitude": 34.692568099999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17338,
+                "barometricPa": 96789,
+                "humidityRh": 44,
+                "CO2Ppm": 549,
+                "mos_gasResistance": 316314
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05293499999999,
+                    34.69255
+                ]
+            },
+            "properties": {
+                "id": 428739,
+                "geom": "POINT (-120.05293499999999 34.69255)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:59:14",
+                "longitude": -120.05293499999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492490415",
+                "sensor_type_id": "30",
+                "latitude": 34.69255,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17035,
+                "barometricPa": 96783,
+                "humidityRh": 44,
+                "CO2Ppm": 643,
+                "mos_gasResistance": 282196
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529813,
+                    34.692600999999996
+                ]
+            },
+            "properties": {
+                "id": 428740,
+                "geom": "POINT (-120.0529813 34.692600999999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:02:41",
+                "longitude": -120.0529813,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492283415",
+                "sensor_type_id": "30",
+                "latitude": 34.692600999999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18021,
+                "barometricPa": 96784,
+                "humidityRh": 43,
+                "CO2Ppm": 471,
+                "mos_gasResistance": 369308
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529823,
+                    34.692555999999996
+                ]
+            },
+            "properties": {
+                "id": 428741,
+                "geom": "POINT (-120.0529823 34.692555999999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:01:35",
+                "longitude": -120.0529823,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492349415",
+                "sensor_type_id": "30",
+                "latitude": 34.692555999999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17724,
+                "barometricPa": 96787,
+                "humidityRh": 44,
+                "CO2Ppm": 541,
+                "mos_gasResistance": 351354
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0529128,
+                    34.6927776
+                ]
+            },
+            "properties": {
+                "id": 428742,
+                "geom": "POINT (-120.0529128 34.6927776)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:05:26",
+                "longitude": -120.0529128,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492118415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927776,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18539,
+                "barometricPa": 96772,
+                "humidityRh": 43,
+                "CO2Ppm": 491,
+                "mos_gasResistance": 355563
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05300899999999,
+                    34.6926625
+                ]
+            },
+            "properties": {
+                "id": 428743,
+                "geom": "POINT (-120.05300899999999 34.6926625)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:03:47",
+                "longitude": -120.05300899999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492217415",
+                "sensor_type_id": "30",
+                "latitude": 34.6926625,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18244,
+                "barometricPa": 96785,
+                "humidityRh": 43,
+                "CO2Ppm": 492,
+                "mos_gasResistance": 385384
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528858,
+                    34.6927965
+                ]
+            },
+            "properties": {
+                "id": 428744,
+                "geom": "POINT (-120.0528858 34.6927965)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:07:39",
+                "longitude": -120.0528858,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491985415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927965,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18482,
+                "barometricPa": 96756,
+                "humidityRh": 40,
+                "CO2Ppm": 493,
+                "mos_gasResistance": 395635
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.052893,
+                    34.6927935
+                ]
+            },
+            "properties": {
+                "id": 428745,
+                "geom": "POINT (-120.052893 34.6927935)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:06:38",
+                "longitude": -120.052893,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860492046415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927935,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18587,
+                "barometricPa": 96758,
+                "humidityRh": 41,
+                "CO2Ppm": 477,
+                "mos_gasResistance": 378781
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528095,
+                    34.6927733
+                ]
+            },
+            "properties": {
+                "id": 428746,
+                "geom": "POINT (-120.0528095 34.6927733)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:09:42",
+                "longitude": -120.0528095,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491862415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927733,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17725,
+                "barometricPa": 96731,
+                "humidityRh": 39,
+                "CO2Ppm": 520,
+                "mos_gasResistance": 276814
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05291629999999,
+                    34.6927993
+                ]
+            },
+            "properties": {
+                "id": 428747,
+                "geom": "POINT (-120.05291629999999 34.6927993)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:08:40",
+                "longitude": -120.05291629999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491924415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927993,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18209,
+                "barometricPa": 96755,
+                "humidityRh": 39,
+                "CO2Ppm": 503,
+                "mos_gasResistance": 409283
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528368,
+                    34.6927976
+                ]
+            },
+            "properties": {
+                "id": 428748,
+                "geom": "POINT (-120.0528368 34.6927976)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:11:50",
+                "longitude": -120.0528368,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491734415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927976,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17836,
+                "barometricPa": 96731,
+                "humidityRh": 44,
+                "CO2Ppm": 1472,
+                "mos_gasResistance": 73339
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05272599999999,
+                    34.6928966
+                ]
+            },
+            "properties": {
+                "id": 428749,
+                "geom": "POINT (-120.05272599999999 34.6928966)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:10:49",
+                "longitude": -120.05272599999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860491795415",
+                "sensor_type_id": "30",
+                "latitude": 34.6928966,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17472,
+                "barometricPa": 96721,
+                "humidityRh": 42,
+                "CO2Ppm": 885,
+                "mos_gasResistance": 102953
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05377829999999,
+                    34.694593499999996
+                ]
+            },
+            "properties": {
+                "id": 428848,
+                "geom": "POINT (-120.05377829999999 34.694593499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:15:43",
+                "longitude": -120.05377829999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487901415",
+                "sensor_type_id": "30",
+                "latitude": 34.694593499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20185,
+                "barometricPa": 96755,
+                "humidityRh": 37,
+                "CO2Ppm": 534,
+                "mos_gasResistance": 342495
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0547725,
+                    34.6931091
+                ]
+            },
+            "properties": {
+                "id": 428955,
+                "geom": "POINT (-120.0547725 34.6931091)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T20:15:24",
+                "longitude": -120.0547725,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860484320415",
+                "sensor_type_id": "30",
+                "latitude": 34.6931091,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 22061,
+                "barometricPa": 96820,
+                "humidityRh": 33,
+                "CO2Ppm": 616,
+                "mos_gasResistance": 235907
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0528203,
+                    34.6922585
+                ]
+            },
+            "properties": {
+                "id": 428702,
+                "geom": "POINT (-120.0528203 34.6922585)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:16:04",
+                "longitude": -120.0528203,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860495080415",
+                "sensor_type_id": "30",
+                "latitude": 34.6922585,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20119,
+                "barometricPa": 96744,
+                "humidityRh": 42,
+                "CO2Ppm": 641,
+                "mos_gasResistance": 170497
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0526963,
+                    34.6927813
+                ]
+            },
+            "properties": {
+                "id": 428703,
+                "geom": "POINT (-120.0526963 34.6927813)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:15:03",
+                "longitude": -120.0526963,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860495141415",
+                "sensor_type_id": "30",
+                "latitude": 34.6927813,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20194,
+                "barometricPa": 96723,
+                "humidityRh": 42,
+                "CO2Ppm": 592,
+                "mos_gasResistance": 175847
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05289049999999,
+                    34.692417999999996
+                ]
+            },
+            "properties": {
+                "id": 428724,
+                "geom": "POINT (-120.05289049999999 34.692417999999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:44:47",
+                "longitude": -120.05289049999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493357415",
+                "sensor_type_id": "30",
+                "latitude": 34.692417999999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15361,
+                "barometricPa": 96776,
+                "humidityRh": 44,
+                "CO2Ppm": 489,
+                "mos_gasResistance": 459086
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.052938,
+                    34.692336499999996
+                ]
+            },
+            "properties": {
+                "id": 428725,
+                "geom": "POINT (-120.052938 34.692336499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T17:42:37",
+                "longitude": -120.052938,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860493487415",
+                "sensor_type_id": "30",
+                "latitude": 34.692336499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 15773,
+                "barometricPa": 96774,
+                "humidityRh": 44,
+                "CO2Ppm": 486,
+                "mos_gasResistance": 459580
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05314249999999,
+                    34.6938433
+                ]
+            },
+            "properties": {
+                "id": 428776,
+                "geom": "POINT (-120.05314249999999 34.6938433)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:40:55",
+                "longitude": -120.05314249999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489989415",
+                "sensor_type_id": "30",
+                "latitude": 34.6938433,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21943,
+                "barometricPa": 96767,
+                "humidityRh": 34,
+                "CO2Ppm": 516,
+                "mos_gasResistance": 370457
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05311479999999,
+                    34.6938238
+                ]
+            },
+            "properties": {
+                "id": 428777,
+                "geom": "POINT (-120.05311479999999 34.6938238)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:39:48",
+                "longitude": -120.05311479999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860490056415",
+                "sensor_type_id": "30",
+                "latitude": 34.6938238,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21928,
+                "barometricPa": 96788,
+                "humidityRh": 36,
+                "CO2Ppm": 510,
+                "mos_gasResistance": 326634
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05326149999999,
+                    34.693600499999995
+                ]
+            },
+            "properties": {
+                "id": 428781,
+                "geom": "POINT (-120.05326149999999 34.693600499999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:44:01",
+                "longitude": -120.05326149999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489803415",
+                "sensor_type_id": "30",
+                "latitude": 34.693600499999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21115,
+                "barometricPa": 96802,
+                "humidityRh": 33,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 406574
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053266,
+                    34.6935978
+                ]
+            },
+            "properties": {
+                "id": 428782,
+                "geom": "POINT (-120.053266 34.6935978)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:43:00",
+                "longitude": -120.053266,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489864415",
+                "sensor_type_id": "30",
+                "latitude": 34.6935978,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21439,
+                "barometricPa": 96798,
+                "humidityRh": 33,
+                "CO2Ppm": 477,
+                "mos_gasResistance": 396106
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0532685,
+                    34.693610299999996
+                ]
+            },
+            "properties": {
+                "id": 428783,
+                "geom": "POINT (-120.0532685 34.693610299999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:41:58",
+                "longitude": -120.0532685,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489926415",
+                "sensor_type_id": "30",
+                "latitude": 34.693610299999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 21702,
+                "barometricPa": 96787,
+                "humidityRh": 34,
+                "CO2Ppm": 481,
+                "mos_gasResistance": 385557
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053322,
+                    34.6937563
+                ]
+            },
+            "properties": {
+                "id": 428791,
+                "geom": "POINT (-120.053322 34.6937563)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:48:08",
+                "longitude": -120.053322,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489556415",
+                "sensor_type_id": "30",
+                "latitude": 34.6937563,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20914,
+                "barometricPa": 96788,
+                "humidityRh": 34,
+                "CO2Ppm": 506,
+                "mos_gasResistance": 395900
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05327949999999,
+                    34.693676499999995
+                ]
+            },
+            "properties": {
+                "id": 428792,
+                "geom": "POINT (-120.05327949999999 34.693676499999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:47:07",
+                "longitude": -120.05327949999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489617415",
+                "sensor_type_id": "30",
+                "latitude": 34.693676499999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20754,
+                "barometricPa": 96799,
+                "humidityRh": 36,
+                "CO2Ppm": 518,
+                "mos_gasResistance": 388905
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05341159999999,
+                    34.6938953
+                ]
+            },
+            "properties": {
+                "id": 428796,
+                "geom": "POINT (-120.05341159999999 34.6938953)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:51:21",
+                "longitude": -120.05341159999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489363415",
+                "sensor_type_id": "30",
+                "latitude": 34.6938953,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20454,
+                "barometricPa": 96780,
+                "humidityRh": 33,
+                "CO2Ppm": 443,
+                "mos_gasResistance": 410494
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05338529999999,
+                    34.6938093
+                ]
+            },
+            "properties": {
+                "id": 428797,
+                "geom": "POINT (-120.05338529999999 34.6938093)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:50:20",
+                "longitude": -120.05338529999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489424415",
+                "sensor_type_id": "30",
+                "latitude": 34.6938093,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20662,
+                "barometricPa": 96796,
+                "humidityRh": 33,
+                "CO2Ppm": 500,
+                "mos_gasResistance": 409342
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05336199999999,
+                    34.693791499999996
+                ]
+            },
+            "properties": {
+                "id": 428798,
+                "geom": "POINT (-120.05336199999999 34.693791499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:49:10",
+                "longitude": -120.05336199999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489494415",
+                "sensor_type_id": "30",
+                "latitude": 34.693791499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20864,
+                "barometricPa": 96790,
+                "humidityRh": 33,
+                "CO2Ppm": 507,
+                "mos_gasResistance": 409341
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0534586,
+                    34.6939326
+                ]
+            },
+            "properties": {
+                "id": 428801,
+                "geom": "POINT (-120.0534586 34.6939326)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:53:27",
+                "longitude": -120.0534586,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489237415",
+                "sensor_type_id": "30",
+                "latitude": 34.6939326,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20049,
+                "barometricPa": 96776,
+                "humidityRh": 33,
+                "CO2Ppm": 493,
+                "mos_gasResistance": 415328
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05340779999999,
+                    34.694074799999996
+                ]
+            },
+            "properties": {
+                "id": 428806,
+                "geom": "POINT (-120.05340779999999 34.694074799999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:55:29",
+                "longitude": -120.05340779999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489115415",
+                "sensor_type_id": "30",
+                "latitude": 34.694074799999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19467,
+                "barometricPa": 96756,
+                "humidityRh": 33,
+                "CO2Ppm": 498,
+                "mos_gasResistance": 428404
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0534366,
+                    34.6939528
+                ]
+            },
+            "properties": {
+                "id": 428807,
+                "geom": "POINT (-120.0534366 34.6939528)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:54:29",
+                "longitude": -120.0534366,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489175415",
+                "sensor_type_id": "30",
+                "latitude": 34.6939528,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19769,
+                "barometricPa": 96776,
+                "humidityRh": 33,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 420796
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0533676,
+                    34.693901
+                ]
+            },
+            "properties": {
+                "id": 428810,
+                "geom": "POINT (-120.0533676 34.693901)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:57:31",
+                "longitude": -120.0533676,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488993415",
+                "sensor_type_id": "30",
+                "latitude": 34.693901,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18928,
+                "barometricPa": 96763,
+                "humidityRh": 34,
+                "CO2Ppm": 502,
+                "mos_gasResistance": 441287
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05338599999999,
+                    34.6941166
+                ]
+            },
+            "properties": {
+                "id": 428811,
+                "geom": "POINT (-120.05338599999999 34.6941166)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:56:30",
+                "longitude": -120.05338599999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860489054415",
+                "sensor_type_id": "30",
+                "latitude": 34.6941166,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19216,
+                "barometricPa": 96749,
+                "humidityRh": 33,
+                "CO2Ppm": 499,
+                "mos_gasResistance": 431236
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053438,
+                    34.6939233
+                ]
+            },
+            "properties": {
+                "id": 428814,
+                "geom": "POINT (-120.053438 34.6939233)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:59:45",
+                "longitude": -120.053438,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488859415",
+                "sensor_type_id": "30",
+                "latitude": 34.6939233,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18538,
+                "barometricPa": 96790,
+                "humidityRh": 35,
+                "CO2Ppm": 494,
+                "mos_gasResistance": 427961
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05343909999999,
+                    34.6938841
+                ]
+            },
+            "properties": {
+                "id": 428815,
+                "geom": "POINT (-120.05343909999999 34.6938841)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T18:58:35",
+                "longitude": -120.05343909999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488929415",
+                "sensor_type_id": "30",
+                "latitude": 34.6938841,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18654,
+                "barometricPa": 96784,
+                "humidityRh": 34,
+                "CO2Ppm": 495,
+                "mos_gasResistance": 432766
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053485,
+                    34.694027
+                ]
+            },
+            "properties": {
+                "id": 428818,
+                "geom": "POINT (-120.053485 34.694027)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:02:52",
+                "longitude": -120.053485,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488672415",
+                "sensor_type_id": "30",
+                "latitude": 34.694027,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18518,
+                "barometricPa": 96764,
+                "humidityRh": 35,
+                "CO2Ppm": 497,
+                "mos_gasResistance": 432217
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.053404,
+                    34.6940635
+                ]
+            },
+            "properties": {
+                "id": 428819,
+                "geom": "POINT (-120.053404 34.6940635)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:01:51",
+                "longitude": -120.053404,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488733415",
+                "sensor_type_id": "30",
+                "latitude": 34.6940635,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18505,
+                "barometricPa": 96750,
+                "humidityRh": 35,
+                "CO2Ppm": 493,
+                "mos_gasResistance": 425191
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05343979999999,
+                    34.6940118
+                ]
+            },
+            "properties": {
+                "id": 428820,
+                "geom": "POINT (-120.05343979999999 34.6940118)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:00:49",
+                "longitude": -120.05343979999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488795415",
+                "sensor_type_id": "30",
+                "latitude": 34.6940118,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18510,
+                "barometricPa": 96773,
+                "humidityRh": 35,
+                "CO2Ppm": 493,
+                "mos_gasResistance": 430368
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05346259999999,
+                    34.694040099999995
+                ]
+            },
+            "properties": {
+                "id": 428823,
+                "geom": "POINT (-120.05346259999999 34.694040099999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:04:57",
+                "longitude": -120.05346259999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488547415",
+                "sensor_type_id": "30",
+                "latitude": 34.694040099999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18213,
+                "barometricPa": 96751,
+                "humidityRh": 35,
+                "CO2Ppm": 497,
+                "mos_gasResistance": 431386
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0534405,
+                    34.6941036
+                ]
+            },
+            "properties": {
+                "id": 428824,
+                "geom": "POINT (-120.0534405 34.6941036)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:03:54",
+                "longitude": -120.0534405,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488610415",
+                "sensor_type_id": "30",
+                "latitude": 34.6941036,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18397,
+                "barometricPa": 96757,
+                "humidityRh": 35,
+                "CO2Ppm": 496,
+                "mos_gasResistance": 427518
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0535391,
+                    34.694368499999996
+                ]
+            },
+            "properties": {
+                "id": 428829,
+                "geom": "POINT (-120.0535391 34.694368499999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:07:09",
+                "longitude": -120.0535391,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488415415",
+                "sensor_type_id": "30",
+                "latitude": 34.694368499999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 17938,
+                "barometricPa": 96753,
+                "humidityRh": 35,
+                "CO2Ppm": 504,
+                "mos_gasResistance": 424451
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0535015,
+                    34.6941656
+                ]
+            },
+            "properties": {
+                "id": 428830,
+                "geom": "POINT (-120.0535015 34.6941656)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:05:58",
+                "longitude": -120.0535015,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488486415",
+                "sensor_type_id": "30",
+                "latitude": 34.6941656,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18063,
+                "barometricPa": 96755,
+                "humidityRh": 35,
+                "CO2Ppm": 499,
+                "mos_gasResistance": 431458
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05388629999999,
+                    34.6946065
+                ]
+            },
+            "properties": {
+                "id": 428847,
+                "geom": "POINT (-120.05388629999999 34.6946065)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:17:04",
+                "longitude": -120.05388629999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860487820415",
+                "sensor_type_id": "30",
+                "latitude": 34.6946065,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 20742,
+                "barometricPa": 96746,
+                "humidityRh": 38,
+                "CO2Ppm": 536,
+                "mos_gasResistance": 326025
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05361579999999,
+                    34.6944285
+                ]
+            },
+            "properties": {
+                "id": 428833,
+                "geom": "POINT (-120.05361579999999 34.6944285)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:09:10",
+                "longitude": -120.05361579999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860488294415",
+                "sensor_type_id": "30",
+                "latitude": 34.6944285,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18079,
+                "barometricPa": 96776,
+                "humidityRh": 37,
+                "CO2Ppm": 517,
+                "mos_gasResistance": 360607
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05462229999999,
+                    34.6946576
+                ]
+            },
+            "properties": {
+                "id": 428889,
+                "geom": "POINT (-120.05462229999999 34.6946576)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:38:58",
+                "longitude": -120.05462229999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486506415",
+                "sensor_type_id": "30",
+                "latitude": 34.6946576,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18818,
+                "barometricPa": 96688,
+                "humidityRh": 34,
+                "CO2Ppm": 500,
+                "mos_gasResistance": 415395
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05456799999999,
+                    34.694729099999996
+                ]
+            },
+            "properties": {
+                "id": 428890,
+                "geom": "POINT (-120.05456799999999 34.694729099999996)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:37:55",
+                "longitude": -120.05456799999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486569415",
+                "sensor_type_id": "30",
+                "latitude": 34.694729099999996,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18713,
+                "barometricPa": 96665,
+                "humidityRh": 34,
+                "CO2Ppm": 499,
+                "mos_gasResistance": 426026
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.0547376,
+                    34.694530799999995
+                ]
+            },
+            "properties": {
+                "id": 428893,
+                "geom": "POINT (-120.0547376 34.694530799999995)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:41:01",
+                "longitude": -120.0547376,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486383415",
+                "sensor_type_id": "30",
+                "latitude": 34.694530799999995,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 19203,
+                "barometricPa": 96723,
+                "humidityRh": 35,
+                "CO2Ppm": 514,
+                "mos_gasResistance": 405535
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -120.05472599999999,
+                    34.6946125
+                ]
+            },
+            "properties": {
+                "id": 428894,
+                "geom": "POINT (-120.05472599999999 34.6946125)",
+                "db_id": "dB_2,2,351516172885360",
+                "model_type": "2",
+                "time": "2024-11-15T19:39:59",
+                "longitude": -120.05472599999999,
+                "type": "real",
+                "device_alias": "RLS6",
+                "db_urn": "dB_2,2,351516172885360/2,2,15860486445415",
+                "sensor_type_id": "30",
+                "latitude": 34.6946125,
+                "provider": "Redline Safety",
+                "temperatureMillidegreeC": 18985,
+                "barometricPa": 96706,
+                "humidityRh": 34,
+                "CO2Ppm": 508,
+                "mos_gasResistance": 413688
+            }
+        }
+    ]
+}
