@@ -24,7 +24,7 @@ def process_and_load_data():
     
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     
-    GRAPHDB_URL = "http://host.docker.internal:7200"
+    GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
     REPOSITORY = "wildfire-kg"
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
