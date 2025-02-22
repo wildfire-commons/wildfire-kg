@@ -64,7 +64,7 @@ spec:
           ports:
             - containerPort: 8080
           volumeMounts:
-            - name: dags-volume
+            - name: airflow-dags
               mountPath: /opt/airflow/dags
           resources:
             requests:
@@ -90,14 +90,18 @@ spec:
 
         - name: git-sync
           image: k8s.gcr.io/git-sync/git-sync:v3.6.3
+<<<<<<< Updated upstream:iac/manifests/airflow/airflow.yaml
           securityContext:
             runAsUser: 50000
+=======
+>>>>>>> Stashed changes:iac/airflow/airflow.yaml
           env:
             - name: GIT_SYNC_REPO
               value: "https://github.com/wildfire-commons/wildfire-kg.git"
             - name: GIT_SYNC_BRANCH
               value: "dev"
             - name: GIT_SYNC_ROOT
+<<<<<<< Updated upstream:iac/manifests/airflow/airflow.yaml
               value: "/opt/airflow/dags"
             - name: GIT_SYNC_DEST
               value: "repo"
@@ -107,6 +111,19 @@ spec:
               value: "0"
           volumeMounts:
             - name: dags-volume
+=======
+              value: "/git"
+            - name: GIT_SYNC_DEST
+              value: "dags"
+            - name: GIT_SYNC_WAIT
+              value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "5"
+            - name: GIT_SYNC_PERMISSIONS
+              value: "0644"
+          volumeMounts:
+            - name: airflow-dags
+>>>>>>> Stashed changes:iac/airflow/airflow.yaml
               mountPath: /opt/airflow/dags
           resources:
             requests:
@@ -117,8 +134,9 @@ spec:
               memory: "256Mi"
 
       volumes:
-        - name: dags-volume
-          emptyDir: {}
+        - name: airflow-dags
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc
 
 ---
 apiVersion: apps/v1
@@ -157,6 +175,13 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
+          volumeMounts:
+            - name: airflow-dags
+              mountPath: /opt/airflow/dags
+      volumes:
+        - name: airflow-dags
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc
 
         - name: git-sync
           image: k8s.gcr.io/git-sync/git-sync:v3.6.3
@@ -224,6 +249,13 @@ spec:
             limits:
               cpu: "1000m"
               memory: "2Gi"
+          volumeMounts:
+            - name: airflow-dags
+              mountPath: /opt/airflow/dags
+      volumes:
+        - name: airflow-dags
+          persistentVolumeClaim:
+            claimName: airflow-dags-pvc
 
 ---
 apiVersion: v1
