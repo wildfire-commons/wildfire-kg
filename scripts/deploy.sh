@@ -80,8 +80,8 @@ deploy_component() {
     local chart=$2
     local release_name="${component}-${ENV}"
     
-    # Clean up existing release if --clean flag is set
-    if [ "$CLEAN" = true ]; then
+    # Clean up existing release if --clean flag is set (skip for airflow)
+    if [ "$CLEAN" = true ] && [ "$component" != "airflow" ]; then
         echo "Cleaning up existing release $release_name..."
         helm uninstall $release_name --namespace $NAMESPACE ${NO_HOOKS:-} || true
         # Wait for resources to be cleaned up
@@ -91,8 +91,43 @@ deploy_component() {
     # Add required repo based on component
     case $component in
         "airflow")
-            add_helm_repo "apache-airflow" "https://airflow.apache.org"
-            chart="apache-airflow/airflow"
+            echo "Deploying Airflow using manifests..."
+            
+            # Delete existing resources if --clean flag is set
+            if [ "$CLEAN" = true ]; then
+                echo "Cleaning up existing Airflow resources..."
+                kubectl delete deployment postgres redis airflow-webserver airflow-scheduler airflow-worker --namespace $NAMESPACE --ignore-not-found
+                kubectl delete service postgres redis airflow-webserver --namespace $NAMESPACE --ignore-not-found
+                kubectl delete configmap airflow-config --namespace $NAMESPACE --ignore-not-found
+                kubectl delete ingress airflow-ingress --namespace $NAMESPACE --ignore-not-found
+                
+                # Wait for resources to be cleaned up
+                echo "Waiting for resources to be cleaned up..."
+                sleep 5
+            fi
+            
+            # Deploy Redis and Postgres first
+            echo "Deploying Redis and Postgres..."
+            kubectl apply -f ${PROJECT_ROOT}/iac/manifests/airflow/airflow.redis.yaml
+            kubectl apply -f ${PROJECT_ROOT}/iac/manifests/airflow/airflow.postgres.yaml
+            
+            # Wait for Redis and Postgres to be ready
+            echo "Waiting for Redis and Postgres deployments to be ready..."
+            kubectl wait --for=condition=Available=True deployment/redis -n $NAMESPACE --timeout=300s
+            kubectl wait --for=condition=Available=True deployment/postgres -n $NAMESPACE --timeout=300s
+            
+            # Deploy main Airflow configuration
+            echo "Deploying Airflow components..."
+            kubectl apply -f ${PROJECT_ROOT}/iac/manifests/airflow/airflow.yaml
+            
+            # Wait for Airflow deployments to be ready
+            echo "Waiting for Airflow components..."
+            kubectl wait --for=condition=Available=True deployment/airflow-webserver -n $NAMESPACE --timeout=300s
+            kubectl wait --for=condition=Available=True deployment/airflow-scheduler -n $NAMESPACE --timeout=300s
+            kubectl wait --for=condition=Available=True deployment/airflow-worker -n $NAMESPACE --timeout=300s
+            
+            echo "Airflow deployment completed successfully!"
+            echo "You can access the Airflow UI at: https://wifire-kg-airflow.nrp-nautilus.io"
             ;;
         "graphdb")
             add_helm_repo "ontotext" "https://maven.ontotext.com/repository/helm-public/"
