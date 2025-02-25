@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./applications/wildfire-kg-frontend
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./applications/wildfire-kg-frontend:/app${DEV_MOUNT:-}
+      - /app/node_modules
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000}
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-true}
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./applications/wildfire-kg-api
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_ENV=${PYTHON_ENV:-development}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./applications/wildfire-kg-api:/app${DEV_MOUNT:-}
+      - /app/.venv
+    environment:
+      - PYTHON_ENV=${PYTHON_ENV:-development} 

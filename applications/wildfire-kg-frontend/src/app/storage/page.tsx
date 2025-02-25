@@ -1,45 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { FolderIcon, ChartBarIcon, CloudIcon } from '@heroicons/react/24/outline';
-
-interface BucketCategory {
-  id: string;
-  name: string;
-  description: string;
-  icon: 'folder' | 'chart' | 'cloud';
-  itemCount: number;
-  lastUpdated: Date;
-}
+import Link from 'next/link';
+import { useStorage } from '@/hooks/useStorage';
 
 export default function StoragePage() {
-  const categories: BucketCategory[] = [
-    {
-      id: 'tls-metrics',
-      name: 'Terrestrial LiDAR Plot Metrics',
-      description: 'Processed metrics and measurements from TLS data',
-      icon: 'chart',
-      itemCount: 89,
-      lastUpdated: new Date('2024-02-14'),
-    },
-    {
-      id: 'tls-point-cloud',
-      name: 'Terrestrial LiDAR TLS Point Cloud',
-      description: 'Raw point cloud data from terrestrial laser scanning',
-      icon: 'cloud',
-      itemCount: 156,
-      lastUpdated: new Date('2024-02-15'),
-    },
-    {
-      id: 'als-point-cloud',
-      name: 'Aerial LiDAR ALS Point Cloud',
-      description: 'Point cloud data collected from aerial platforms',
-      icon: 'cloud',
-      itemCount: 234,
-      lastUpdated: new Date('2024-02-13'),
-    },
-  ];
+  const { categories, loading, error } = useStorage();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -53,6 +19,28 @@ export default function StoragePage() {
         return <FolderIcon className="h-8 w-8 text-[#03619B]" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <h1 className="text-3xl font-bold mb-8">Data Storage</h1>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#03619B]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-8">
+        <h1 className="text-3xl font-bold mb-8">Data Storage</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-8">
@@ -73,7 +61,7 @@ export default function StoragePage() {
               <p className="text-gray-600 mb-4">{category.description}</p>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>{category.itemCount} items</span>
-                <span>Updated {category.lastUpdated.toLocaleDateString()}</span>
+                <span>Updated {new Date(category.lastUpdated).toLocaleDateString()}</span>
               </div>
             </div>
           </Link>
