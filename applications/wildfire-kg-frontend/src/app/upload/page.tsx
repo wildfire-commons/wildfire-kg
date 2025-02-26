@@ -4,7 +4,7 @@ import FileUpload from '@/components/FileUpload';
 import MetricEntry from '@/components/MetricEntry';
 import { useState } from 'react';
 
-export default function Home() {
+export default function UploadPage() {
   const [activeTab, setActiveTab] = useState<'upload' | 'manual'>('upload');
 
   return (
@@ -18,7 +18,7 @@ export default function Home() {
               onClick={() => setActiveTab('upload')}
               className={`px-4 py-2 rounded-md ${
                 activeTab === 'upload'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-[#03619B] text-white'
                   : 'bg-gray-100'
               }`}
             >
@@ -28,7 +28,7 @@ export default function Home() {
               onClick={() => setActiveTab('manual')}
               className={`px-4 py-2 rounded-md ${
                 activeTab === 'manual'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-[#03619B] text-white'
                   : 'bg-gray-100'
               }`}
             >
@@ -49,4 +49,4 @@ export default function Home() {
       </main>
     </div>
   );
-}
+} 
