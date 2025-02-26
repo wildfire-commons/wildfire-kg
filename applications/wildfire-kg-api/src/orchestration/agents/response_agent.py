@@ -1,0 +1,95 @@
+from typing import Dict, List, Any, Optional
+import logging
+from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
+import os
+from ..state.conversation_state import ConversationState, Message
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float = 0.7):
+    """Create a response agent that generates the final response to the user."""
+    # Initialize the LLM
+    llm = ChatOpenAI(
+        model=model_name, temperature=temperature, api_key=os.getenv("OPENAI_API_KEY")
+    )
+
+    # Define the prompt template
+    response_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """You are a helpful assistant specializing in wildfire and forest data analysis. 
+        Your goal is to provide informative, accurate responses based on the available information.
+        
+        You have access to two types of information:
+        1. Knowledge Graph Results: Structured data from our wildfire knowledge graph
+        2. RAG Results: Information retrieved from external sources
+        
+        Guidelines:
+        - Synthesize information from both sources when available
+        - Clearly attribute information to its source
+        - Be honest about limitations in the data
+        - Use a conversational, helpful tone
+        - If the information is incomplete, acknowledge this and suggest what additional data might help
+        - Format your response in a clear, readable way
+        
+        Knowledge Graph Results: {kg_results}
+        
+        RAG Results: {rag_results}
+        
+        Previous conversation context: {conversation_history}
+        """,
+            ),
+            ("human", "{query}"),
+        ]
+    )
+
+    def generate_response(state: ConversationState) -> str:
+        """Generate a response based on the conversation state."""
+        try:
+            # Extract the relevant information from the state
+            query = state.get("user_query", "")
+            kg_results = state.get("kg_results", {})
+            rag_results = state.get("rag_results", {})
+            messages = state.get("messages", [])
+
+            # Format the conversation history
+            conversation_history = ""
+            for msg in messages[
+                -6:
+            ]:  # Only use the last 6 messages to avoid context length issues
+                if isinstance(msg, dict):
+                    role = msg.get("role", "")
+                    content = msg.get("content", "")
+                else:
+                    role = msg.role
+                    content = msg.content
+                conversation_history += f"{role.capitalize()}: {content}\n"
+
+            # Generate the response
+            response = llm.invoke(
+                response_prompt.format(
+                    query=query,
+                    kg_results=(
+                        kg_results
+                        if kg_results
+                        else "No knowledge graph results available."
+                    ),
+                    rag_results=(
+                        rag_results if rag_results else "No RAG results available."
+                    ),
+                    conversation_history=conversation_history,
+                )
+            )
+
+            return response.content
+
+        except Exception as e:
+            logger.error(f"Error in response agent: {str(e)}", exc_info=True)
+            return f"I apologize, but I encountered an error while generating a response: {str(e)}. Please try again or rephrase your question."
+
+    return generate_response

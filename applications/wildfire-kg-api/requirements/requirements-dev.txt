@@ -1,0 +1,20 @@
+-r requirements.txt
+
+# Development tools
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.7
+
+# LangGraph Studio
+langchain-cli>=0.0.15
+langserve>=0.0.30 
