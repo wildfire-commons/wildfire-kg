@@ -7,11 +7,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN if [ "$NODE_ENV" = "production" ]; then \
-        npm ci --only=production; \
-    else \
-        npm install; \
-    fi
+RUN npm install
 
 COPY . .
 

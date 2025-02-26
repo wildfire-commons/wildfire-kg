@@ -19,11 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    """Base path health check"""
-    return {"status": "healthy"}
-
 # Authentication setup (commented out for now)
 # security = HTTPBearer()
 
@@ -47,8 +42,8 @@ async def root():
 #             )
 
 # Include routers
-app.include_router(s3.router)
-app.include_router(graph.router)
+app.include_router(s3.router, prefix="/api")
+app.include_router(graph.router, prefix="/api")
 
 # Example protected route template (commented out)
 # @app.get("/protected-route")
