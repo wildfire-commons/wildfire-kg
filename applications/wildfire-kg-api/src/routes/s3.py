@@ -1,35 +1,48 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import boto3
+from typing import List
 from botocore.exceptions import ClientError
-from typing import Optional
+import boto3
+import os
+import logging
 
-router = APIRouter(prefix="/s3", tags=["s3"])
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-class PresignedUrlRequest(BaseModel):
-    path: str
-    content_type: Optional[str] = "application/octet-stream"
+router = APIRouter(prefix="/storage", tags=["storage"])
 
-@router.post("/presigned-url")
-async def get_presigned_url(request: PresignedUrlRequest):
-    """Generate a presigned URL for S3 file upload"""
+class BucketInfo(BaseModel):
+    name: str
+    created: str
+
+class BucketListResponse(BaseModel):
+    buckets: List[BucketInfo]
+
+@router.get("/buckets", response_model=BucketListResponse)
+async def list_buckets():
+    """List all available S3 buckets in a directory tree format"""
     try:
-        s3_client = boto3.client('s3')
-        
-        presigned_url = s3_client.generate_presigned_url(
-            'put_object',
-            Params={
-                'Bucket': 'wifire-kg-data',
-                'Key': request.path,
-                'ContentType': request.content_type
-            },
-            ExpiresIn=3600
+        s3_client = boto3.client('s3',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+            endpoint_url=os.getenv('AWS_S3_ENDPOINT_URL')
         )
         
-        return {
-            "url": presigned_url,
-            "expires_in": 3600
-        }
+        logger.debug("Attempting to list buckets")
+        response = s3_client.list_buckets()
         
-    except ClientError as e:
+        buckets = [
+            BucketInfo(
+                name=bucket['Name'],
+                created=bucket['CreationDate'].isoformat()
+            )
+            for bucket in response['Buckets']
+        ]
+        
+        logger.debug(f"Successfully listed {len(buckets)} buckets")
+        return BucketListResponse(buckets=buckets)
+            
+    except Exception as e:
+        logger.error(f"Error listing buckets: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 
