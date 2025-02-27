@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { useStorage } from '@/hooks/useStorage';
 
@@ -34,9 +35,10 @@ export default function StoragePage() {
       
       <div className="space-y-4">
         {buckets.map((bucket) => (
-          <div 
+          <Link 
+            href={`/storage/${bucket.name}`}
             key={bucket.name}
-            className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow duration-200"
+            className="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow duration-200"
           >
             <div className="flex items-center">
               <FolderIcon className="h-6 w-6 text-[#03619B]" />
@@ -47,7 +49,7 @@ export default function StoragePage() {
                 </p>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
         
         {buckets.length === 0 && (
