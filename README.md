@@ -85,3 +85,11 @@ wildfire-kg/
 │   └── manifests/         # Historical Manifests for the project
 └── scripts/               # Deployment and utility scripts
 ```
+
+## Storage
+
+### Ceph S3
+Storage via the Nautilus Ceph cluster that complies with the S3 API.
+
+`aws s3api create-bucket --bucket <bucket-name> --profile <aws-profile-name> --endpoint-url https://s3-west.nrp-nautilus.io`
+

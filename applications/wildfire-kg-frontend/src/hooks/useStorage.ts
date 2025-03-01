@@ -1,56 +1,140 @@
 import { useState, useEffect } from 'react';
-import { BucketCategory } from '@/types/storage';
 
-export function useStorage() {
-  const [categories, setCategories] = useState<BucketCategory[]>([]);
+export interface Bucket {
+  name: string;
+  created: string;
+}
+
+export interface S3Object {
+  name: string;
+  path: string;
+  type: 'folder' | 'file';
+  size?: number;
+  modified?: string;
+}
+
+export interface BucketListResponse {
+  buckets: Bucket[];
+}
+
+export interface S3ListResponse {
+  objects: S3Object[];
+  prefix: string;
+  parent_prefix?: string;
+}
+
+export interface DeleteFolderResponse {
+  message: string;
+  deleted_objects_count: number;
+}
+
+export function useStorage(bucketName?: string, prefix: string = "") {
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [objects, setObjects] = useState<S3Object[]>([]);
+  const [currentPrefix, setCurrentPrefix] = useState(prefix);
+  const [parentPrefix, setParentPrefix] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (bucketName) {
+      fetchObjects();
+    } else {
+      fetchBuckets();
+    }
+  }, [bucketName, currentPrefix]);
 
-  const fetchCategories = async () => {
+  const fetchBuckets = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/storage/categories`);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets`
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch storage categories');
+        throw new Error('Failed to fetch buckets');
       }
-      const data = await response.json();
-      setCategories(data);
+      const data: BucketListResponse = await response.json();
+      setBuckets(data.buckets);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
-      // Fallback to static data if API fails
-      setCategories([
-        {
-          id: 'tls-metrics',
-          name: 'Terrestrial LiDAR Plot Metrics',
-          description: 'Processed metrics and measurements from TLS data',
-          icon: 'chart',
-          itemCount: 89,
-          lastUpdated: new Date('2024-02-14'),
-        },
-        {
-          id: 'tls-point-cloud',
-          name: 'Terrestrial LiDAR TLS Point Cloud',
-          description: 'Raw point cloud data from terrestrial laser scanning',
-          icon: 'cloud',
-          itemCount: 156,
-          lastUpdated: new Date('2024-02-15'),
-        },
-        {
-          id: 'als-point-cloud',
-          name: 'Aerial LiDAR ALS Point Cloud',
-          description: 'Point cloud data collected from aerial platforms',
-          icon: 'cloud',
-          itemCount: 234,
-          lastUpdated: new Date('2024-02-13'),
-        },
-      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  return { categories, loading, error };
+  const fetchObjects = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets/${bucketName}/objects?prefix=${currentPrefix}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch objects');
+      }
+      const data: S3ListResponse = await response.json();
+      setObjects(data.objects);
+      setParentPrefix(data.parent_prefix);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createFolder = async (folderName: string) => {
+    try {
+      const newPrefix = `${currentPrefix}${folderName}/`;
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets/${bucketName}/folders?prefix=${newPrefix}`,
+        { method: 'POST' }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to create folder');
+      }
+      await fetchObjects();
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      return false;
+    }
+  };
+
+  const deleteFolder = async (folderPath: string): Promise<DeleteFolderResponse> => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets/${bucketName}/folders?prefix=${folderPath}`,
+        { method: 'DELETE' }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to delete folder');
+      }
+      const data: DeleteFolderResponse = await response.json();
+      await fetchObjects();
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      throw err;
+    }
+  };
+
+  const navigateToFolder = (newPrefix: string) => {
+    setCurrentPrefix(newPrefix);
+  };
+
+  const navigateUp = () => {
+    if (parentPrefix !== undefined) {
+      setCurrentPrefix(parentPrefix);
+    }
+  };
+
+  return {
+    buckets,
+    objects,
+    currentPrefix,
+    parentPrefix,
+    loading,
+    error,
+    createFolder,
+    deleteFolder,
+    navigateToFolder,
+    navigateUp
+  };
 } 
