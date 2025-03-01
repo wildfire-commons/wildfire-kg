@@ -23,6 +23,11 @@ export interface S3ListResponse {
   parent_prefix?: string;
 }
 
+export interface DeleteFolderResponse {
+  message: string;
+  deleted_objects_count: number;
+}
+
 export function useStorage(bucketName?: string, prefix: string = "") {
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [objects, setObjects] = useState<S3Object[]>([]);
@@ -92,6 +97,24 @@ export function useStorage(bucketName?: string, prefix: string = "") {
     }
   };
 
+  const deleteFolder = async (folderPath: string): Promise<DeleteFolderResponse> => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets/${bucketName}/folders?prefix=${folderPath}`,
+        { method: 'DELETE' }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to delete folder');
+      }
+      const data: DeleteFolderResponse = await response.json();
+      await fetchObjects();
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      throw err;
+    }
+  };
+
   const navigateToFolder = (newPrefix: string) => {
     setCurrentPrefix(newPrefix);
   };
@@ -110,6 +133,7 @@ export function useStorage(bucketName?: string, prefix: string = "") {
     loading,
     error,
     createFolder,
+    deleteFolder,
     navigateToFolder,
     navigateUp
   };

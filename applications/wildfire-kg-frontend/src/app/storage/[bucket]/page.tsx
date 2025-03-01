@@ -2,12 +2,60 @@
 
 import { useState } from 'react';
 import { useStorage } from '@/hooks/useStorage';
-import { FolderIcon, DocumentIcon, ChevronUpIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { 
+  FolderIcon, 
+  DocumentIcon, 
+  ChevronUpIcon, 
+  PlusIcon,
+  TrashIcon 
+} from '@heroicons/react/24/outline';
 import { formatBytes, formatDate } from '@/utils/format';
+
+interface DeleteConfirmationProps {
+  folderName: string;
+  folderPath: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  objectCount: number;
+}
+
+function DeleteConfirmation({ folderName, folderPath, onConfirm, onCancel, objectCount }: DeleteConfirmationProps) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg p-6 w-96">
+        <h3 className="text-lg font-medium mb-4">Delete Folder</h3>
+        <p className="text-gray-600 mb-4">
+          Are you sure you want to delete the folder "{folderName}"?
+          {objectCount > 0 && (
+            <span className="block mt-2 text-red-600">
+              Warning: This folder contains {objectCount} item{objectCount !== 1 ? 's' : ''}.
+              All contents will be permanently deleted.
+            </span>
+          )}
+        </p>
+        <div className="flex justify-end space-x-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-600 hover:text-gray-900"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function BucketPage({ params }: { params: { bucket: string } }) {
   const [newFolderName, setNewFolderName] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+  const [deletingFolder, setDeletingFolder] = useState<{ name: string; path: string; count: number } | null>(null);
   
   const {
     objects,
@@ -16,6 +64,7 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
     loading,
     error,
     createFolder,
+    deleteFolder,
     navigateToFolder,
     navigateUp
   } = useStorage(params.bucket);
@@ -26,6 +75,33 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
       if (success) {
         setNewFolderName('');
         setShowNewFolderDialog(false);
+      }
+    }
+  };
+
+  const handleDeleteClick = (folderPath: string) => {
+    const folder = objects.find(obj => obj.path === folderPath);
+    if (folder) {
+      // Count objects with this prefix
+      const objectCount = objects.filter(obj => 
+        obj.path.startsWith(folderPath) && obj.path !== folderPath
+      ).length;
+      
+      setDeletingFolder({
+        name: folder.name,
+        path: folderPath,
+        count: objectCount
+      });
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deletingFolder) {
+      try {
+        await deleteFolder(deletingFolder.path);
+        setDeletingFolder(null);
+      } catch (err) {
+        console.error('Failed to delete folder:', err);
       }
     }
   };
@@ -72,7 +148,8 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
         <div className="grid grid-cols-12 gap-4 p-4 border-b text-sm font-medium text-gray-500">
           <div className="col-span-6">Name</div>
           <div className="col-span-2">Size</div>
-          <div className="col-span-4">Last Modified</div>
+          <div className="col-span-3">Last Modified</div>
+          <div className="col-span-1">Actions</div>
         </div>
 
         <div className="divide-y">
@@ -95,7 +172,18 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
                 )}
               </div>
               <div className="col-span-2">{object.size ? formatBytes(object.size) : '-'}</div>
-              <div className="col-span-4">{object.modified ? formatDate(object.modified) : '-'}</div>
+              <div className="col-span-3">{object.modified ? formatDate(object.modified) : '-'}</div>
+              <div className="col-span-1">
+                {object.type === 'folder' && (
+                  <button
+                    onClick={() => handleDeleteClick(object.path)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Delete folder"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -128,6 +216,16 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
             </div>
           </div>
         </div>
+      )}
+
+      {deletingFolder && (
+        <DeleteConfirmation
+          folderName={deletingFolder.name}
+          folderPath={deletingFolder.path}
+          objectCount={deletingFolder.count}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeletingFolder(null)}
+        />
       )}
     </div>
   );

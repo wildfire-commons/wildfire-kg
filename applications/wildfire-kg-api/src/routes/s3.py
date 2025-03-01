@@ -150,4 +150,40 @@ async def create_folder(bucket_name: str, prefix: str = Query(...)):
             
     except Exception as e:
         logger.error(f"Error creating folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/buckets/{bucket_name}/folders")
+async def delete_folder(bucket_name: str, prefix: str = Query(...)):
+    """Delete a folder and optionally all its contents"""
+    try:
+        s3_client = boto3.client('s3',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+            endpoint_url=os.getenv('AWS_S3_ENDPOINT_URL')
+        )
+        
+        # First, list objects to check if folder is empty
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name,
+            Prefix=prefix
+        )
+        
+        objects = []
+        if 'Contents' in response:
+            objects = response['Contents']
+        
+        # Delete all objects including the folder marker
+        for obj in objects:
+            s3_client.delete_object(
+                Bucket=bucket_name,
+                Key=obj['Key']
+            )
+            
+        return {
+            "message": "Folder deleted successfully",
+            "deleted_objects_count": len(objects)
+        }
+            
+    except Exception as e:
+        logger.error(f"Error deleting folder: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 
