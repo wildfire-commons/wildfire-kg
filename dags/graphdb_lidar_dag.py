@@ -139,13 +139,13 @@ def process_and_load_data():
         print(f"Error connecting to GraphDB: {str(e)}")
 
     # Process the files
-    aerial_path = "/opt/airflow/data/raw/aerial-lidar/*.laz"
+    aerial_path = "/opt/airflow/dags/data/raw/aerial-lidar/*.laz"
     aerial_files = glob.glob(aerial_path)
     print(f"Found {len(aerial_files)} aerial LiDAR files")
     for file in aerial_files:
         process_lidar_file(file, "aerial")
 
-    terrestrial_path = "/opt/airflow/data/raw/terrestrial-lidar/*.laz"
+    terrestrial_path = "/opt/airflow/dags/data/raw/terrestrial-lidar/*.laz"
     terrestrial_files = glob.glob(terrestrial_path)
     print(f"Found {len(terrestrial_files)} terrestrial LiDAR files")
     for file in terrestrial_files:

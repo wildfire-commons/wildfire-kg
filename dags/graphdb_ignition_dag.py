@@ -25,7 +25,7 @@ def process_and_load_data():
     TIME = Namespace("http://www.w3.org/2006/time#")
 
     # Your existing functions
-    file_path = "/opt/airflow/data/raw/sensorRLS6.geojson"
+    file_path = "/opt/airflow/dags/data/raw/sensorRLS6.geojson"
     
     print("Starting data import...")
     try:
