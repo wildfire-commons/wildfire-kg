@@ -14,7 +14,7 @@ import logging
 from typing import List, Dict, Any
 
 # Add the project root to the Python path
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 from tests.utils.test_config_manager import TestConfigManager
 
 # Set up logging

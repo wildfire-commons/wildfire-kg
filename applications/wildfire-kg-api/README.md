@@ -8,74 +8,51 @@ This API provides access to the wildfire knowledge graph and includes a conversa
 - Conversational AI interface using LangGraph
 - Integration with external data sources through RAG
 - LangGraph Studio support for visualization and debugging
+- Streamlit app for easier query configuration management and testing during local development
+- Health check endpoints for monitoring
+- S3 integration for data storage
 
 ## Setup
-
-### Prerequisites
-
-- Python 3.9+
-- Neo4j database (for knowledge graph)
-- OpenAI API key
-- Tavily API key (optional, for web search)
-
-### Installation
 
 1. Clone the repository
 2. Run the setup script with the desired environment:
 
 ```bash
 cd wildfire-kg-api
-
-# For development environment (includes testing and debugging tools)
-./setup.sh dev
-
-# For production environment (minimal dependencies)
-./setup.sh prod
+source setup.sh dev # or source setup.sh prod
 ```
 
-3. Configure your environment variables:
-
-The setup script creates environment-specific .env files (.env.dev for development, .env.prod for production) and links the appropriate one to .env based on your chosen environment. You should update the variables in these files:
-
-```
-# Common variables for both environments
-OPENAI_API_KEY=your_openai_key
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_password
-TAVILY_API_KEY=your_tavily_key  # Optional, for web search
-
-# Development-specific variables (.env.dev)
-DEBUG=True
-LOG_LEVEL=DEBUG
-
-# Production-specific variables (.env.prod)
-DEBUG=False
-LOG_LEVEL=INFO
-```
-
-## Running the API
-
-If not already activated, activate the virtual environment:
+3. Copy the example environment file and update it with your credentials:
+  
 ```bash
-source venv/bin/activate
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-### Standard API Server
+## Usage
+
+### Command Line Interface
+
+The API comes with a convenient command-line interface:
 
 ```bash
-# Start the API server with auto-reload
-uvicorn src.app:app --reload
+# Show available commands
+wkg-api --help
+
+# Run the API server
+wkg-api run
+
+# Run in development mode with auto-reload
+wkg-api run --dev
 ```
 
 ### LangGraph Studio
 
-With the updated LangGraph integration, you can use the LangGraph CLI for development:
+With the LangGraph integration, you can use LangGraph Studio for development:
+> [!NOTE]
+> You must have the dev dependencies installed to use LangGraph Studio.
 
 ```bash
-# Make sure you're in the API directory
-cd applications/wildfire-kg-api
-
 # Start LangGraph Studio
 langgraph dev
 ```
@@ -88,84 +65,84 @@ This will:
 
 You can trace graph executions, inspect state at each node, and test your graph interactively.
 
-## API Endpoints
+## Streamlit App
 
-### Chat Endpoint
+The API includes a Streamlit app for test configuration management and development.
 
-```
-POST /api/chat
-```
+```bash
+# Make sure you have the dev dependencies installed
+pip install -e '.[dev]'
 
-Request body:
-```json
-{
-  "message": "What's the average canopy height in the San Bernardino forest?",
-  "history": [
-    {
-      "id": "msg-1",
-      "text": "Hello, I have a question about forest data.",
-      "sender": "user",
-      "timestamp": "2023-04-01T12:00:00Z"
-    },
-    {
-      "id": "msg-2",
-      "text": "I'd be happy to help with forest data. What would you like to know?",
-      "sender": "assistant",
-      "timestamp": "2023-04-01T12:00:05Z"
-    }
-  ]
-}
+# Start the Streamlit app
+wkg-api ui
 ```
 
-Response:
-```json
-{
-  "message": {
-    "id": "response-1234567890",
-    "text": "Based on our knowledge graph, the average canopy height in the San Bernardino forest is approximately 25 meters.",
-    "sender": "assistant",
-    "timestamp": "2023-04-01T12:00:10Z"
-  },
-  "context": {
-    "kg_results": { ... },
-    "rag_results": { ... },
-    "routing": { ... }
-  }
-}
+This will launch the Test Configuration Manager UI, which allows you to:
+- View, edit, and delete saved test configurations
+- Create new test configurations
+- Send configurations directly to the LangGraph Studio
+- Check the status of your LangGraph server
+
+The testing tools are organized in a dedicated directory structure:
+```
+tests/
+├── streamlit/           # Streamlit app directory
+│   └── app.py           # Main Streamlit application
+├── utils/               # Shared utility modules
+│   └── test_config_manager.py  # Configuration management utilities
+├── performance/         # Performance testing utilities
+│   └── run_performance_tests.py  # Script for running performance tests
+├── test_configs/        # Directory for saved test configurations
+└── README.md            # This file
 ```
 
-## Architecture
+More information can be found in the [tests/README.md](tests/README.md) file.
 
-The API uses a LangGraph orchestration layer to handle conversations:
+### API Endpoints
 
-1. **Router Agent**: Decides which tools to use based on the query
-2. **Knowledge Graph Tool**: Queries the Neo4j knowledge graph
-3. **RAG Tool**: Retrieves information from external sources
-4. **Response Generator**: Creates the final response
+The API provides several endpoints:
 
-The LangGraph workflow is defined in `src/orchestration/graph/chat_graph.py`.
+- **Health Checks**:
+  - `GET /health` - Main health check endpoint
+  - `GET /health/ping` - Simple ping endpoint
+  - `GET /health/ready` - Kubernetes-style readiness probe
+
+- **S3 Storage**:
+  - `GET /api/storage/buckets` - List S3 buckets
+  - `GET /api/storage/buckets/{bucket_name}/objects` - List objects in a bucket
+  - `POST /api/storage/buckets/{bucket_name}/folders` - Create a folder
+  - `DELETE /api/storage/buckets/{bucket_name}/folders` - Delete a folder
+
+## Deployment
+
+TODO: Verify deployment instructions
 
 ## Project Structure
 
 ```
 wildfire-kg-api/
-├── src/
+├── src/                        # Main source code
+│   ├── __init__.py             # Package initialization
 │   ├── app.py                  # FastAPI application
-│   ├── main.py                 # Core functionality and graph access
-│   ├── routes/
-│   │   ├── chat_routes.py      # Chat endpoints
-│   │   └── s3.py               # S3 endpoints
-│   ├── orchestration/
-│   │   ├── graph/              # LangGraph definitions
-│   │   ├── agents/             # Agent definitions
-│   │   ├── tools/              # Tool integrations
-│   │   └── state/              # State definitions
-│   └── ...
-├── pyproject.toml              # Project dependencies and configuration
+│   ├── main.py                 # CLI and entry points
+│   ├── routes/                 # API routes
+│   │   ├── __init__.py         # Route registration system
+│   │   ├── health.py           # Health check endpoints
+│   │   └── s3.py               # S3 storage endpoints
+│   └── orchestration/          # LangGraph orchestration
+│       ├── agents/             # Agents for routing queries and generating responses
+│       ├── graph/              # LangGraph workflow definitions and orchestration logic
+│       ├── state/              # Conversation state management and data models
+│       └── tools/              # Knowledge graph and RAG tools for retrieving information
+├── tests/                      # Test suite
+│   ├── streamlit/              # Streamlit app for test configuration management
+│   ├── utils/                  # Shared utility modules
+│   └── performance/            # Performance testing utilities
+├── .env.example                # Example environment variables
+├── .env                        # Environment variables (not in git)
+├── pyproject.toml              # Project configuration and dependencies
+├── setup.sh                    # Package setup script
 ├── langgraph.json              # LangGraph configuration
-├── .env.dev                    # Development environment variables
-├── .env.prod                   # Production environment variables
-├── .env                        # Symlink to active environment file
-├── setup.sh                    # Environment setup script
-└── ...
+├── Dockerfile                  # Container definition
+└── README.md                   # This file
 ```

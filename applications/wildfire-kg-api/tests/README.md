@@ -2,35 +2,49 @@
 
 This directory contains tools and utilities for testing your LangGraph applications, particularly the Wildfire KG API.
 
-## Test Configuration Manager
+## Directory Structure
 
-The test configuration manager allows you to save, load, and manage test configurations for your LangGraph applications. Instead of repeatedly typing the same test queries in the LangSmith UI, you can save them locally and reuse them whenever needed. Typically, if we had our LangGraph deployed to the LangGraph Platform, we would use the LangSmith UI to save and load configurations.
+```
+tests/
+├── streamlit/           # Streamlit app directory
+│   └── app.py           # Main Streamlit application
+├── utils/               # Shared utility modules
+│   └── test_config_manager.py  # Configuration management utilities
+├── performance/         # Performance testing utilities
+│   └── run_performance_tests.py  # Script for running performance tests
+├── test_configs/        # Directory for saved test configurations
+└── README.md            # This file
+```
+
+> [!NOTE]
+> Typically, if we had our LangGraph deployed to the LangGraph Platform, we would use the LangSmith UI to save and load configurations.
 
 ### Quick Start
 
 #### Streamlit UI
-
-For a more user-friendly experience, you can use the Streamlit UI:
-
+After running the setup script, you can start the Streamlit UI with the following command:
 ```bash
-streamlit run tests/test_configs_ui.py
+# Using the CLI command (recommended)
+wkg-api ui
 ```
 
-This will open a web interface where you can:
-- View, edit, and delete saved configurations
-- Create new configurations
-- Send configurations directly to the LangGraph Studio
+The Streamlit app provides a user-friendly interface for managing test configurations and interacting with the LangGraph server. Key features include:
+
+- **Saved Configurations**: View, edit, and delete your saved test configurations
+- **Create New Configuration**: Create and save new test configurations
+- **Send to Studio**: Send configurations directly to the LangGraph Studio
+- **LangGraph Server Status**: Check the status of your LangGraph server and view available assistants
 
 #### Command Line Interface
 
-The test configuration manager provides a simple command-line interface:
+The test configuration manager also provides a command-line interface:
 
 ```bash
 # List all saved configurations
 python -m tests.utils.test_config_manager list
 
 # Save a new configuration
-python -m tests.utils.test_config_manager save my_test_query --query "What wildfires occurred in California in 2023?"
+python -m tests.utils.test_config_manager save my_test_query --query "What wildfires occurred in California in 2023?" --assistant-id "your-assistant-id"
 
 # Load a configuration
 python -m tests.utils.test_config_manager load my_test_query
@@ -91,6 +105,6 @@ Example:
 python -m tests.utils.test_config_manager save perf_test1 --query "List wildfires in California in 2020"
 python -m tests.utils.test_config_manager save perf_test2 --query "What is the relationship between temperature and wildfire spread?"
 
-# Run performance tests (example script)
-python tests/run_performance_tests.py
+# Run performance tests
+python tests/performance/run_performance_tests.py
 ``` 

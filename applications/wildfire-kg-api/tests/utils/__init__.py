@@ -1,3 +1,3 @@
 """
-Utility functions and helpers for testing the wildfire-kg-api application.
+Utility modules for testing the Wildfire KG API.
 """

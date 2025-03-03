@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Main Streamlit app entry point for the Wildfire KG API.
+
+This app provides a user interface for managing test configurations
+for the Wildfire Knowledge Graph API.
+"""
+
 import streamlit as st
 import json
 import os
@@ -8,13 +15,12 @@ from typing import Dict, Any, List, Optional
 import logging
 import sys
 import dotenv
-from pathlib import Path
 
 # Load environment variables from .env file if it exists
 dotenv.load_dotenv()
 
 # Add the project root to the Python path so we can import our modules
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 from tests.utils.test_config_manager import TestConfigManager
 
 # Set up logging
@@ -41,6 +47,8 @@ if "studio_url" not in st.session_state:
     st.session_state.studio_url = DEFAULT_STUDIO_URL
 if "studio_ui_url" not in st.session_state:
     st.session_state.studio_ui_url = DEFAULT_STUDIO_UI_URL
+if "selected_config" not in st.session_state:
+    st.session_state.selected_config = None
 
 # Set page config
 st.set_page_config(
@@ -197,6 +205,7 @@ def display_saved_configs():
 
     # Select config to view
     selected_config = st.selectbox("Select a configuration to view", configs)
+    st.session_state.selected_config = selected_config
 
     if selected_config:
         config = config_manager.load_config(selected_config)
