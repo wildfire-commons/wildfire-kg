@@ -13,9 +13,12 @@ spec:
       labels:
         app: postgres
     spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
       containers:
         - name: postgres
-          image: postgres:latest
+          image: postgres:13
           env:
             - name: POSTGRES_USER
               value: "airflow"
@@ -23,21 +26,51 @@ spec:
               value: "airflow"
             - name: POSTGRES_DB
               value: "airflow"
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: "trust"
+            - name: POSTGRES_INITDB_ARGS
+              value: "--data-checksums"
+            - name: POSTGRES_SHARED_BUFFERS
+              value: "256MB"
+            - name: POSTGRES_EFFECTIVE_CACHE_SIZE
+              value: "768MB"
+            - name: POSTGRES_WORK_MEM
+              value: "16MB"
+            - name: POSTGRES_MAINTENANCE_WORK_MEM
+              value: "128MB"
           ports:
             - containerPort: 5432
           resources:
             requests:
-              cpu: "200m"
-              memory: "512Mi"
+              cpu: "1000m"
+              memory: "2Gi"
             limits:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: "2000m"
+              memory: "4Gi"
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - airflow
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - airflow
+            initialDelaySeconds: 30
+            periodSeconds: 15
       volumes:
         - name: postgres-data
-          emptyDir: {}  # Using emptyDir instead of PVC for now
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

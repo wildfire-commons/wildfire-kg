@@ -1,0 +1,275 @@
+# Basic Airflow cluster configuration
+airflow:
+  # Airflow configuration
+  config:
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    AIRFLOW__WEBSERVER__WORKERS: "2"
+    AIRFLOW__CORE__PARALLELISM: 32
+    AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 8
+    AIRFLOW__SCHEDULER__PARSING_PROCESSES: 2
+    AIRFLOW__WEBSERVER__SECRET_KEY: "your-secret-key-here"
+    AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+    AIRFLOW__CORE__FERNET_KEY: "your-fernet-key-here"
+    AIRFLOW__CELERY__DEFAULT_POOL_SIZE: "128"
+    AIRFLOW__CORE__DEFAULT_POOL_SLOTS: "128"
+    AIRFLOW__CORE__SQL_ALCHEMY_POOL_ENABLED: "True"
+    AIRFLOW__CORE__SQL_ALCHEMY_POOL_SIZE: "20"
+    AIRFLOW__CORE__SQL_ALCHEMY_MAX_OVERFLOW: "10"
+    AIRFLOW__CORE__SQL_ALCHEMY_POOL_RECYCLE: "1800"
+    AIRFLOW__CORE__SQL_ALCHEMY_POOL_PRE_PING: "True"
+    AIRFLOW__CORE__SQL_ALCHEMY_RETRY_LIMIT: "3"
+    AIRFLOW__CELERY__BROKER_CONNECTION_RETRY: "True"
+    AIRFLOW__CELERY__BROKER_CONNECTION_RETRY_ON_STARTUP: "True"
+    # Use service name without namespace suffix
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgresql:5432/airflow
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgresql:5432/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgresql:5432/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+    
+  # Configure init containers for all components
+  extraInitContainers: &extraInitContainers
+    - name: wait-for-deps
+      image: busybox
+      command: ['sh', '-c', 'until nc -z airflow-postgresql 5432 && nc -z airflow-redis 6379; do echo waiting for dependencies; sleep 2; done']
+    - name: init-db
+      image: apache/airflow:2.7.1
+      command: ['bash', '-c']
+      args:
+        - |
+          airflow db init && \
+          airflow db upgrade
+      env:
+        - name: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
+          value: postgresql+psycopg2://airflow:airflow@airflow-postgresql:5432/airflow
+
+# Images
+images:
+  airflow:
+    repository: apache/airflow
+    tag: 2.7.1
+    pullPolicy: IfNotPresent
+  useDefaultImageForMigration: true
+  migrationsWaitTimeout: 300  # 5 minutes timeout
+
+# PostgreSQL configuration - ensure it's enabled and properly configured
+postgresql:
+  enabled: true  # Use built-in PostgreSQL
+  auth:
+    username: airflow
+    password: airflow
+    database: airflow
+    existingSecret: ""  # No existing secret
+  service:
+    port: 5432
+    name: postgresql
+    type: ClusterIP
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: "100m"      # Reduced to match limit
+      memory: "256Mi"
+    limits:
+      cpu: "200m"      # Increased from 100m
+      memory: "512Mi"
+  primary:
+    resources:
+      requests:
+        cpu: "100m"    # Reduced to match limit
+        memory: "256Mi"
+      limits:
+        cpu: "200m"    # Increased from 100m
+        memory: "512Mi"
+
+# Redis configuration - removed 'master' property that's causing issues
+redis:
+  enabled: true
+  persistence:
+    enabled: false
+  # Removed the 'master' property that was causing the schema validation error
+
+# DAGs configuration
+dags:
+  persistence:
+    enabled: false
+  gitSync:
+    enabled: true
+    repo: https://github.com/wildfire-commons/wildfire-kg.git
+    branch: dev
+    rev: HEAD
+    depth: 1
+    maxFailures: 0
+    subPath: "dags"
+    wait: 60
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+
+# Resource configuration for components
+webserver:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      cpu: "1000m"   # Reduced to ensure it can start
+      memory: "2Gi"  # Reduced to ensure it can start
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+  defaultUser:
+    enabled: true
+    role: Admin
+    username: admin
+    email: admin@example.com
+    firstName: admin
+    lastName: admin
+    password: admin
+  livenessProbe:
+    timeoutSeconds: 60
+    periodSeconds: 10
+  startupProbe:
+    timeoutSeconds: 60
+    periodSeconds: 10
+    failureThreshold: 20
+  readinessProbe:
+    timeoutSeconds: 60
+    periodSeconds: 10
+  extraInitContainers: *extraInitContainers
+
+scheduler:
+  waitForMigrations:
+    enabled: false
+  resources:
+    requests:
+      cpu: "1000m"   # Reduced to ensure it can start
+      memory: "2Gi"  # Reduced to ensure it can start
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+  livenessProbe:
+    timeoutSeconds: 5
+    periodSeconds: 10
+  startupProbe:
+    timeoutSeconds: 20
+    periodSeconds: 10
+    failureThreshold: 6
+  logGroomerSidecar:
+    enabled: true
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+  extraInitContainers: *extraInitContainers
+
+triggerer:
+  waitForMigrations:
+    enabled: false
+
+dagProcessor:
+  waitForMigrations:
+    enabled: false
+    
+workers:
+  waitForMigrations:
+    enabled: false
+  replicas: 1
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+  extraInitContainers: *extraInitContainers
+
+# Ingress configuration
+ingress:
+  enabled: true
+  web:
+    ingressClassName: haproxy
+    annotations: {}
+    hosts:
+      - name: wifire-kg-airflow.nrp-nautilus.io
+    tls:
+      enabled: true
+      secretName: airflow-tls
+
+# Cleanup configuration
+cleanup:
+  enabled: false
+
+# Monitoring
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# Logging
+logs:
+  persistence:
+    enabled: false
+
+# RBAC configuration
+rbac:
+  create: false
+  createClusterRoleBinding: false
+
+# Service Account configuration
+serviceAccount:
+  create: false
+  name: default
+
+# Add statsd configuration
+statsd:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+# Add configuration for all other jobs/hooks
+jobs:
+  resources:
+    requests:
+      cpu: "200m"      # Reduced to ensure it can start
+      memory: "512Mi"  # Reduced to ensure it can start
+    limits:
+      cpu: "600m"
+      memory: "1.2Gi"
+
+# These need to be string values as per schema requirements
+fernetKey: "your-fernet-key-here"
+webserverSecretKey: "your-webserver-secret-key-here"
+
+# Data section for connection values - explicit to avoid ambiguity
+data:
+  metadataConnection:
+    user: airflow
+    pass: airflow
+    host: airflow-postgresql
+    port: 5432
+    db: airflow
+    protocol: postgresql
+    sslmode: disable
+
+# Disable the migration job
+migrateDatabaseJob:
+  enabled: false
+
+# Keep only the wait-for-deps container
+extraInitContainers: &extraInitContainers
+  - name: wait-for-deps
+    image: busybox
+    command: ['sh', '-c', 'until nc -z airflow-postgresql 5432 && nc -z airflow-redis 6379; do echo waiting for dependencies; sleep 2; done']

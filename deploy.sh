@@ -5,7 +5,7 @@ set -e
 
 # Variables
 NAMESPACE="wifire-kg"
-TIMEOUT="300s"  # 5 minutes timeout
+TIMEOUT="600s"  # 10 minutes timeout
 
 # Check if an argument is provided
 if [ "$1" != "airflow" ]; then
@@ -16,49 +16,27 @@ fi
 
 echo "Deploying Airflow to namespace: $NAMESPACE"
 
-# Delete existing resources if they exist
+# More aggressive cleanup of existing resources
 echo "Cleaning up existing resources..."
-kubectl delete deployment postgres redis airflow-webserver airflow-scheduler airflow-worker --namespace $NAMESPACE --ignore-not-found
-kubectl delete service postgres redis airflow-webserver --namespace $NAMESPACE --ignore-not-found
-kubectl delete configmap airflow-config --namespace $NAMESPACE --ignore-not-found
-kubectl delete pvc airflow-dags-pvc postgres-pvc --namespace $NAMESPACE --ignore-not-found
+helm uninstall airflow --namespace $NAMESPACE || true
+kubectl delete deployment,statefulset,service,configmap,secret,ingress -l app=airflow --namespace $NAMESPACE --ignore-not-found
+kubectl delete pvc -l app=airflow --namespace $NAMESPACE --ignore-not-found
+kubectl delete pod -l app=airflow --namespace $NAMESPACE --force --grace-period=0 || true
 
-# Deploy PVCs first
-echo "Deploying PVCs..."
-kubectl apply -f iac/airflow/airflow.pvcs.yaml
+# Wait for resources to be fully cleaned up
+echo "Waiting for resources to be cleaned up..."
+sleep 30
 
-# Wait for PVCs to be bound
-echo "Waiting for PVCs to be bound..."
-kubectl wait --for=condition=Bound pvc/airflow-dags-pvc -n $NAMESPACE --timeout=$TIMEOUT
-kubectl wait --for=condition=Bound pvc/postgres-pvc -n $NAMESPACE --timeout=$TIMEOUT
+# Install Airflow using Helm with basic configuration
+echo "Installing Airflow using Helm..."
+helm upgrade --install airflow apache-airflow/airflow \
+  --namespace $NAMESPACE \
+  --values iac/helm/values/airflow.values.yaml \
+  --timeout $TIMEOUT \
+  --wait \
+  --atomic \
+  --debug
 
-# Deploy Redis and Postgres first
-echo "Deploying Redis and Postgres..."
-kubectl apply -f iac/airflow/airflow.redis.yaml
-kubectl apply -f iac/airflow/airflow.postgres.yaml
-
-# Give the deployments a moment to create pods
-echo "Waiting for pods to be created..."
-sleep 10
-
-# Wait for Redis and Postgres to be ready using deployment conditions instead of pod labels
-echo "Waiting for Redis and Postgres deployments to be ready..."
-kubectl wait --for=condition=Available=True deployment/redis -n $NAMESPACE --timeout=$TIMEOUT
-kubectl wait --for=condition=Available=True deployment/postgres -n $NAMESPACE --timeout=$TIMEOUT
-
-# Deploy main Airflow configuration
-echo "Deploying Airflow components..."
-kubectl apply -f iac/airflow/airflow.yaml
-
-# Wait for Airflow deployments to be ready
-echo "Waiting for Airflow components..."
-kubectl wait --for=condition=Available=True deployment/airflow-webserver -n $NAMESPACE --timeout=$TIMEOUT
-kubectl wait --for=condition=Available=True deployment/airflow-scheduler -n $NAMESPACE --timeout=$TIMEOUT
-kubectl wait --for=condition=Available=True deployment/airflow-worker -n $NAMESPACE --timeout=$TIMEOUT
-
-echo "Airflow deployment completed successfully!"
-echo "You can access the Airflow UI at: https://wifire-kg-airflow.nrp-nautilus.io"
-
-# Print pod status
-echo "Current pod status:"
-kubectl get pods -n $NAMESPACE
+# Check deployment status
+echo "Checking deployment status..."
+kubectl get pods -n $NAMESPACE -l release=airflow
