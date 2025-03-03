@@ -1,52 +1,34 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useFileUpload } from '../hooks/useFileUpload';  // Assuming the hook is in this path
 
 export default function FileUpload() {
-  const [uploading, setUploading] = useState(false);
   const [fileType, setFileType] = useState('terrestrial'); // or 'aerial'
-
+  const { uploading, success, error, uploadFile } = useFileUpload();
+  
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    setUploading(true);
-    try {
-      const file = acceptedFiles[0];
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', fileType);
+    const file = acceptedFiles[0];
+    const bucketName = "wifire-kg";
 
-      // TODO: Replace with your API endpoint
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      // Handle success
-      alert('File uploaded successfully!');
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
-    } finally {
-      setUploading(false);
+    if (file) {
+      await uploadFile(file, bucketName, fileType);  // Pass the selected file type
     }
-  }, [fileType]);
+  }, [fileType, uploadFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'application/x-laz': ['.laz'],
-      'application/x-las': ['.las']
+      'application/x-las': ['.las'],
     },
-    maxFiles: 1
+    maxFiles: 1,
   });
 
   return (
     <div className="w-full max-w-2xl">
       <div className="mb-4">
         <label className="block text-sm font-medium mb-2">LiDAR Type:</label>
-        <select 
+        <select
           value={fileType}
           onChange={(e) => setFileType(e.target.value)}
           className="w-full p-2 border rounded-md"
@@ -69,7 +51,9 @@ export default function FileUpload() {
         ) : (
           <p>Drag and drop a LiDAR file here, or click to select file</p>
         )}
+        {error && <p className="text-red-500">{error}</p>}
+        {success && <p className="text-green-500">Upload successful!</p>}
       </div>
     </div>
   );
-} 
+}
