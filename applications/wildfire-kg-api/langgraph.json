@@ -1,0 +1,11 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "wildfire-kg": "src.orchestration.graph.graph_factory:get_graph"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "http": {
+    "app": "src.app:app"
+  }
+} 

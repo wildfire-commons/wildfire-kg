@@ -1,11 +1,11 @@
-from typing import Dict, List, Any, Annotated, TypedDict, Literal
+from typing import Dict, List, Any, Annotated, TypedDict, Literal, Tuple
 import logging
 from langgraph.graph import StateGraph, END
-from ..state.conversation_state import ConversationState, Message
-from ..agents.router_agent import create_router_agent
-from ..agents.response_agent import create_response_agent
-from ..tools.kg_tool import KnowledgeGraphTool
-from ..tools.rag_tool import RAGTool
+from src.orchestration.state.conversation_state import ConversationState, Message
+from src.orchestration.agents.router_agent import create_router_agent
+from src.orchestration.agents.response_agent import create_response_agent
+from src.orchestration.tools.kg_tool import KnowledgeGraphTool
+from src.orchestration.tools.rag_tool import RAGTool
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,27 +25,59 @@ def create_chat_graph():
     # Define the nodes in the graph
     def route_query(
         state: ConversationState,
-    ) -> Literal["kg_query", "rag_query", "both", "direct_response"]:
+    ) -> Dict[str, Any]:
         """Route the query to the appropriate node based on the router's decision."""
         query = state.get("user_query", "")
-        result = router(query)
-        action = result.get("action")
+        logger.info(f"🔀 Routing query: '{query}'")
 
-        # Log the routing decision
-        logger.info(
-            f"Routing query '{query}' to {action} based on reasoning: {result.get('reasoning')}"
-        )
+        # Create a new state to update
+        new_state = state.copy()
 
-        # Add the routing decision to the state metadata
-        metadata = state.get("metadata", {})
-        metadata["routing"] = result
-        state["metadata"] = metadata
+        try:
+            # Call the router agent
+            logger.info("🧠 Consulting router agent for decision")
+            result = router(query)
+            action = result.get("action")
+            reasoning = result.get("reasoning", "No reasoning provided")
 
-        return action
+            # Log the routing decision with emojis for better visibility
+            action_emoji = {
+                "kg_query": "🔍",
+                "rag_query": "📚",
+                "both": "🔍📚",
+                "direct_response": "💬",
+            }.get(action, "❓")
+
+            logger.info(f"{action_emoji} Routing to: {action}")
+            logger.info(f"📝 Reasoning: {reasoning}")
+
+            # Add the routing decision to the state metadata
+            metadata = new_state.get("metadata", {})
+            metadata["routing"] = result
+            new_state["metadata"] = metadata
+
+            # Set the next node in the state for conditional edges
+            logger.info(f"➡️ Setting next node to: {action}")
+            return {"next": action, **new_state}
+
+        except Exception as e:
+            logger.error(f"❌ Error in router: {str(e)}", exc_info=True)
+
+            # Fallback to 'both' if there's an error
+            logger.info("⚠️ Router error - falling back to 'both'")
+            metadata = new_state.get("metadata", {})
+            metadata["routing"] = {
+                "action": "both",
+                "reasoning": f"Fallback due to error: {str(e)}",
+            }
+            new_state["metadata"] = metadata
+
+            return {"next": "both", **new_state}
 
     def query_knowledge_graph(state: ConversationState) -> ConversationState:
         """Query the knowledge graph and update the state."""
         query = state.get("user_query", "")
+        logger.info(f"Executing knowledge graph query: {query}")
 
         # Execute the knowledge graph query
         result = kg_tool._run(query)
@@ -58,6 +90,7 @@ def create_chat_graph():
     def query_rag(state: ConversationState) -> ConversationState:
         """Query external sources using RAG and update the state."""
         query = state.get("user_query", "")
+        logger.info(f"Executing RAG query: {query}")
 
         # Execute the RAG query
         result = rag_tool._run(query)
@@ -67,20 +100,127 @@ def create_chat_graph():
 
         return state
 
+    def handle_both_queries(state: ConversationState) -> ConversationState:
+        """Handle both KG and RAG queries in sequence."""
+        query = state.get("user_query", "")
+        logger.info(
+            f"Starting sequential execution of both KG and RAG queries for: {query}"
+        )
+
+        # Create a new state dictionary to update
+        new_state = state.copy()
+
+        # Initialize results containers
+        new_state["kg_results"] = {}
+        new_state["rag_results"] = {}
+
+        # Step 1: Execute Knowledge Graph query
+        try:
+            logger.info("🔍 Executing Knowledge Graph query...")
+            kg_result = kg_tool._run(query)
+            new_state["kg_results"] = kg_result
+            logger.info(
+                f"✅ KG query completed with answer length: {len(str(kg_result.get('answer', '')))}"
+            )
+        except Exception as e:
+            logger.error(f"❌ Error in Knowledge Graph query: {str(e)}", exc_info=True)
+            new_state["kg_results"] = {"error": f"Error in KG query: {str(e)}"}
+            # Add error metadata
+            metadata = new_state.get("metadata", {})
+            metadata["kg_error"] = str(e)
+            new_state["metadata"] = metadata
+
+        # Step 2: Execute RAG query
+        try:
+            logger.info("📚 Executing RAG query...")
+            rag_result = rag_tool._run(query)
+            new_state["rag_results"] = rag_result
+            doc_count = len(rag_result.get("documents", []))
+            logger.info(f"✅ RAG query completed with {doc_count} documents retrieved")
+        except Exception as e:
+            logger.error(f"❌ Error in RAG query: {str(e)}", exc_info=True)
+            new_state["rag_results"] = {"error": f"Error in RAG query: {str(e)}"}
+            # Add error metadata
+            metadata = new_state.get("metadata", {})
+            metadata["rag_error"] = str(e)
+            new_state["metadata"] = metadata
+
+        # Step 3: Add execution metadata
+        metadata = new_state.get("metadata", {})
+        metadata["both_executed"] = True
+        metadata["kg_success"] = "error" not in new_state["kg_results"]
+        metadata["rag_success"] = "error" not in new_state["rag_results"]
+        new_state["metadata"] = metadata
+
+        logger.info(
+            "✨ Both queries execution completed - continuing to response generation"
+        )
+        return new_state
+
     def generate_response(state: ConversationState) -> ConversationState:
         """Generate the final response and update the state."""
-        # Generate the response
-        response_text = response_generator(state)
+        query = state.get("user_query", "")
+        metadata = state.get("metadata", {})
+        route_info = metadata.get("routing", {})
+        action = route_info.get("action", "unknown")
 
-        # Update the state with the response
-        state["response"] = response_text
+        logger.info(f"🎯 Generating response for query routed to: {action}")
 
-        # Add the response to the messages
-        messages = state.get("messages", [])
-        messages.append(Message(content=response_text, role="ai"))
-        state["messages"] = messages
+        # Create a new state to update
+        new_state = state.copy()
 
-        return state
+        # Check for errors
+        if "error" in state:
+            logger.error(f"❌ Error found in state: {state['error']}")
+            error_msg = f"I apologize, but an error occurred: {state['error']}"
+            new_state["response"] = error_msg
+            messages = new_state.get("messages", [])
+            messages.append(Message(content=error_msg, role="ai"))
+            new_state["messages"] = messages
+            return new_state
+
+        # Check for 'both' execution
+        both_executed = metadata.get("both_executed", False)
+        if both_executed:
+            logger.info("📊 Processing results from 'both' node execution")
+            kg_success = metadata.get("kg_success", False)
+            rag_success = metadata.get("rag_success", False)
+            logger.info(f"KG success: {kg_success}, RAG success: {rag_success}")
+
+            if not kg_success and not rag_success:
+                logger.warning("⚠️ Both KG and RAG queries failed")
+
+        # Generate the response using the response agent
+        try:
+            logger.info("🤖 Invoking response generator")
+            response_text = response_generator(state)
+            logger.info(
+                f"✅ Response generated successfully (length: {len(response_text)})"
+            )
+
+            # Update the state with the response
+            new_state["response"] = response_text
+
+            # Add the response to the messages
+            messages = new_state.get("messages", [])
+            messages.append(Message(content=response_text, role="ai"))
+            new_state["messages"] = messages
+
+            logger.info("✨ Response generation complete")
+            return new_state
+
+        except Exception as e:
+            logger.error(f"❌ Error in response generation: {str(e)}", exc_info=True)
+            error_msg = f"I apologize, but I encountered an error while generating a response: {str(e)}. Please try again with a different question."
+            new_state["response"] = error_msg
+            new_state["error"] = str(e)
+
+            # Add the error response to messages
+            messages = new_state.get("messages", [])
+            messages.append(Message(content=error_msg, role="ai"))
+            new_state["messages"] = messages
+
+            return new_state
 
     # Create the graph
     workflow = StateGraph(ConversationState)
@@ -89,17 +229,23 @@ def create_chat_graph():
     workflow.add_node("route", route_query)
     workflow.add_node("kg_query", query_knowledge_graph)
     workflow.add_node("rag_query", query_rag)
-    workflow.add_node("both", lambda state: state)  # Placeholder for the "both" path
+    workflow.add_node("both", handle_both_queries)
     workflow.add_node(
         "direct_response", lambda state: state
     )  # Placeholder for direct response
     workflow.add_node("generate_response", generate_response)
 
-    # Add the edges
-    workflow.add_edge("route", "kg_query")
-    workflow.add_edge("route", "rag_query")
-    workflow.add_edge("route", "both")
-    workflow.add_edge("route", "direct_response")
+    # Define conditional edges based on the 'next' field from the router
+    workflow.add_conditional_edges(
+        "route",
+        lambda state: state.get("next"),
+        {
+            "kg_query": "kg_query",
+            "rag_query": "rag_query",
+            "both": "both",
+            "direct_response": "direct_response",
+        },
+    )
 
     # From kg_query, go to generate_response
     workflow.add_edge("kg_query", "generate_response")
@@ -107,9 +253,8 @@ def create_chat_graph():
     # From rag_query, go to generate_response
     workflow.add_edge("rag_query", "generate_response")
 
-    # From both, execute both kg_query and rag_query in parallel
-    workflow.add_edge("both", "kg_query")
-    workflow.add_edge("both", "rag_query")
+    # From both, go directly to generate_response since it handles both queries internally
+    workflow.add_edge("both", "generate_response")
 
     # From direct_response, go straight to generate_response
     workflow.add_edge("direct_response", "generate_response")

@@ -56,6 +56,22 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
             kg_results = state.get("kg_results", {})
             rag_results = state.get("rag_results", {})
             messages = state.get("messages", [])
+            metadata = state.get("metadata", {})
+
+            # Log what we're working with
+            logger.info(f"Generating response for query: {query}")
+            logger.info(f"KG results available: {bool(kg_results)}")
+            logger.info(f"RAG results available: {bool(rag_results)}")
+
+            # Check if we're coming from the "both" node
+            both_executed = metadata.get("both_executed", False)
+            if both_executed:
+                logger.info("Processing results from 'both' node execution")
+                kg_success = metadata.get("kg_success", False)
+                rag_success = metadata.get("rag_success", False)
+                logger.info(
+                    f"KG query success: {kg_success}, RAG query success: {rag_success}"
+                )
 
             # Format the conversation history
             conversation_history = ""
@@ -71,21 +87,25 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
                 conversation_history += f"{role.capitalize()}: {content}\n"
 
             # Generate the response
+            logger.info("Invoking LLM for response generation")
             response = llm.invoke(
                 response_prompt.format(
                     query=query,
                     kg_results=(
                         kg_results
-                        if kg_results
+                        if kg_results and "error" not in kg_results
                         else "No knowledge graph results available."
                     ),
                     rag_results=(
-                        rag_results if rag_results else "No RAG results available."
+                        rag_results
+                        if rag_results and "error" not in rag_results
+                        else "No RAG results available."
                     ),
                     conversation_history=conversation_history,
                 )
             )
 
+            logger.info("Response generated successfully")
             return response.content
 
         except Exception as e:

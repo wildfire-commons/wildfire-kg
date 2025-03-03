@@ -1,4 +1,4 @@
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Type
 import logging
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
@@ -22,20 +22,29 @@ class RAGQueryInput(BaseModel):
 class RAGTool(BaseTool):
     """Tool for retrieving information using RAG from external sources."""
 
-    name = "rag_query"
-    description = """
+    name: str = "rag_query"
+    description: str = """
     Use this tool to search for information from external sources like the web.
     This is useful when you need up-to-date information that might not be in the knowledge graph,
     such as recent wildfire events, weather conditions, or general information about wildfire management.
     """
-    args_schema = RAGQueryInput
+    args_schema: Type[RAGQueryInput] = RAGQueryInput
 
-    def __init__(self, tavily_api_key: Optional[str] = None):
+    # Define the fields properly
+    tavily_api_key: Optional[str] = Field(
+        default_factory=lambda: os.getenv("TAVILY_API_KEY")
+    )
+    tavily_client: Optional[TavilyClient] = None
+
+    def __init__(self, tavily_api_key: Optional[str] = None, **kwargs):
         """Initialize the RAG tool."""
-        super().__init__()
-        self.tavily_api_key = tavily_api_key or os.getenv("TAVILY_API_KEY")
-        if self.tavily_api_key:
-            self.tavily_client = TavilyClient(api_key=self.tavily_api_key)
+        # Pass the values to the parent class constructor
+        api_key = tavily_api_key or os.getenv("TAVILY_API_KEY")
+        super().__init__(tavily_api_key=api_key, **kwargs)
+
+        # Initialize the Tavily client
+        if api_key:
+            self.tavily_client = TavilyClient(api_key=api_key)
         else:
             logger.warning(
                 "No Tavily API key provided. Web search functionality will be limited."
@@ -45,6 +54,14 @@ class RAGTool(BaseTool):
     def _run(self, query: str) -> Dict[str, Any]:
         """Run the tool."""
         start_time = datetime.now()
+
+        # Truncate very long queries to prevent context length issues
+        if len(query) > 500:
+            logger.warning(
+                f"Query is very long ({len(query)} chars). Truncating to 500 chars."
+            )
+            query = query[:500] + "..."
+
         logger.info(f"Performing RAG query: {query}")
 
         try:
@@ -54,20 +71,27 @@ class RAGTool(BaseTool):
             if self.tavily_client:
                 search_result = self.tavily_client.search(
                     query=query,
-                    search_depth="advanced",
+                    search_depth="basic",  # Use basic depth to get faster, smaller results
                     include_domains=[
                         "nps.gov",
                         "fire.ca.gov",
                         "weather.gov",
                     ],  # Relevant domains for wildfire info
-                    max_results=5,
+                    max_results=3,  # Limit to fewer results to reduce token count
                 )
 
                 # Format the results
                 for result in search_result.get("results", []):
+                    # Truncate long document content
+                    content = result.get("content", "")
+                    if len(content) > 2000:
+                        content = (
+                            content[:2000] + "... [Content truncated due to length]"
+                        )
+
                     documents.append(
                         {
-                            "content": result.get("content", ""),
+                            "content": content,
                             "source": result.get("url", ""),
                             "title": result.get("title", ""),
                             "score": result.get("score", 0.0),
@@ -90,23 +114,28 @@ class RAGTool(BaseTool):
                     },
                 ]
 
+            # Limit the total number of documents if there are too many
+            if len(documents) > 3:
+                logger.warning(
+                    f"Limiting from {len(documents)} documents to 3 to reduce token count"
+                )
+                documents = documents[:3]
+
             end_time = datetime.now()
             execution_time = (end_time - start_time).total_seconds()
 
             return {
                 "query": query,
                 "documents": documents,
-                "source": "web_search",
                 "execution_time": execution_time,
             }
 
         except Exception as e:
-            logger.error(f"Error performing RAG query: {str(e)}", exc_info=True)
+            logger.error(f"Error in RAG query: {str(e)}", exc_info=True)
             return {
                 "query": query,
                 "error": str(e),
                 "documents": [],
-                "source": "web_search",
                 "execution_time": 0.0,
             }
 

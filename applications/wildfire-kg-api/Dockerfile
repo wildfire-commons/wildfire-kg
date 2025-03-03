@@ -5,10 +5,20 @@ ENV PYTHON_ENV=$PYTHON_ENV
 
 WORKDIR /app
 
-COPY requirements.txt ./
+# Copy pyproject.toml and other necessary files for installation
+COPY pyproject.toml ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies - for dev, we install both prod dependencies + dev extras
+RUN pip install --no-cache-dir --upgrade pip && \
+    if [ "$PYTHON_ENV" = "production" ]; then \
+        echo "Installing production dependencies" && \
+        pip install --no-cache-dir .; \
+    else \
+        echo "Installing development dependencies (includes production)" && \
+        pip install --no-cache-dir ".[dev]"; \
+    fi
 
+# Copy the rest of the application
 COPY . .
 
 CMD if [ "$PYTHON_ENV" = "production" ]; then \

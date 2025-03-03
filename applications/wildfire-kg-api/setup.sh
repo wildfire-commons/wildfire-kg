@@ -9,32 +9,29 @@ python -m venv venv
 # Activate the virtual environment
 source venv/bin/activate
 
+# Upgrade pip
+pip install --upgrade pip
+
 # Install dependencies based on environment
 case "$ENV" in
   prod|production)
     echo "Installing production dependencies..."
-    pip install -e .
+    pip install .
     ;;
   dev|development)
-    echo "Installing development dependencies..."
+    echo "Installing development dependencies (includes production)..."
+    # This installs both production dependencies and development extras
     pip install -e ".[dev]"
     ;;
   *)
     echo "Unknown environment: $ENV"
-    echo "Usage: ./setup.sh [dev|prod]"
+    echo "Usage: source setup.sh [dev|prod]"
     exit 1
     ;;
 esac
 
-# Create a .env file if it doesn't exist
-if [ ! -f .env ]; then
-    echo "Creating .env file..."
-    echo "OPENAI_API_KEY=" > .env
-    echo "NEO4J_URI=bolt://localhost:7687" >> .env
-    echo "NEO4J_USER=neo4j" >> .env
-    echo "NEO4J_PASSWORD=password" >> .env
-    echo "TAVILY_API_KEY=" >> .env
-fi
-
-echo "Setup complete! Don't forget to add your API keys to the .env file."
-echo "Run './run.sh' to start the API server."
+echo "Setup complete!"
+echo "Don't forget to add your API keys to the .env file."
+echo "Run 'wkg run' to start the API server in production mode."
+echo "Run 'wkg run --dev' to start the API server in development mode."
+echo "Run 'wkg studio' to start the API server in studio mode."
