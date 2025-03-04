@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useFileUpload } from '../hooks/useFileUpload';  // Assuming the hook is in this path
+import { useFileUpload } from '../hooks/useFileUpload';
+import { DataCategory, LidarType } from '../hooks/useFileUpload';
 
 export default function FileUpload() {
-  const [fileType, setFileType] = useState('terrestrial'); // or 'aerial'
+  const [dataCategory, setDataCategory] = useState<DataCategory>('lidar');
+  const [lidarType, setLidarType] = useState<LidarType>('terrestrial');
   const { uploading, success, error, uploadFile } = useFileUpload();
   
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -11,31 +13,73 @@ export default function FileUpload() {
     const bucketName = "wifire-kg";
 
     if (file) {
-      await uploadFile(file, bucketName, fileType);  // Pass the selected file type
+      try {
+        if (dataCategory === 'lidar') {
+          await uploadFile(file, bucketName, dataCategory, lidarType);
+        } else {
+          await uploadFile(file, bucketName, dataCategory);
+        }
+      } catch (err) {
+        console.error('Drop error:', err);
+      }
     }
-  }, [fileType, uploadFile]);
+  }, [dataCategory, lidarType, uploadFile]);
+
+  // Define accepted file types based on data category
+  const getAcceptedTypes = () => {
+    switch (dataCategory) {
+      case 'lidar':
+        return {
+          'application/x-laz': ['.laz'],
+          'application/x-las': ['.las']
+        };
+      case 'metrics':
+        return {
+          'text/csv': ['.csv']
+        };
+      case 'ignitions':
+        return {
+          'application/json': ['.geojson'],
+          'text/csv': ['.csv']
+        };
+      default:
+        return {};
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/x-laz': ['.laz'],
-      'application/x-las': ['.las'],
-    },
+    accept: getAcceptedTypes(),
     maxFiles: 1,
   });
 
   return (
     <div className="w-full max-w-2xl">
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-2">LiDAR Type:</label>
+        <label className="block text-sm font-medium mb-2">Data Category:</label>
         <select
-          value={fileType}
-          onChange={(e) => setFileType(e.target.value)}
-          className="w-full p-2 border rounded-md"
+          value={dataCategory}
+          onChange={(e) => setDataCategory(e.target.value as DataCategory)}
+          className="w-full p-2 border rounded-md mb-2"
         >
-          <option value="terrestrial">Terrestrial LiDAR</option>
-          <option value="aerial">Aerial LiDAR</option>
+          <option value="lidar">LiDAR Data</option>
+          <option value="metrics">Plot Metrics</option>
+          <option value="ignitions">Ignitions</option>
         </select>
+
+        {dataCategory === 'lidar' && (
+          <div className="mt-2">
+            <label className="block text-sm font-medium mb-2">LiDAR Type:</label>
+            <select
+              value={lidarType}
+              onChange={(e) => setLidarType(e.target.value as LidarType)}
+              className="w-full p-2 border rounded-md"
+            >
+              <option value="terrestrial">Terrestrial</option>
+              <option value="aerial">Aerial</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <div
@@ -47,12 +91,14 @@ export default function FileUpload() {
         {uploading ? (
           <p>Uploading...</p>
         ) : isDragActive ? (
-          <p>Drop the LiDAR file here...</p>
+          <p>Drop the file here...</p>
         ) : (
-          <p>Drag and drop a LiDAR file here, or click to select file</p>
+          <p>
+            Drag and drop a {dataCategory === 'lidar' ? `${lidarType} LiDAR` : dataCategory} file here, or click to select
+          </p>
         )}
-        {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-500">Upload successful!</p>}
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {success && <p className="text-green-500 mt-2">Upload successful!</p>}
       </div>
     </div>
   );

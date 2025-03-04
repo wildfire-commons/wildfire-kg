@@ -51,32 +51,41 @@ export function useFileUpload() {
     async (file: File, bucketName: string, fileType: string) => {
       try {
         setUploading(true);
-        setError(null); // Reset previous errors
-        setSuccess(false); // Reset success flag
+        setError(null);
+        setSuccess(false);
 
-        // Step 2: Get the presigned URL for the file upload
         const presignedData = await generatePresignedUrl(bucketName, file.name, fileType);
-        console.log(presignedData)
+        console.log('Presigned URL data:', presignedData);
         
-        // Step 3: Upload the file to S3 using the presigned URL
-        const uploadResponse = await fetch(presignedData.presigned_url, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type || 'application/octet-stream', // Fallback to application/octet-stream if no type is available
-          },
-          body: file,
+        // Use XMLHttpRequest instead of fetch for better CORS handling
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', presignedData.presigned_url);
+          xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+          
+          xhr.onload = () => {
+            if (xhr.status === 200) {
+              resolve(xhr.response);
+            } else {
+              reject(new Error(`Upload failed with status: ${xhr.status}`));
+            }
+          };
+          
+          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentComplete = (event.loaded / event.total) * 100;
+              console.log(`Upload progress: ${percentComplete}%`);
+            }
+          };
+          
+          xhr.send(file);
         });
 
-        console.log("upload succeeded")
-
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file to S3');
-        }
-
-        // Step 4: Update the state to reflect the successful upload
         setSuccess(true);
         alert('File uploaded successfully!');
       } catch (err) {
+        console.error('Upload error:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');
         alert('File upload failed. Please try again.');
       } finally {
