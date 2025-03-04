@@ -1,11 +1,10 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Optional
-from botocore.exceptions import ClientError
 import boto3
 import os
 import logging
-from datetime import datetime
+from botocore.exceptions import ClientError
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -31,6 +30,9 @@ class S3ListResponse(BaseModel):
     objects: List[S3Object]
     prefix: str
     parent_prefix: Optional[str]
+
+class GeneratePresignedUrlRequest(BaseModel):
+    file_name: str
 
 @router.get("/buckets", response_model=BucketListResponse)
 async def list_buckets():
@@ -186,4 +188,44 @@ async def delete_folder(bucket_name: str, prefix: str = Query(...)):
             
     except Exception as e:
         logger.error(f"Error deleting folder: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/buckets/{bucket_name}/presigned-url")
+async def generate_presigned_url(
+    bucket_name: str,
+    request: GeneratePresignedUrlRequest
+):
+    """Generate a presigned URL for uploading a file to S3"""
+    try:
+        # Set up S3 client
+        s3_client = boto3.client('s3',
+            aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+            endpoint_url=os.getenv('AWS_S3_ENDPOINT_URL')
+        )
+        
+        # Construct the full path for the file (only file_name is needed)
+        file_key = request.file_name
+        logger.debug(f"Generated file_key: {file_key}")
+        
+        # Generate the presigned URL using the format you specified
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod='put_object',  # Specifies that the URL is for a PUT request
+            Params={
+                "Bucket": bucket_name,
+                "Key": file_key
+            },
+            ExpiresIn=3600  # Default expiration of 1 hour
+        )
+
+        logger.debug(f"Presigned URL: {presigned_url}")
+        
+        return {
+            "presigned_url": presigned_url,
+            "file_key": file_key,
+            "expires_in": 3600  # Default expiration time of 1 hour
+        }
+
+    except ClientError as e:
+        logger.error(f"Error generating presigned URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
