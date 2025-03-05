@@ -13,10 +13,25 @@ def process_and_load_data():
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # local GraphDB connection details
-    GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
+    GRAPHDB_URL = "http://host.docker.internal:7200"
     REPOSITORY = "wildfire-kg"
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
+
+    # connection test
+    try:
+        test_response = requests.get(
+            SPARQL_ENDPOINT,
+            params={'query': 'ASK { ?s ?p ?o }'},
+            headers={'Accept': 'application/sparql-results+json'},
+            verify=False
+        )
+        print(f"GraphDB connection test status: {test_response.status_code}")
+        if test_response.status_code != 200:
+            raise Exception(f"GraphDB connection failed with status {test_response.status_code}")
+    except Exception as e:
+        print(f"Error connecting to GraphDB: {str(e)}")
+        raise
 
     WIFIRE = Namespace("http://wifire.ucsd.edu/ontology/")
     GEO = Namespace("http://www.opengis.net/ont/geosparql#")
@@ -24,68 +39,74 @@ def process_and_load_data():
 
     print("Starting data import...")
     try:
-        file_path = "/opt/airflow/dags/data/raw/CASBC_plot_metrics.csv"
+        file_path = "/opt/airflow/data/raw/CASBC_plot_metrics.csv"
         df = pd.read_csv(file_path)
+        print(f"Available columns: {df.columns.tolist()}")
         
-        # convert latlon string to actual coordinates
-        df['latitude'] = df['latlon'].str.extract(r'\[(.*?),').astype(float)
-        df['longitude'] = df['latlon'].str.extract(r',\s*(.*?)\]').astype(float)
-        
-        # process each plot
         for _, plot in df.iterrows():
             plot_id = plot['PLOT_NAME']
             
             update_query = f"""
             PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
-            PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
             
-            INSERT {{ 
+            INSERT DATA {{ 
                 GRAPH <http://wifire.ucsd.edu/plot_metrics> {{
-                    wifire:plot_{plot_id} 
-                        wifire:hasID "{plot_id}" ;
-                        wifire:hasLocation wifire:loc_{plot_id} ;
-                        wifire:type wifire:PlotMetrics ;
-                        wifire:canopyBaseHeight "{plot['CBH']}"^^xsd:float ;
-                        wifire:leafAreaIndex "{plot['LAI']}"^^xsd:float ;
-                        wifire:totalBasalArea "{plot['TBA']}"^^xsd:float ;
-                        wifire:meanDBH "{plot['MDBH']}"^^xsd:float ;
-                        wifire:meanLAI "{plot['MLAI']}"^^xsd:float ;
-                        wifire:overstoryLAI "{plot['OLAI']}"^^xsd:float ;
-                        wifire:understoryLAI "{plot['ULAI']}"^^xsd:float ;
-                        wifire:groundCoverVolume "{plot['GCvol']}"^^xsd:float ;
-                        wifire:midstoryVolume "{plot['MSvol']}"^^xsd:float ;
-                        wifire:maxShrubDensity "{plot['MaxSD']}"^^xsd:float ;
-                        wifire:maxShrubHeight "{plot['MaxSH']}"^^xsd:float ;
-                        wifire:maxTreeHeight "{plot['MaxTH']}"^^xsd:float ;
-                        wifire:minShrubDensity "{plot['MinSD']}"^^xsd:float ;
-                        wifire:overstoryVolume "{plot['OSvol']}"^^xsd:float ;
-                        wifire:understoryVolume "{plot['USvol']}"^^xsd:float ;
-                        wifire:landFireAspect "{plot['LF_ASP']}"^^xsd:float ;
-                        wifire:landFireCanopyBulkDensity "{plot['LF_CBD']}"^^xsd:float ;
-                        wifire:landFireExistingVegetationCover "{plot['LF_EVC']}"^^xsd:string ;
-                        wifire:landFireExistingVegetationType "{plot['LF_EVT']}"^^xsd:string ;
-                        wifire:meanShrubArea "{plot['MeanSA']}"^^xsd:float ;
-                        wifire:meanShrubDensity "{plot['MeanSD']}"^^xsd:float ;
-                        wifire:meanShrubHeight "{plot['MeanSH']}"^^xsd:float ;
-                        wifire:meanTreeHeight "{plot['MeanTH']}"^^xsd:float ;
-                        wifire:numberOfTrees "{plot['TreesN']}"^^xsd:integer ;
-                        wifire:landFireElevation "{plot['LF_EVEL']}"^^xsd:float ;
-                        wifire:landFireSlope "{plot['LF_SLPD']}"^^xsd:float ;
-                        wifire:numberOfShrubs "{plot['ShrubsN']}"^^xsd:integer ;
-                        wifire:landFireDisturbance "{plot['LF_FDist']}"^^xsd:string ;
+                    # Main PlotMetrics instance
+                    wifire:plot_{plot_id} rdf:type wifire:PlotMetrics .
+                    
+                    # VegetationMetrics
+                    wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;
                         wifire:basalArea "{plot['Basalarea']}"^^xsd:float ;
-                        wifire:landFireFuelModel13 "{plot['LF_FBFM13']}"^^xsd:string ;
-                        wifire:landFireFuelModel40 "{plot['LF_FBFM40']}"^^xsd:string ;
+                        wifire:LAI "{plot['LAI']}"^^xsd:float ;
+                        wifire:TBA "{plot['TBA']}"^^xsd:float ;
+                        wifire:OLAI "{plot['OLAI']}"^^xsd:float ;
+                        wifire:ULAI "{plot['ULAI']}"^^xsd:float ;
+                        wifire:GCvol "{plot['GCvol']}"^^xsd:float ;
+                        wifire:MSvol "{plot['MSvol']}"^^xsd:float ;
+                        wifire:OSvol "{plot['OSvol']}"^^xsd:float ;
+                        wifire:USvol "{plot['USvol']}"^^xsd:float .
+                    
+                    # Link PlotMetrics to VegetationMetrics
+                    wifire:plot_{plot_id} wifire:hasVegetationMetrics wifire:veg_{plot_id} .
+                    
+                    # FireBehaviorMetrics
+                    wifire:fire_{plot_id} rdf:type wifire:FireBehaviorMetrics ;
+                        wifire:LF_FBFM13 "{plot['LF_FBFM13']}"^^xsd:string ;
+                        wifire:LF_FBFM40 "{plot['LF_FBFM40']}"^^xsd:string ;
+                        wifire:LF_EVEL "{plot['LF_EVEL']}"^^xsd:float ;
+                        wifire:LF_SLPD "{plot['LF_SLPD']}"^^xsd:float ;
+                        wifire:LF_ASP "{plot['LF_ASP']}"^^xsd:float ;
+                        wifire:LF_FDist "{plot['LF_FDist']}"^^xsd:string ;
+                        wifire:LF_EVC "{plot['LF_EVC']}"^^xsd:string ;
+                        wifire:LF_EVT "{plot['LF_EVT']}"^^xsd:string .
+                    
+                    # Link PlotMetrics to FireBehaviorMetrics
+                    wifire:plot_{plot_id} wifire:hasFireBehaviorMetrics wifire:fire_{plot_id} .
+                    
+                    # TreeShrubMetrics
+                    wifire:tree_{plot_id} rdf:type wifire:TreeShrubMetrics ;
+                        wifire:plotName "{plot_id}"^^xsd:string ;
+                        wifire:MDBH "{plot['MDBH']}"^^xsd:float ;
+                        wifire:MLAI "{plot['MLAI']}"^^xsd:float ;
+                        wifire:SDHT "{plot['SDHT']}"^^xsd:float ;
+                        wifire:SDSHT "{plot['SDSHT']}"^^xsd:float ;
+                        wifire:SDSD "{plot['SDSD']}"^^xsd:float ;
+                        wifire:MaxSD "{plot['MaxSD']}"^^xsd:float ;
+                        wifire:MaxSH "{plot['MaxSH']}"^^xsd:float ;
+                        wifire:MaxTH "{plot['MaxTH']}"^^xsd:float ;
+                        wifire:MinSD "{plot['MinSD']}"^^xsd:float ;
+                        wifire:TreesN "{plot['TreesN']}"^^xsd:integer ;
+                        wifire:ShrubsN "{plot['ShrubsN']}"^^xsd:integer ;
+                        wifire:MeanSA "{plot['MeanSA']}"^^xsd:float ;
                         wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
                         wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float .
-                        
-                    wifire:loc_{plot_id} 
-                        wifire:type geo:Feature ;
-                        wifire:longitude "{plot['longitude']}"^^xsd:float ;
-                        wifire:latitude "{plot['latitude']}"^^xsd:float .
+                    
+                    # Link PlotMetrics to TreeShrubMetrics
+                    wifire:plot_{plot_id} wifire:hasTreeShrubMetrics wifire:tree_{plot_id} .
                 }}
-            }} WHERE {{}}
+            }}
             """
             
             headers = {
@@ -96,7 +117,8 @@ def process_and_load_data():
             response = requests.post(
                 UPDATE_ENDPOINT,
                 data={'update': update_query},
-                headers=headers
+                headers=headers,
+                verify=False
             )
             
             if response.status_code not in [200, 204]:
@@ -107,6 +129,7 @@ def process_and_load_data():
             
     except Exception as e:
         print(f"Error processing and loading data: {str(e)}")
+        raise
 
 with DAG(
     'graphdb_plot_metrics_import',
