@@ -1,16 +1,46 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
+from airflow.models import Variable
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
 
 def process_and_load_data():
     # Move imports inside
     import pandas as pd
     import requests
     import urllib3
+    import boto3
+    import io
     from rdflib import Graph, Namespace, Literal, URIRef
     
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    # Get credentials from Airflow Variables
+    aws_access_key_id = Variable.get("AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = Variable.get("AWS_SECRET_ACCESS_KEY")
+    aws_s3_endpoint_url = Variable.get("AWS_S3_ENDPOINT_URL")
+    aws_s3_bucket_name = Variable.get("AWS_S3_BUCKET_NAME")
+
+    # Print environment variables to debug (optional)
+    print("Environment variables:")
+    print(f"AWS_ACCESS_KEY_ID: {'*' * len(aws_access_key_id) if aws_access_key_id else 'Not set'}")
+    print(f"AWS_SECRET_ACCESS_KEY: {'*' * 5 if aws_secret_access_key else 'Not set'}")
+    print(f"AWS_S3_ENDPOINT_URL: {aws_s3_endpoint_url}")
+    print(f"AWS_S3_BUCKET_NAME: {aws_s3_bucket_name}")
+
+    # Set up S3 client
+    s3_client = boto3.client(
+        "s3",
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        endpoint_url=aws_s3_endpoint_url,
+        verify=False
+    )
 
     # local GraphDB connection details
     GRAPHDB_URL = "http://host.docker.internal:7200"
@@ -39,8 +69,14 @@ def process_and_load_data():
 
     print("Starting data import...")
     try:
-        file_path = "/opt/airflow/data/raw/CASBC_plot_metrics.csv"
-        df = pd.read_csv(file_path)
+        # Get file from S3
+        s3_response = s3_client.get_object(
+            Bucket=aws_s3_bucket_name,
+            Key='metrics/CASBC_plot_metrics.csv'
+        )
+        
+        # Read CSV directly from S3 response
+        df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
         print(f"Available columns: {df.columns.tolist()}")
         
         for _, plot in df.iterrows():
@@ -141,12 +177,12 @@ with DAG(
     
     install_deps = BashOperator(
         task_id='install_dependencies',
-        bash_command='pip install --no-cache-dir rdflib requests pandas',
+        bash_command='pip install --no-cache-dir rdflib requests pandas boto3',
     )
     
     load_data = PythonOperator(
         task_id='process_and_load_data',
-        python_callable=process_and_load_data,
+        python_callable=process_and_load_data
     )
     
     install_deps >> load_data 
