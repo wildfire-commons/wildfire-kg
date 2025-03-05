@@ -1,0 +1,21 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+CONSTRUCT {
+    ?plot rdf:type wifire:PlotMetrics .
+    ?plot wifire:hasVegetationMetrics ?veg .
+    ?plot wifire:hasFireBehaviorMetrics ?fire .
+    ?plot wifire:hasTreeShrubMetrics ?tree .
+    
+    ?veg rdf:type wifire:VegetationMetrics .
+    ?fire rdf:type wifire:FireBehaviorMetrics .
+    ?tree rdf:type wifire:TreeShrubMetrics .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/plot_metrics> {
+        ?plot rdf:type wifire:PlotMetrics .
+        ?plot wifire:hasVegetationMetrics ?veg .
+        ?plot wifire:hasFireBehaviorMetrics ?fire .
+        ?plot wifire:hasTreeShrubMetrics ?tree .
+    }
+}
