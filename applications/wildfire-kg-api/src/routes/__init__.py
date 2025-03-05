@@ -14,9 +14,10 @@ from fastapi import APIRouter, FastAPI
 # Route configuration with prefixes - add new routes here
 ROUTE_CONFIG = {
     "s3": {"prefix": "/api", "tags": ["S3"]},
-    "health": {"prefix": "", "tags": ["Health"]},
-    "example": {"prefix": "/api", "tags": ["Examples"]},
-    # Add future routes here with their prefixes and tags
+    "health": {
+        "prefix": "",
+        "tags": ["Health"],
+    },  # Add future routes here with their prefixes and tags
 }
 
 
