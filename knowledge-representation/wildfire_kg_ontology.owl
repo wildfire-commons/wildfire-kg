@@ -295,12 +295,6 @@
     rdfs:label "LF_EVT" ;
     rdfs:comment "Expected vegetation type at the site" .
 
-:LF_DISTP rdf:type rdf:Property ;
-    rdfs:domain :FireBehaviorMetrics ;
-    rdfs:range xsd:float ;
-    rdfs:label "LF_DISTP" ;
-    rdfs:comment "Distance to the nearest plot" .
-
 # Properties for PlotMetrics: TreeShrubMetrics
 :MDBH rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
