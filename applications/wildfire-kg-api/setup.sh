@@ -1,11 +1,37 @@
 #!/bin/bash
 
-# Create and activate virtual environment
+# Default to production environment
+ENV=${1:-prod}
+
+# Create a virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Activate the virtual environment
+source venv/bin/activate
 
-# Run the API (for development)
-uvicorn src.api:app --reload --port 8000 --reload-dir src 
+# Upgrade pip
+pip install --upgrade pip
+
+# Install dependencies based on environment
+case "$ENV" in
+  prod|production)
+    echo "Installing production dependencies..."
+    pip install .
+    ;;
+  dev|development)
+    echo "Installing development dependencies (includes production)..."
+    # This installs both production dependencies and development extras
+    pip install -e ".[dev]"
+    ;;
+  *)
+    echo "Unknown environment: $ENV"
+    echo "Usage: source setup.sh [dev|prod]"
+    exit 1
+    ;;
+esac
+
+echo "Setup complete!"
+echo "Don't forget to add your API keys to the .env file."
+echo "Run 'wkg run' to start the API server in production mode."
+echo "Run 'wkg run --dev' to start the API server in development mode."
+echo "Run 'wkg studio' to start the API server in studio mode."

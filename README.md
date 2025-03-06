@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This project implements a knowledge graph-based system for forest and wildfire data analysis. It integrates multiple data sources into a unified graph database, enabling complex queries and spatial reasoning for fuel management and forest health monitoring.   
+This project implements a knowledge graph-based system for fuel management and forest health monitoring. It integrates multiple data sources into a unified knowledge graph database, enabling complex spatially and temporally aware queries. An LLM can then be used to reason over the graph to answer questions about the forest and wildfire data. 
 
 ## Key Components
 

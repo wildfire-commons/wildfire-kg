@@ -1,13 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
-from .routes import s3, graph
+# Import the register_routers function
+from src.routes import register_routers
 
 app = FastAPI(
     title="Wildfire Knowledge Graph API",
     description="API for interacting with the Wildfire Knowledge Graph",
-    version="0.0.1"
+    version="0.1.0",  # Updated version
 )
 
 # CORS configuration
@@ -41,9 +43,8 @@ app.add_middleware(
 #                 headers={"WWW-Authenticate": "Bearer"},
 #             )
 
-# Include routers
-app.include_router(s3.router, prefix="/api")
-app.include_router(graph.router, prefix="/api")
+# Register all routers automatically
+register_routers(app)
 
 # Example protected route template (commented out)
 # @app.get("/protected-route")
