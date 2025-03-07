@@ -1,0 +1,53 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+CONSTRUCT {
+    ?sensor rdf:type wifire:FireIgnitionSensor .
+    ?sensor wifire:hasSensorMetadata ?metadata .
+    ?sensor wifire:hasLocationData ?location .
+    ?sensor wifire:hasSensorTypeData ?type .
+    ?sensor wifire:hasEnvironmentalData ?env .
+    ?sensor wifire:hasParticleData ?particle .
+    ?sensor wifire:hasWindData ?wind .
+    
+    ?metadata rdf:type wifire:SensorMetadata .
+    ?location rdf:type wifire:LocationData .
+    ?type rdf:type wifire:SensorTypeData .
+    ?env rdf:type wifire:EnvironmentalData .
+    ?particle rdf:type wifire:ParticleData .
+    ?wind rdf:type wifire:WindData .
+    
+    ?metadata wifire:db_id ?id ;
+              wifire:model_type ?model ;
+              wifire:time ?time ;
+              wifire:device_alias ?alias ;
+              wifire:sensor_type_id ?type_id .
+              
+    ?location wifire:longitude ?lon ;
+              wifire:latitude ?lat .
+              
+    ?type wifire:type ?sensor_type .
+    
+    ?env wifire:temperatureMillidegreeC ?temp ;
+         wifire:barometricPa ?pressure ;
+         wifire:humidityRh ?humidity ;
+         wifire:CO2Ppm ?co2 ;
+         wifire:mos_gasResistance ?gas .
+         
+    ?particle wifire:pmsensor_pm10Standard ?pm10 ;
+              wifire:pmsensor_pm25Standard ?pm25 .
+              
+    ?wind wifire:wind_windDirectionDegrees ?wind_dir ;
+          wifire:wind_windSpeedCmS ?wind_speed .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/sensor_data> {
+        ?sensor rdf:type wifire:FireIgnitionSensor .
+        ?sensor wifire:hasSensorMetadata ?metadata .
+        ?sensor wifire:hasLocationData ?location .
+        ?sensor wifire:hasSensorTypeData ?type .
+        ?sensor wifire:hasEnvironmentalData ?env .
+        ?sensor wifire:hasParticleData ?particle .
+        ?sensor wifire:hasWindData ?wind .
+    }
+} 
