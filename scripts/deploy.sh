@@ -164,6 +164,10 @@ rbac:
 
 db:
   enabled: true
+  image:
+    repository: supabase/postgres
+    tag: 15.1.0.103
+    pullPolicy: IfNotPresent
   serviceAccount:
     create: false
   resources:
@@ -180,6 +184,10 @@ db:
 
 studio:
   enabled: true
+  image:
+    repository: supabase/studio
+    tag: "latest"
+    pullPolicy: IfNotPresent
   serviceAccount:
     create: false
   resources:
@@ -204,6 +212,10 @@ studio:
 
 auth:
   enabled: true
+  image:
+    repository: supabase/gotrue
+    tag: "latest"
+    pullPolicy: IfNotPresent
   serviceAccount:
     create: false
   resources:
