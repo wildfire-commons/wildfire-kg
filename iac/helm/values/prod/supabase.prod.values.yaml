@@ -1,0 +1,114 @@
+###############################################################################
+# PROD Supabase Helm values 
+#
+# The full list of values can be found here:
+# https://github.com/supabase/helm-charts/blob/main/charts/supabase/values.yaml
+###############################################################################
+
+##########################
+# Global Configurations  #
+##########################
+
+global:
+  # Supabase credentials
+  credentials:
+    database:
+      username: postgres
+      password: your-secure-password-prod
+    anon_key: your-anon-key-prod
+    service_role_key: your-service-role-key-prod
+    jwt_secret: your-jwt-secret-prod
+
+##########################
+# Database Configuration #
+##########################
+
+db:
+  replicas: 1
+  resources:
+    limits:
+      memory: 8Gi
+      cpu: 2
+    requests:
+      memory: 4Gi
+      cpu: 1
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: "rook-ceph-block"
+
+##########################
+# Studio Configuration  #
+##########################
+
+studio:
+  enabled: true
+  ingress:
+    enabled: true
+    className: haproxy
+    annotations: {}
+    host: supabase-studio-wildfire-kg.nrp-nautilus.io
+    tls:
+      enabled: true
+      secretName: supabase-studio-prod-tls
+
+##########################
+# API Configuration     #
+##########################
+
+api:
+  enabled: true
+  ingress:
+    enabled: true
+    className: haproxy
+    annotations: {}
+    host: supabase-api-wildfire-kg.nrp-nautilus.io
+    tls:
+      enabled: true
+      secretName: supabase-api-prod-tls
+
+##########################
+# Auth Configuration    #
+##########################
+
+auth:
+  enabled: true
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1
+    requests:
+      memory: 1Gi
+      cpu: 500m
+
+##########################
+# Storage Configuration #
+##########################
+
+storage:
+  enabled: true
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  persistence:
+    enabled: true
+    size: 500Gi
+    storageClass: "rook-ceph-block"
+
+##########################
+# Meta Configuration    #
+##########################
+
+meta:
+  enabled: true
+  resources:
+    limits:
+      memory: 1Gi
+      cpu: 500m
+    requests:
+      memory: 512Mi
+      cpu: 250m 

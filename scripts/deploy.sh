@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow" "neo4j")
+VALID_COMPONENTS=("graphdb" "airflow" "neo4j" "supabase")
 
 # Function to validate component name
 validate_component() {
@@ -137,12 +137,130 @@ deploy_component() {
             add_helm_repo "neo4j" "https://helm.neo4j.com/neo4j"
             chart="neo4j/neo4j"
             ;;
+        "supabase")
+            # Clone the repo if it doesn't exist or update it
+            if [ ! -d "${PROJECT_ROOT}/charts/supabase-kubernetes" ]; then
+                echo "Cloning Supabase Kubernetes repository..."
+                git clone https://github.com/supabase-community/supabase-kubernetes.git "${PROJECT_ROOT}/charts/supabase-kubernetes"
+            else
+                echo "Updating Supabase Kubernetes repository..."
+                cd "${PROJECT_ROOT}/charts/supabase-kubernetes"
+                git pull
+                cd - > /dev/null
+            fi
+
+            # Create a temporary values file starting with example values
+            TMP_VALUES=$(mktemp)
+            cat "${PROJECT_ROOT}/charts/supabase-kubernetes/charts/supabase/values.example.yaml" > "$TMP_VALUES"
+            
+            # Append our custom values on top
+            cat "${PROJECT_ROOT}/iac/helm/values/${ENV}/${COMPONENT}.${ENV}.values.yaml" >> "$TMP_VALUES"
+            
+            # Add RBAC, ServiceAccount, and resource configurations for essential components
+            cat >> "$TMP_VALUES" <<EOF
+# Disable RBAC and ServiceAccount creation for all components
+rbac:
+  create: false
+
+db:
+  enabled: true
+  serviceAccount:
+    create: false
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: "rook-ceph-block"
+
+studio:
+  enabled: true
+  serviceAccount:
+    create: false
+  resources:
+    limits:
+      memory: 1Gi
+      cpu: 500m
+    requests:
+      memory: 512Mi
+      cpu: 250m
+  ingress:
+    enabled: true
+    className: haproxy
+    hosts:
+      - host: supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: supabase-studio-${ENV}-tls
+        hosts:
+          - supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io
+
+auth:
+  enabled: true
+  serviceAccount:
+    create: false
+  resources:
+    limits:
+      memory: 1Gi
+      cpu: 500m
+    requests:
+      memory: 512Mi
+      cpu: 250m
+
+# Disable all other services
+rest:
+  enabled: false
+realtime:
+  enabled: false
+meta:
+  enabled: false
+storage:
+  enabled: false
+imgproxy:
+  enabled: false
+kong:
+  enabled: false
+analytics:
+  enabled: false
+vector:
+  enabled: false
+functions:
+  enabled: false
+EOF
+
+            # Use local chart path
+            chart="${PROJECT_ROOT}/charts/supabase-kubernetes/charts/supabase"
+            
+            # Deploy using local chart
+            echo "Deploying $release_name to $NAMESPACE namespace..."
+            helm upgrade --install $release_name $chart \
+                --namespace $NAMESPACE \
+                --values "$TMP_VALUES" \
+                ${NO_HOOKS}
+
+            # Cleanup temporary file
+            rm -f "$TMP_VALUES"
+            
+            # Wait for pods to be ready
+            echo "Waiting for Supabase pods to be ready..."
+            for deployment in $(kubectl get deployments -n $NAMESPACE -l "app.kubernetes.io/instance=$release_name" -o name); do
+                echo "Waiting for deployment $deployment to be ready..."
+                kubectl wait --for=condition=Available=True "$deployment" -n $NAMESPACE --timeout=300s || true
+            done
+
+            echo "Supabase deployment completed!"
+            echo "You can access:"
+            echo "- Studio UI at: https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+            echo "- API at: https://supabase-api-${ENV}-wildfire-kg.nrp-nautilus.io"
+            ;;
     esac
-    
-    echo "Deploying $release_name to $NAMESPACE namespace..."
-    helm upgrade --install $release_name $chart \
-        --namespace $NAMESPACE \
-        --values "${PROJECT_ROOT}/iac/helm/values/${ENV}/${component}.${ENV}.values.yaml"
 }
 
 case $COMPONENT in
@@ -154,6 +272,9 @@ case $COMPONENT in
         ;;
     "neo4j")
         deploy_component "neo4j"
+        ;;
+    "supabase")
+        deploy_component "supabase"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"
