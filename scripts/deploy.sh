@@ -197,14 +197,15 @@ studio:
     requests:
       memory: 512Mi
       cpu: 250m
+    environment:
+      SUPABASE_PUBLIC_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+      NEXT_PUBLIC_SUPABASE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+      NEXT_PUBLIC_SITE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
   ingress:
     enabled: true
     className: haproxy
     hosts:
       - host: supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io
-        paths:
-          - path: /
-            pathType: Prefix
     tls:
       - secretName: supabase-studio-${ENV}-tls
         hosts:
