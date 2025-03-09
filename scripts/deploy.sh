@@ -178,9 +178,15 @@ db:
       memory: 1Gi
       cpu: 500m
   persistence:
-    enabled: true
-    size: 10Gi
-    storageClass: "rook-ceph-block"
+    enabled: false  # Disable persistence temporarily
+    # Add init container configurations to ensure proper startup
+    initContainers:
+      - name: init-db-dir
+        image: busybox
+        command: ['sh', '-c', 'mkdir -p /var/lib/postgresql/data && chmod 700 /var/lib/postgresql/data']
+        volumeMounts:
+          - name: data
+            mountPath: /var/lib/postgresql
 
 studio:
   enabled: true
@@ -197,10 +203,10 @@ studio:
     requests:
       memory: 512Mi
       cpu: 250m
-    environment:
-      SUPABASE_PUBLIC_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
-      NEXT_PUBLIC_SUPABASE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
-      NEXT_PUBLIC_SITE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+  environment:
+    SUPABASE_PUBLIC_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+    NEXT_PUBLIC_SUPABASE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+    NEXT_PUBLIC_SITE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
   ingress:
     enabled: true
     className: haproxy
@@ -215,8 +221,9 @@ auth:
   enabled: true
   image:
     repository: supabase/gotrue
-    tag: "latest"
+    tag: "v2.127.0"
     pullPolicy: IfNotPresent
+    imagePullSecrets: []
   serviceAccount:
     create: false
   resources:
@@ -226,6 +233,16 @@ auth:
     requests:
       memory: 512Mi
       cpu: 250m
+  environment:
+    API_EXTERNAL_URL: "https://supabase-api-${ENV}-wildfire-kg.nrp-nautilus.io"
+    GOTRUE_SITE_URL: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io"
+    GOTRUE_URI_ALLOW_LIST: "https://supabase-studio-${ENV}-wildfire-kg.nrp-nautilus.io,https://supabase-api-${ENV}-wildfire-kg.nrp-nautilus.io"
+    DB_SSL: "disable"
+    GOTRUE_DISABLE_SIGNUP: "false"
+    GOTRUE_JWT_EXP: "3600"
+    GOTRUE_JWT_AUD: "authenticated"
+    GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
+    GOTRUE_MAILER_AUTOCONFIRM: "true"
 
 # Disable all other services
 rest:
