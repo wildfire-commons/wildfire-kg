@@ -9,6 +9,7 @@ from urllib.parse import quote
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain.chains import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -154,16 +155,14 @@ class KnowledgeGraphTool(BaseTool):
                     'CBH', 'MeanSH', 'MeanTH', 'LF_CBD'
                 ]
             },
-            'VegetationMetrics': {
-                'relationship': 'wifire:hasVegetationMetrics',
-                'properties': [
-                    'NDVI', 'EVI', 'LAI', 'FPAR', 'GPP'
-                ]
-            },
             'FireBehaviorMetrics': {
                 'relationship': 'wifire:hasFireBehaviorMetrics',
                 'properties': [
-                    'ROS', 'FLI', 'FL', 'CBD', 'CBH'
+                    'LF_FBFM13',  # Landfire Fuel Model 13
+                    'LF_FBFM40',  # Landfire Fuel Model 40
+                    'LF_CBD',     # Canopy Bulk Density
+                    'LF_CBH',     # Canopy Base Height
+                    'LF_FDist'    # Fire Disturbance
                 ]
             }
         }
@@ -176,62 +175,74 @@ class KnowledgeGraphTool(BaseTool):
                 logger.warning(f"Unknown metric type: {metric_type}")
                 return {}
 
-            # Construct SPARQL query to get metrics directly
-            metric_query = f"""
-                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-                
-                SELECT ?metric ?value ?datatype
-                FROM <http://wifire.ucsd.edu/plot_metrics>
-                WHERE {{
-                    <{entity_uri}> wifire:hasTreeShrubMetrics ?metrics .
-                    ?metrics ?metric ?value .
-                    BIND(DATATYPE(?value) as ?datatype)
-                    FILTER(?metric IN (
-                        wifire:MDBH,
-                        wifire:MLAI,
-                        wifire:MaxSD,
-                        wifire:MaxSH,
-                        wifire:MaxTH,
-                        wifire:MeanSA,
-                        wifire:MinSD,
-                        wifire:SDHT,
-                        wifire:SDSD,
-                        wifire:SDSHT,
-                        wifire:ShrubsN,
-                        wifire:TreesN,
-                        wifire:plotName,
-                        wifire:scaledShrubArea,
-                        wifire:shrubArea
-                    ))
-                }}
-                ORDER BY ?metric
-            """
+            # Define query templates for different metric types
+            query_templates = {
+                'VegetationMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasVegetationMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """,
+                'TreeShrubMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasTreeShrubMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """,
+                'FireBehaviorMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasFireBehaviorMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """
+            }
+
+            # Get the appropriate query template
+            metric_query = query_templates.get(metric_type, "")
+            if not metric_query:
+                logger.warning(f"No query template for metric type: {metric_type}")
+                return {}
+
+            # Format the query with the entity URI
+            metric_query = metric_query.format(entity_uri=entity_uri)
             
             logger.info(f"Fetching {metric_type} metrics for {entity_uri}")
             result = self.graph.query(metric_query)
             
-            # Process and structure the results to match the format
+            # Process and structure the results
             processed_metrics = []
             for binding in result.get('bindings', []):
-                metric_name = binding.get('metric', {}).get('value', '').split('#')[-1]
+                property_name = binding.get('property', {}).get('value', '').split('#')[-1]
                 value = binding.get('value', {}).get('value')
-                datatype = binding.get('datatype', {}).get('value', '')
-                
-                # Format the value based on datatype
-                if 'integer' in datatype:
-                    typed_value = f'"{value}"^^xsd:integer'
-                elif 'float' in datatype:
-                    typed_value = f'"{value}"^^xsd:float'
-                else:
-                    typed_value = f'"{value}"'
                 
                 processed_metrics.append({
                     'subject': entity_uri,
-                    'predicate': f'wifire:{metric_name}',
-                    'object': typed_value,
+                    'predicate': f'wifire:{property_name}',
+                    'object': value,
                     'graph': 'http://wifire.ucsd.edu/plot_metrics'
                 })
             
@@ -255,97 +266,118 @@ class KnowledgeGraphTool(BaseTool):
         return summary
 
     def _run(self, query: str) -> Dict[str, Any]:
-        """Run the tool."""
+        """Run the tool with recursive reasoning."""
         start_time = datetime.now()
-
-        # Truncate very long queries to prevent context length issues
-        if len(query) > 500:
-            logger.warning(
-                f"Query is very long ({len(query)} chars). Truncating to 500 chars."
-            )
-            query = query[:500] + "..."
-
-        logger.info(f"Querying knowledge graph with: {query}")
+        logger.info(f"Starting recursive KG query: {query}")
 
         try:
-            result = self.qa_chain.invoke({self.qa_chain.input_key: query})
-            answer = result[self.qa_chain.output_key]
-            intermediate_steps = result.get('intermediate_steps', {})
+            # Initialize the reasoning chain with structured output
+            class ReasoningOutput(BaseModel):
+                needs_additional_queries: bool = Field(description="Whether additional queries are needed")
+                reasoning: str = Field(description="Explanation of the decision")
+                next_query: Optional[str] = Field(description="Next query to execute if needed")
+                final_answer: Optional[str] = Field(description="Final synthesized answer")
 
-            # Check for metric relationships in the query
-            sparql_query = intermediate_steps.get('query', '')
-            metric_relationships = self._get_metric_relationships()
+            reasoning_llm = ChatOpenAI(temperature=0, model="gpt-4-turbo-preview").with_structured_output(ReasoningOutput)
             
-            found_relationships = [
-                metric_type
-                for metric_type, info in metric_relationships.items()
-                if info['relationship'].lower() in sparql_query.lower()
-            ]
-
-            if found_relationships:
-                entity_uris = []
-                if 'results' in intermediate_steps:
-                    for binding in intermediate_steps['results'].get('bindings', []):
-                        for value in binding.values():
-                            if isinstance(value, dict) and value.get('type') == 'uri':
-                                entity_uris.append(value['value'])
-
-                additional_metrics = []
-                for uri in entity_uris:
-                    for metric_type in found_relationships:
-                        metrics = self._fetch_related_metrics(uri, metric_type)
-                        if metrics:
-                            additional_metrics.extend(metrics)
-
-                if additional_metrics:
-                    intermediate_steps['additional_metrics'] = additional_metrics
-                    metric_summary = self._format_metric_summary(additional_metrics)
-                    answer = answer + metric_summary
-
-            # Truncate intermediate steps if they exist
-            if intermediate_steps:
-                # Truncate SPARQL query if too long
-                if len(sparql_query) > 1000:
-                    logger.warning(
-                        f"SPARQL query is very long ({len(sparql_query)} chars). Truncating to 1000 chars."
-                    )
-                    intermediate_steps['query'] = sparql_query[:1000] + "... [Query truncated]"
-
-                # Truncate any other intermediate results
-                for key, value in intermediate_steps.items():
-                    if isinstance(value, str) and len(value) > 1000:
-                        logger.warning(
-                            f"Intermediate step {key} is very long ({len(value)} chars). Truncating."
-                        )
-                        intermediate_steps[key] = value[:1000] + "... [Content truncated]"
-
-            # Truncate very long answers
-            if answer and len(answer) > 1000:
-                logger.warning(
-                    f"Answer is very long ({len(answer)} chars). Truncating to 1000 chars."
+            # Initial query
+            result = self.qa_chain.invoke({
+                self.qa_chain.input_key: """
+                When comparing plot metrics, use the date in the plot ID to determine temporal order.
+                For example:
+                - wifire:plot_CASBC_0001_20240910_1 was measured on 2024-09-10
+                - wifire:plot_CASBC_0001_20241116_1 was measured on 2024-11-16
+                
+                Query: """ + query
+            })
+            all_results = [result]
+            reasoning_chain = []
+            
+            max_iterations = 2
+            iteration = 0
+            
+            while iteration < max_iterations:
+                previous_results = "\n".join([
+                    f"Step {i+1}: {r[self.qa_chain.output_key]}"
+                    for i, r in enumerate(all_results)
+                ])
+                
+                reasoning = reasoning_llm.invoke(
+                    f"""Query: {query}
+                    Previous Results: {previous_results}
+                    
+                    For temporal comparisons of plot metrics:
+                    1. Extract dates from plot IDs (format: plot_SITE_PLOT_YYYYMMDD_VERSION)
+                    2. Order measurements chronologically
+                    3. Compare metrics between timestamps
+                    
+                    For fuel consumption queries, we need to:
+                    1. Get FireBehaviorMetrics (LF_FBFM13, LF_FBFM40) for both plots
+                    2. Get TreeShrubMetrics (CBH, TreesN, ShrubsN) for both plots
+                    3. Compare the metrics between the two timestamps
+                    4. Calculate the consumption based on changes in these metrics
+                    
+                    Determine if additional queries are needed. Consider:
+                    1. Are there related metrics we should look up?
+                    2. Do we need to compare values across time periods?
+                    3. Should we calculate differences between measurements?
+                    4. Are there connected entities we should explore?"""
                 )
-                answer = answer[:1000] + "... [Answer truncated due to length]"
+                
+                reasoning_chain.append({
+                    "iteration": iteration,
+                    "reasoning": reasoning.reasoning,
+                    "needs_more_queries": reasoning.needs_additional_queries,
+                    "next_query": reasoning.next_query
+                })
+                
+                if not reasoning.needs_additional_queries:
+                    break
+                    
+                if reasoning.next_query:
+                    logger.info(f"Executing follow-up query: {reasoning.next_query}")
+                    next_result = self.qa_chain.invoke({
+                        self.qa_chain.input_key: "Remember to use dates from plot IDs for temporal ordering. " + reasoning.next_query
+                    })
+                    all_results.append(next_result)
+                
+                iteration += 1
 
-            end_time = datetime.now()
-            execution_time = (end_time - start_time).total_seconds()
+            final_answer = reasoning_llm.invoke(
+                f"""Synthesize a complete answer from these query results:
+                {chr(10).join([r[self.qa_chain.output_key] for r in all_results])}
+                
+                Remember:
+                1. Plot IDs contain measurement dates (format: plot_SITE_PLOT_YYYYMMDD_VERSION)
+                2. Order and compare metrics chronologically
+                3. Calculate changes between timestamps
+                
+                Focus on:
+                1. Changes in fuel models (LF_FBFM13, LF_FBFM40)
+                2. Changes in vegetation metrics (CBH, TreesN, ShrubsN)
+                3. Calculate and explain the fuel consumption based on these changes"""
+            ).final_answer
 
-            # Structure the response with truncated content
+            execution_time = (datetime.now() - start_time).total_seconds()
+            
             return {
                 "query": query,
-                "answer": answer,
+                "answer": final_answer,
                 "execution_time": execution_time,
-                "intermediate_steps": intermediate_steps
+                "intermediate_steps": {
+                    "iterations": iteration,
+                    "all_results": all_results,
+                    "reasoning_chain": reasoning_chain
+                }
             }
 
         except Exception as e:
-            logger.error(f"Error querying knowledge graph: {str(e)}", exc_info=True)
+            logger.error(f"Error in recursive KG query: {str(e)}", exc_info=True)
             return {
                 "query": query,
                 "error": str(e),
-                "answer": "I couldn't find information about that in our knowledge graph.",
-                "intermediate_steps": {
-                    "error": str(e)
-                }
+                "answer": "I encountered an error while querying the knowledge graph.",
+                "intermediate_steps": {"error": str(e)}
             }
 
     async def _arun(self, query: str) -> Dict[str, Any]:
