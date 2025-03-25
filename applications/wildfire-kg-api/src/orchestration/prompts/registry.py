@@ -72,15 +72,22 @@ class PromptRegistry:
                 if any(part.startswith(".") for part in file_path.parts):
                     continue
 
-                # Get the parent directory and filename
-                parent_dir = file_path.parent.name
-                filename = file_path.stem
+                # Get the relative path from prompts directory
+                rel_path = file_path.relative_to(prompt_dir)
+                parts = list(rel_path.parts)
+
+                # Skip the file itself to get directory structure
+                parts = parts[:-1]
+                # Add the filename without extension
+                parts.append(file_path.stem)
 
                 # Create the appropriate prompt name
-                if parent_dir in ["agents", "tools"]:
-                    prompt_name = f"{parent_dir}.{filename}"
+                if len(parts) > 1:
+                    # For nested paths like tools/kg/prompt.yaml, create tools.kg.prompt
+                    prompt_name = ".".join(parts)
                 else:
-                    prompt_name = filename
+                    # For files in the root prompts directory
+                    prompt_name = file_path.stem
 
                 # Load and register the prompt
                 prompt = self._create_prompt_from_yaml(str(file_path))

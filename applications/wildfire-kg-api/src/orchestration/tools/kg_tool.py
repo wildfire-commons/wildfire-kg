@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 import os
 from datetime import datetime
 from langchain_community.graphs import OntotextGraphDBGraph
-from langchain.chains import OntotextGraphDBQAChain
+from langchain_community.chains.graph_qa.ontotext_graphdb import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
 import tiktoken  # For token counting
 from langchain_core.prompts import PromptTemplate
@@ -86,32 +86,69 @@ class KnowledgeGraphTool(BaseTool):
     def _initialize_graph(self):
         """Initialize the GraphDB connection and QA chain."""
         try:
-            # Construct the query endpoint URL
             query_endpoint = (
                 f"{self.graphdb_url}/repositories/{self.graphdb_repository}"
             )
-
             logger.info(f"Connecting to GraphDB endpoint: {query_endpoint}")
 
-            # Initialize the GraphDB graph with a minimal query to reduce token counts
+            # Initialize the GraphDB graph with minimal schema query
             self.graph = OntotextGraphDBGraph(
                 query_endpoint=query_endpoint,
-                # Very minimal schema query with strict limits
-                query_ontology="CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o . FILTER(?p IN (rdf:type, rdfs:label)) } LIMIT 100",
+                # Only fetch essential schema information with strict limits
+                query_ontology="""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    
+                    CONSTRUCT {
+                        ?s ?p ?o .
+                    }
+                    WHERE {
+                        VALUES ?p {
+                            rdf:type
+                            wifire:hasTreeShrubMetrics
+                            wifire:hasVegetationMetrics
+                            wifire:hasFireBehaviorMetrics
+                        }
+                        ?s ?p ?o .
+                    }
+                    LIMIT 100
+                """,
             )
 
             # Get prompt templates from the registry
-            sparql_generation_template = get_prompt("tools.kg_prompt")
-            if not sparql_generation_template:
-                raise ValueError(
-                    "KG prompt not found. Please ensure it exists in the tools directory."
+            kg_prompt_template = get_prompt("tools.kg.kg_prompt")
+            if not kg_prompt_template:
+                logger.warning(
+                    "KG prompt not found in registry. Using fallback from original tools.kg_prompt"
+                )
+                kg_prompt_template = get_prompt("tools.kg_prompt")
+
+            # If still not found, use default prompt
+            if not kg_prompt_template:
+                logger.warning(
+                    "Still no KG prompt found. Using default hardcoded prompt."
+                )
+                kg_prompt_template = PromptTemplate.from_template(
+                    """You are a knowledgeable assistant that helps query a wildfire knowledge graph.
+                Focus on finding and returning metrics using these relationships:
+                - wifire:hasTreeShrubMetrics
+                - wifire:hasVegetationMetrics
+                - wifire:hasFireBehaviorMetrics
+
+                Human: {question}
+                Assistant: Let me help you query the wildfire knowledge graph.
+
+                {context}
+
+                Based on the knowledge graph data:"""
                 )
 
-            # Get the QA prompt template from registry
-            qa_template = get_prompt("tools.kg_qa_prompt")
-            if not qa_template:
-                raise ValueError(
-                    "KG QA prompt not found. Please ensure it exists in the tools directory."
+            # Get SPARQL generation prompt
+            sparql_prompt_template = get_prompt("tools.kg.sparql_generation_prompt")
+            if not sparql_prompt_template and kg_prompt_template:
+                logger.warning(
+                    "SPARQL generation prompt not found. Using standard prompt."
                 )
 
             # Initialize the QA chain with templates
@@ -119,16 +156,20 @@ class KnowledgeGraphTool(BaseTool):
                 ChatOpenAI(
                     temperature=0,
                     api_key=self.openai_api_key,
-                    model="gpt-4o-mini",
-                    max_tokens=500,
+                    model="gpt-3.5-turbo-0125",
+                    max_tokens=1000,
                 ),
                 graph=self.graph,
-                verbose=True,  # Enable verbose mode to see SPARQL queries in logs
-                allow_dangerous_requests=True,
+                verbose=True,
                 return_intermediate_steps=True,
-                max_tokens_limit=2000,
-                query_prompt=sparql_generation_template,  # Use template from registry
-                response_prompt=qa_template,  # Use template from registry
+                chain_type="stuff",
+                max_tokens_limit=1000,  # Reduced from 2000
+                allow_dangerous_requests=True,
+                prompt_template=(
+                    kg_prompt_template.template
+                    if hasattr(kg_prompt_template, "template")
+                    else kg_prompt_template
+                ),
             )
 
             logger.info(
@@ -139,6 +180,123 @@ class KnowledgeGraphTool(BaseTool):
                 f"Error initializing GraphDB connection: {str(e)}", exc_info=True
             )
             raise
+
+    def _get_metric_relationships(self) -> Dict[str, str]:
+        """Define the metric relationships and their corresponding properties."""
+        return {
+            "TreeShrubMetrics": {
+                "relationship": "wifire:hasTreeShrubMetrics",
+                "properties": [
+                    "TreesN",
+                    "ShrubsN",
+                    "MeanSA",
+                    "shrubArea",
+                    "scaledShrubArea",
+                    "CBH",
+                    "MeanSH",
+                    "MeanTH",
+                    "LF_CBD",
+                ],
+            },
+            "VegetationMetrics": {
+                "relationship": "wifire:hasVegetationMetrics",
+                "properties": ["NDVI", "EVI", "LAI", "FPAR", "GPP"],
+            },
+            "FireBehaviorMetrics": {
+                "relationship": "wifire:hasFireBehaviorMetrics",
+                "properties": ["ROS", "FLI", "FL", "CBD", "CBH"],
+            },
+        }
+
+    def _fetch_related_metrics(
+        self, entity_uri: str, metric_type: str
+    ) -> Dict[str, Any]:
+        """Fetch metrics related to an entity through a specific relationship."""
+        try:
+            metric_info = self._get_metric_relationships().get(metric_type, {})
+            if not metric_info:
+                logger.warning(f"Unknown metric type: {metric_type}")
+                return {}
+
+            # Construct SPARQL query to get metrics directly
+            metric_query = f"""
+                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                
+                SELECT ?metric ?value ?datatype
+                FROM <http://wifire.ucsd.edu/plot_metrics>
+                WHERE {{
+                    <{entity_uri}> wifire:hasTreeShrubMetrics ?metrics .
+                    ?metrics ?metric ?value .
+                    BIND(DATATYPE(?value) as ?datatype)
+                    FILTER(?metric IN (
+                        wifire:MDBH,
+                        wifire:MLAI,
+                        wifire:MaxSD,
+                        wifire:MaxSH,
+                        wifire:MaxTH,
+                        wifire:MeanSA,
+                        wifire:MinSD,
+                        wifire:SDHT,
+                        wifire:SDSD,
+                        wifire:SDSHT,
+                        wifire:ShrubsN,
+                        wifire:TreesN,
+                        wifire:plotName,
+                        wifire:scaledShrubArea,
+                        wifire:shrubArea
+                    ))
+                }}
+                ORDER BY ?metric
+            """
+
+            logger.info(f"Fetching {metric_type} metrics for {entity_uri}")
+            result = self.graph.query(metric_query)
+
+            # Process and structure the results to match the format
+            processed_metrics = []
+            for binding in result.get("bindings", []):
+                metric_name = binding.get("metric", {}).get("value", "").split("#")[-1]
+                value = binding.get("value", {}).get("value")
+                datatype = binding.get("datatype", {}).get("value", "")
+
+                # Format the value based on datatype
+                if "integer" in datatype:
+                    typed_value = f'"{value}"^^xsd:integer'
+                elif "float" in datatype:
+                    typed_value = f'"{value}"^^xsd:float'
+                else:
+                    typed_value = f'"{value}"'
+
+                processed_metrics.append(
+                    {
+                        "subject": entity_uri,
+                        "predicate": f"wifire:{metric_name}",
+                        "object": typed_value,
+                        "graph": "http://wifire.ucsd.edu/plot_metrics",
+                    }
+                )
+
+            return processed_metrics
+
+        except Exception as e:
+            logger.error(f"Error fetching related metrics: {str(e)}", exc_info=True)
+            return {}
+
+    def _format_metric_summary(self, metrics: List[Dict[str, Any]]) -> str:
+        """Format metrics into a readable summary."""
+        summary = "\n\nMetrics Found:\n"
+
+        for i, metric in enumerate(metrics, 1):
+            summary += f"{i}\n"
+            summary += f"{metric['subject']}\n"
+            summary += f"{metric['predicate']}\n"
+            summary += f"{metric['object']}\n\n"
+            summary += f"{metric['graph']}\n"
+
+        return summary
 
     def count_tokens(self, text: str) -> int:
         """Count the number of tokens in a text string."""
@@ -153,64 +311,92 @@ class KnowledgeGraphTool(BaseTool):
             return len(text) // 4
 
     def _run(self, query: str) -> Dict[str, Any]:
-        """Run the tool using the chain directly."""
+        """Run the tool."""
         start_time = datetime.now()
+
+        # Truncate very long queries to prevent context length issues
+        if len(query) > 500:
+            logger.warning(
+                f"Query too long ({len(query)} chars). Truncating to 500 chars."
+            )
+            query = query[:500] + "... [Query truncated due to length]"
+
         logger.info(f"Querying knowledge graph with: {query}")
 
         try:
-            # Use the QA chain directly - it already does all the steps
-            result = self.qa_chain.invoke({"query": query})
+            result = self.qa_chain.invoke({self.qa_chain.input_key: query})
+            answer = result[self.qa_chain.output_key]
+            intermediate_steps = result.get("intermediate_steps", {})
 
-            # Extract the answer from the result
-            answer = result["result"]
-            logger.info(f"Generated answer: {answer}")
+            # Check for metric relationships in the query
+            sparql_query = intermediate_steps.get("query", "")
+            metric_relationships = self._get_metric_relationships()
 
-            # Extract intermediate steps if available
-            sparql_query = "No SPARQL query found"
-            context = None
+            found_relationships = [
+                metric_type
+                for metric_type, info in metric_relationships.items()
+                if info["relationship"].lower() in sparql_query.lower()
+            ]
 
-            if "intermediate_steps" in result:
-                steps = result["intermediate_steps"]
-                if isinstance(steps, dict):
-                    # Get SPARQL query
-                    if "query" in steps:
-                        sparql_query = steps["query"]
-                        logger.info(f"Generated SPARQL query:\n{sparql_query}")
+            if found_relationships:
+                entity_uris = []
+                if "results" in intermediate_steps:
+                    for binding in intermediate_steps["results"].get("bindings", []):
+                        for value in binding.values():
+                            if isinstance(value, dict) and value.get("type") == "uri":
+                                entity_uris.append(value["value"])
 
-                    # Get context/results
-                    if "context" in steps:
-                        context = steps["context"]
-                        logger.info(
-                            f"Query results (context passed to LLM):\n{context}"
+                additional_metrics = []
+                for uri in entity_uris:
+                    for metric_type in found_relationships:
+                        metrics = self._fetch_related_metrics(uri, metric_type)
+                        if metrics:
+                            additional_metrics.extend(metrics)
+
+                if additional_metrics:
+                    intermediate_steps["additional_metrics"] = additional_metrics
+                    metric_summary = self._format_metric_summary(additional_metrics)
+                    answer = answer + metric_summary
+
+            # Truncate intermediate steps if they exist
+            if intermediate_steps:
+                # Truncate SPARQL query if too long
+                if len(sparql_query) > 1000:
+                    logger.warning(
+                        f"SPARQL query is very long ({len(sparql_query)} chars). Truncating to 1000 chars."
+                    )
+                    intermediate_steps["query"] = (
+                        sparql_query[:1000] + "... [Query truncated]"
+                    )
+
+                # Truncate any other intermediate results
+                for key, value in intermediate_steps.items():
+                    if isinstance(value, str) and len(value) > 1000:
+                        logger.warning(
+                            f"Intermediate step {key} is very long ({len(value)} chars). Truncating."
+                        )
+                        intermediate_steps[key] = (
+                            value[:1000] + "... [Content truncated]"
                         )
 
-                    # Get any database responses
-                    if "result" in steps:
-                        db_result = steps["result"]
-                        logger.info(f"Raw database result:\n{db_result}")
-
-            # If context is still None, try to find it elsewhere
-            if context is None and hasattr(self.qa_chain, "last_context"):
-                context = self.qa_chain.last_context
-                logger.info(f"Found context from chain property:\n{context}")
-
-            # Debug: log full result structure for investigation
-            logger.info(f"Result keys: {list(result.keys())}")
-            if "intermediate_steps" in result:
-                logger.info(
-                    f"Intermediate steps keys: {list(result['intermediate_steps'].keys()) if isinstance(result['intermediate_steps'], dict) else 'not a dict'}"
+            # Truncate very long answers
+            if answer and len(answer) > 1000:
+                logger.warning(
+                    f"Answer is very long ({len(answer)} chars). Truncating to 1000 chars."
                 )
+                answer = answer[:1000] + "... [Answer truncated due to length]"
 
             execution_time = (datetime.now() - start_time).total_seconds()
             logger.info(f"Total execution time: {execution_time:.2f} seconds")
 
-            # Create response with extracted components
+            # Structure the response with truncated content
             return {
                 "query": query,
                 "answer": answer,
                 "sparql_query": sparql_query,
-                "context": context,
+                "context": intermediate_steps.get("context", ""),
                 "execution_time": execution_time,
+                "intermediate_steps": intermediate_steps,
             }
 
         except Exception as e:
@@ -219,6 +405,7 @@ class KnowledgeGraphTool(BaseTool):
                 "query": query,
                 "error": str(e),
                 "answer": "I couldn't find information about that in our knowledge graph.",
+                "intermediate_steps": {"error": str(e)},
             }
 
     async def _arun(self, query: str) -> Dict[str, Any]:
