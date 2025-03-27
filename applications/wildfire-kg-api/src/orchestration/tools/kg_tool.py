@@ -4,11 +4,14 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 import os
 from datetime import datetime
-import requests
-from urllib.parse import quote
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain.chains import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
+import tiktoken  # For token counting
+from langchain_core.prompts import PromptTemplate
+
+# Import the prompt registry
+from ..prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -78,9 +81,9 @@ class KnowledgeGraphTool(BaseTool):
         )
 
         # Initialize the GraphDB connection
-        self._initialize_graphdb()
+        self._initialize_graph()
 
-    def _initialize_graphdb(self):
+    def _initialize_graph(self):
         """Initialize the GraphDB connection and QA chain."""
         try:
             # Construct the query endpoint URL
@@ -90,26 +93,42 @@ class KnowledgeGraphTool(BaseTool):
 
             logger.info(f"Connecting to GraphDB endpoint: {query_endpoint}")
 
-            # Initialize the GraphDB graph with the correct parameters
-            # Use a more targeted ontology query to reduce token count
+            # Initialize the GraphDB graph with a minimal query to reduce token counts
             self.graph = OntotextGraphDBGraph(
                 query_endpoint=query_endpoint,
-                # Limit the schema to only the most essential triples
-                query_ontology="CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o . FILTER(?p IN (rdf:type, rdfs:subClassOf, rdfs:label, rdfs:domain, rdfs:range)) } LIMIT 500",
+                # Very minimal schema query with strict limits
+                query_ontology="CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o . FILTER(?p IN (rdf:type, rdfs:label)) } LIMIT 100",
             )
 
-            # Initialize the QA chain with the graph, using a more compact model
+            # Get prompt templates from the registry
+            sparql_generation_template = get_prompt("tools.kg_prompt")
+            if not sparql_generation_template:
+                raise ValueError(
+                    "KG prompt not found. Please ensure it exists in the tools directory."
+                )
+
+            # Get the QA prompt template from registry
+            qa_template = get_prompt("tools.kg_qa_prompt")
+            if not qa_template:
+                raise ValueError(
+                    "KG QA prompt not found. Please ensure it exists in the tools directory."
+                )
+
+            # Initialize the QA chain with templates
             self.qa_chain = OntotextGraphDBQAChain.from_llm(
                 ChatOpenAI(
                     temperature=0,
                     api_key=self.openai_api_key,
-                    model="gpt-3.5-turbo-0125",  # More efficient model with 16k context
-                    max_tokens=1000,  # Limit response length
+                    model="gpt-4o-mini",
+                    max_tokens=500,
                 ),
                 graph=self.graph,
-                verbose=False,  # Reduce verbosity
+                verbose=True,  # Enable verbose mode to see SPARQL queries in logs
                 allow_dangerous_requests=True,
-                return_intermediate_steps=False,  # Don't return intermediate steps to save tokens
+                return_intermediate_steps=True,
+                max_tokens_limit=2000,
+                query_prompt=sparql_generation_template,  # Use template from registry
+                response_prompt=qa_template,  # Use template from registry
             )
 
             logger.info(
@@ -121,46 +140,81 @@ class KnowledgeGraphTool(BaseTool):
             )
             raise
 
-    def _run(self, query: str) -> Dict[str, Any]:
-        """Run the tool."""
-        start_time = datetime.now()
-
-        # Truncate very long queries to prevent context length issues
-        if len(query) > 500:
+    def count_tokens(self, text: str) -> int:
+        """Count the number of tokens in a text string."""
+        try:
+            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+            return len(encoding.encode(text))
+        except Exception as e:
             logger.warning(
-                f"Query is very long ({len(query)} chars). Truncating to 500 chars."
+                f"Error counting tokens: {str(e)}. Using character estimate instead."
             )
-            query = query[:500] + "..."
+            # Fallback to character-based estimation (rough approximation)
+            return len(text) // 4
 
+    def _run(self, query: str) -> Dict[str, Any]:
+        """Run the tool using the chain directly."""
+        start_time = datetime.now()
         logger.info(f"Querying knowledge graph with: {query}")
 
         try:
-            # Use the QA chain to process the query
-            result = self.qa_chain.invoke({self.qa_chain.input_key: query})
+            # Use the QA chain directly - it already does all the steps
+            result = self.qa_chain.invoke({"query": query})
 
             # Extract the answer from the result
-            answer = result[self.qa_chain.output_key]
+            answer = result["result"]
+            logger.info(f"Generated answer: {answer}")
 
-            # Truncate very long answers to prevent context length issues in subsequent steps
-            if answer and len(answer) > 4000:
-                logger.warning(
-                    f"Answer is very long ({len(answer)} chars). Truncating to 4000 chars."
+            # Extract intermediate steps if available
+            sparql_query = "No SPARQL query found"
+            context = None
+
+            if "intermediate_steps" in result:
+                steps = result["intermediate_steps"]
+                if isinstance(steps, dict):
+                    # Get SPARQL query
+                    if "query" in steps:
+                        sparql_query = steps["query"]
+                        logger.info(f"Generated SPARQL query:\n{sparql_query}")
+
+                    # Get context/results
+                    if "context" in steps:
+                        context = steps["context"]
+                        logger.info(
+                            f"Query results (context passed to LLM):\n{context}"
+                        )
+
+                    # Get any database responses
+                    if "result" in steps:
+                        db_result = steps["result"]
+                        logger.info(f"Raw database result:\n{db_result}")
+
+            # If context is still None, try to find it elsewhere
+            if context is None and hasattr(self.qa_chain, "last_context"):
+                context = self.qa_chain.last_context
+                logger.info(f"Found context from chain property:\n{context}")
+
+            # Debug: log full result structure for investigation
+            logger.info(f"Result keys: {list(result.keys())}")
+            if "intermediate_steps" in result:
+                logger.info(
+                    f"Intermediate steps keys: {list(result['intermediate_steps'].keys()) if isinstance(result['intermediate_steps'], dict) else 'not a dict'}"
                 )
-                answer = answer[:4000] + "... [Answer truncated due to length]"
 
-            end_time = datetime.now()
-            execution_time = (end_time - start_time).total_seconds()
+            execution_time = (datetime.now() - start_time).total_seconds()
+            logger.info(f"Total execution time: {execution_time:.2f} seconds")
 
-            # Structure the response to be more compact
+            # Create response with extracted components
             return {
                 "query": query,
                 "answer": answer,
+                "sparql_query": sparql_query,
+                "context": context,
                 "execution_time": execution_time,
             }
 
         except Exception as e:
             logger.error(f"Error querying knowledge graph: {str(e)}", exc_info=True)
-            # Return a compact error response
             return {
                 "query": query,
                 "error": str(e),

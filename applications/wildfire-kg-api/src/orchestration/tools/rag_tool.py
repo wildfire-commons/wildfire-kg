@@ -4,9 +4,14 @@ from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 import os
 from datetime import datetime
+from langchain_openai import ChatOpenAI
+from langchain.prompts import PromptTemplate
 
 # Import Tavily for web search (you can replace this with any search API)
 from tavily import TavilyClient
+
+# Import the prompt registry
+from ..prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -124,9 +129,30 @@ class RAGTool(BaseTool):
             end_time = datetime.now()
             execution_time = (end_time - start_time).total_seconds()
 
+            # Get the RAG prompt
+            rag_prompt = get_prompt("tools.rag_prompt")
+            if not rag_prompt:
+                raise ValueError(
+                    "RAG prompt not found. Please ensure it exists in the tools directory."
+                )
+
+            # Initialize the LLM
+            chat_model = ChatOpenAI(
+                temperature=0.5,
+                api_key=os.getenv("OPENAI_API_KEY"),
+                model="gpt-4o-mini",
+            )
+
+            # Use this prompt with your documents
+            formatted_docs = self.format_documents(documents)
+            answer = chat_model.invoke(
+                rag_prompt.format(context=formatted_docs, question=query)
+            )
+
             return {
                 "query": query,
                 "documents": documents,
+                "answer": answer.content,
                 "execution_time": execution_time,
             }
 
@@ -136,6 +162,7 @@ class RAGTool(BaseTool):
                 "query": query,
                 "error": str(e),
                 "documents": [],
+                "answer": f"I apologize, but I encountered an error while searching for information: {str(e)}. Please try again with a different query.",
                 "execution_time": 0.0,
             }
 
@@ -143,3 +170,17 @@ class RAGTool(BaseTool):
         """Run the tool asynchronously."""
         # For simplicity, we'll just call the synchronous version
         return self._run(query)
+
+    def format_documents(self, docs: List[Dict]) -> str:
+        """Format a list of documents into a single string for the LLM."""
+        formatted_docs = ""
+        for i, doc in enumerate(docs, 1):
+            title = doc.get("title", "No title")
+            content = doc.get("content", "No content")
+            url = doc.get("source", "No source")
+
+            formatted_docs += (
+                f"[Document {i}]\nTitle: {title}\nSource: {url}\nContent: {content}\n\n"
+            )
+
+        return formatted_docs

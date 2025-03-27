@@ -3,7 +3,10 @@ import logging
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import os
-from ..state.conversation_state import ConversationState, Message
+from src.orchestration.state.conversation_state import ConversationState, Message
+
+# Import the prompt registry
+from src.orchestration.prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,36 +20,12 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
         model=model_name, temperature=temperature, api_key=os.getenv("OPENAI_API_KEY")
     )
 
-    # Define the prompt template
-    response_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                """You are a helpful assistant specializing in wildfire and forest data analysis. 
-        Your goal is to provide informative, accurate responses based on the available information.
-        
-        You have access to two types of information:
-        1. Knowledge Graph Results: Structured data from our wildfire knowledge graph
-        2. RAG Results: Information retrieved from external sources
-        
-        Guidelines:
-        - Synthesize information from both sources when available
-        - Clearly attribute information to its source
-        - Be honest about limitations in the data
-        - Use a conversational, helpful tone
-        - If the information is incomplete, acknowledge this and suggest what additional data might help
-        - Format your response in a clear, readable way
-        
-        Knowledge Graph Results: {kg_results}
-        
-        RAG Results: {rag_results}
-        
-        Previous conversation context: {conversation_history}
-        """,
-            ),
-            ("human", "{query}"),
-        ]
-    )
+    # Get the prompt template from the registry
+    response_prompt = get_prompt("agents.response_prompt")
+    if not response_prompt:
+        raise ValueError(
+            "Response prompt not found. Please ensure it exists in the agents directory."
+        )
 
     def generate_response(state: ConversationState) -> str:
         """Generate a response based on the conversation state."""
