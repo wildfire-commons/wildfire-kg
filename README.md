@@ -37,7 +37,26 @@ Make scripts executable and source the functions file:
 chmod +x scripts/*.sh
 source scripts/functions.sh
 ```
-   
+
+## Running the Application
+The application includes the frontend and backend API.
+
+First, make environment variables available in your shell:
+
+```bash
+export AWS_ACCESS_KEY_ID="your_access_key_id"
+export AWS_SECRET_ACCESS_KEY="your_secret_access_key"
+export AWS_DEFAULT_REGION="us-east-1"
+export AWS_S3_ENDPOINT_URL="https://s3-west.nrp-nautilus.io"
+export AWS_S3_BUCKET_NAME="your_bucket_name"
+```
+
+Then, run the application locally which uses docker compose:
+
+``` 
+./run.sh app -b 
+```
+
 ### Deployment to Nautilus (Kubernetes)
 Use the deployment script to deploy components. Note: You will need a valid `config` file in ~/.kube/config for `wifire-kg` namespace in order to deploy.
 ```bash
