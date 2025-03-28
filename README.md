@@ -74,13 +74,7 @@ We use docker compose to run the airflow webserver, scheduler, redis and postgre
 Start airflow locally at http://localhost:8080. It will load the DAGs from the `dags` folder in the repo.
 
 ```bash
-docker-compose up -d
-```
-
-Tear down airflow locally
-
-```bash
-docker-compose down
+./run.sh airflow -b
 ```
 
 ## Project Structure
