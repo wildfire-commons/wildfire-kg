@@ -208,3 +208,25 @@ async def generate_presigned_url(
     except ClientError as e:
         logger.error(f"Error generating presigned URL: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/buckets/{bucket_name}/download")
+async def get_download_url(bucket_name: str, file_key: str = Query(...)):
+    """Generate a presigned URL for downloading a file from S3"""
+    try:
+        # Generate the presigned URL for downloading
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': file_key
+            },
+            ExpiresIn=3600  # URL expires in 1 hour
+        )
+        
+        logger.debug(f"Generated download URL for {file_key}")
+        return {"download_url": presigned_url}
+
+    except ClientError as e:
+        logger.error(f"Error generating download URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

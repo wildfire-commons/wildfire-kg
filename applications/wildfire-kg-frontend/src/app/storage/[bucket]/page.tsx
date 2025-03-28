@@ -7,7 +7,8 @@ import {
   DocumentIcon, 
   ChevronUpIcon, 
   PlusIcon,
-  TrashIcon 
+  TrashIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { formatBytes, formatDate } from '@/utils/format';
 
@@ -106,6 +107,31 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
     }
   };
 
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/storage/buckets/${params.bucket}/download?file_key=${filePath}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to get download URL');
+      }
+
+      const data = await response.json();
+      
+      // Create a temporary link and trigger the download
+      const link = document.createElement('a');
+      link.href = data.download_url;
+      link.download = fileName; // This suggests the filename to the browser
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#03619B]"></div>
@@ -174,7 +200,7 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
               <div className="col-span-2">{object.size ? formatBytes(object.size) : '-'}</div>
               <div className="col-span-3">{object.modified ? formatDate(object.modified) : '-'}</div>
               <div className="col-span-1">
-                {object.type === 'folder' && (
+                {object.type === 'folder' ? (
                   <button
                     onClick={() => handleDeleteClick(object.path)}
                     className="text-red-600 hover:text-red-800"
@@ -182,6 +208,16 @@ export default function BucketPage({ params }: { params: { bucket: string } }) {
                   >
                     <TrashIcon className="h-5 w-5" />
                   </button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleDownload(object.path, object.name)}
+                      className="text-[#03619B] hover:text-[#024d7c]"
+                      title="Download file"
+                    >
+                      <ArrowDownTrayIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
