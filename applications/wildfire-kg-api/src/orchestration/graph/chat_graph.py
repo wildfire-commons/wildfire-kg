@@ -277,6 +277,13 @@ def process_user_message(
     if conversation_history is None:
         conversation_history = []
 
+    # Truncate very long user messages before processing
+    if len(user_message) > 500:
+        logger.warning(
+            f"User message is very long ({len(user_message)} chars). Truncating to 500 chars."
+        )
+        user_message = user_message[:500] + "... [Message truncated due to length]"
+
     # Create the initial state
     state: ConversationState = {
         "user_query": user_message,

@@ -9,6 +9,7 @@ from urllib.parse import quote
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain.chains import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -83,88 +84,300 @@ class KnowledgeGraphTool(BaseTool):
     def _initialize_graphdb(self):
         """Initialize the GraphDB connection and QA chain."""
         try:
-            # Construct the query endpoint URL
-            query_endpoint = (
-                f"{self.graphdb_url}/repositories/{self.graphdb_repository}"
-            )
-
+            query_endpoint = f"{self.graphdb_url}/repositories/{self.graphdb_repository}"
             logger.info(f"Connecting to GraphDB endpoint: {query_endpoint}")
 
-            # Initialize the GraphDB graph with the correct parameters
-            # Use a more targeted ontology query to reduce token count
+            # Initialize the GraphDB graph with minimal schema query
             self.graph = OntotextGraphDBGraph(
                 query_endpoint=query_endpoint,
-                # Limit the schema to only the most essential triples
-                query_ontology="CONSTRUCT { ?s ?p ?o } WHERE { ?s ?p ?o . FILTER(?p IN (rdf:type, rdfs:subClassOf, rdfs:label, rdfs:domain, rdfs:range)) } LIMIT 500",
+                # Only fetch essential schema information with strict limits
+                query_ontology="""
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    
+                    CONSTRUCT {
+                        ?s ?p ?o .
+                    }
+                    WHERE {
+                        VALUES ?p {
+                            rdf:type
+                            wifire:hasTreeShrubMetrics
+                            wifire:hasVegetationMetrics
+                            wifire:hasFireBehaviorMetrics
+                        }
+                        ?s ?p ?o .
+                    }
+                    LIMIT 100
+                """,
             )
 
-            # Initialize the QA chain with the graph, using a more compact model
+            # Initialize the QA chain with optimized prompt
             self.qa_chain = OntotextGraphDBQAChain.from_llm(
                 ChatOpenAI(
                     temperature=0,
                     api_key=self.openai_api_key,
-                    model="gpt-3.5-turbo-0125",  # More efficient model with 16k context
-                    max_tokens=1000,  # Limit response length
+                    model="gpt-3.5-turbo-0125",
+                    max_tokens=1000,
                 ),
                 graph=self.graph,
-                verbose=False,  # Reduce verbosity
+                verbose=True,
+                return_intermediate_steps=True,
+                chain_type="stuff",
+                max_tokens_limit=1000,  # Reduced from 2000
                 allow_dangerous_requests=True,
-                return_intermediate_steps=False,  # Don't return intermediate steps to save tokens
+                prompt_template="""You are a knowledgeable assistant that helps query a wildfire knowledge graph.
+                Focus on finding and returning metrics using these relationships:
+                - wifire:hasTreeShrubMetrics
+                - wifire:hasVegetationMetrics
+                - wifire:hasFireBehaviorMetrics
+
+                Human: {question}
+                Assistant: Let me help you query the wildfire knowledge graph.
+
+                {context}
+
+                Based on the knowledge graph data:"""
             )
 
-            logger.info(
-                f"Successfully initialized GraphDB connection to {query_endpoint}"
-            )
+            logger.info(f"Successfully initialized GraphDB connection to {query_endpoint}")
         except Exception as e:
-            logger.error(
-                f"Error initializing GraphDB connection: {str(e)}", exc_info=True
-            )
+            logger.error(f"Error initializing GraphDB connection: {str(e)}", exc_info=True)
             raise
 
+    def _get_metric_relationships(self) -> Dict[str, str]:
+        """Define the metric relationships and their corresponding properties."""
+        return {
+            'TreeShrubMetrics': {
+                'relationship': 'wifire:hasTreeShrubMetrics',
+                'properties': [
+                    'TreesN', 'ShrubsN', 'MeanSA', 'shrubArea', 'scaledShrubArea',
+                    'CBH', 'MeanSH', 'MeanTH', 'LF_CBD'
+                ]
+            },
+            'FireBehaviorMetrics': {
+                'relationship': 'wifire:hasFireBehaviorMetrics',
+                'properties': [
+                    'LF_FBFM13',  # Landfire Fuel Model 13
+                    'LF_FBFM40',  # Landfire Fuel Model 40
+                    'LF_CBD',     # Canopy Bulk Density
+                    'LF_CBH',     # Canopy Base Height
+                    'LF_FDist'    # Fire Disturbance
+                ]
+            }
+        }
+
+    def _fetch_related_metrics(self, entity_uri: str, metric_type: str) -> Dict[str, Any]:
+        """Fetch metrics related to an entity through a specific relationship."""
+        try:
+            metric_info = self._get_metric_relationships().get(metric_type, {})
+            if not metric_info:
+                logger.warning(f"Unknown metric type: {metric_type}")
+                return {}
+
+            # Define query templates for different metric types
+            query_templates = {
+                'VegetationMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasVegetationMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """,
+                'TreeShrubMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasTreeShrubMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """,
+                'FireBehaviorMetrics': """
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    SELECT ?property ?value
+                    FROM <http://wifire.ucsd.edu/plot_metrics>
+                    WHERE {
+                        <{entity_uri}> wifire:hasFireBehaviorMetrics ?metrics .
+                        ?metrics ?property ?value .
+                    }
+                    ORDER BY ?property
+                """
+            }
+
+            # Get the appropriate query template
+            metric_query = query_templates.get(metric_type, "")
+            if not metric_query:
+                logger.warning(f"No query template for metric type: {metric_type}")
+                return {}
+
+            # Format the query with the entity URI
+            metric_query = metric_query.format(entity_uri=entity_uri)
+            
+            logger.info(f"Fetching {metric_type} metrics for {entity_uri}")
+            result = self.graph.query(metric_query)
+            
+            # Process and structure the results
+            processed_metrics = []
+            for binding in result.get('bindings', []):
+                property_name = binding.get('property', {}).get('value', '').split('#')[-1]
+                value = binding.get('value', {}).get('value')
+                
+                processed_metrics.append({
+                    'subject': entity_uri,
+                    'predicate': f'wifire:{property_name}',
+                    'object': value,
+                    'graph': 'http://wifire.ucsd.edu/plot_metrics'
+                })
+            
+            return processed_metrics
+
+        except Exception as e:
+            logger.error(f"Error fetching related metrics: {str(e)}", exc_info=True)
+            return {}
+
+    def _format_metric_summary(self, metrics: List[Dict[str, Any]]) -> str:
+        """Format metrics into a readable summary."""
+        summary = "\n\nMetrics Found:\n"
+        
+        for i, metric in enumerate(metrics, 1):
+            summary += f"{i}\n"
+            summary += f"{metric['subject']}\n"
+            summary += f"{metric['predicate']}\n"
+            summary += f"{metric['object']}\n\n"
+            summary += f"{metric['graph']}\n"
+        
+        return summary
+
     def _run(self, query: str) -> Dict[str, Any]:
-        """Run the tool."""
+        """Run the tool with recursive reasoning."""
         start_time = datetime.now()
-
-        # Truncate very long queries to prevent context length issues
-        if len(query) > 500:
-            logger.warning(
-                f"Query is very long ({len(query)} chars). Truncating to 500 chars."
-            )
-            query = query[:500] + "..."
-
-        logger.info(f"Querying knowledge graph with: {query}")
+        logger.info(f"Starting recursive KG query: {query}")
 
         try:
-            # Use the QA chain to process the query
-            result = self.qa_chain.invoke({self.qa_chain.input_key: query})
+            # Initialize the reasoning chain with structured output
+            class ReasoningOutput(BaseModel):
+                needs_additional_queries: bool = Field(description="Whether additional queries are needed")
+                reasoning: str = Field(description="Explanation of the decision")
+                next_query: Optional[str] = Field(description="Next query to execute if needed")
+                final_answer: Optional[str] = Field(description="Final synthesized answer")
 
-            # Extract the answer from the result
-            answer = result[self.qa_chain.output_key]
-
-            # Truncate very long answers to prevent context length issues in subsequent steps
-            if answer and len(answer) > 4000:
-                logger.warning(
-                    f"Answer is very long ({len(answer)} chars). Truncating to 4000 chars."
+            reasoning_llm = ChatOpenAI(temperature=0, model="gpt-4-turbo-preview").with_structured_output(ReasoningOutput)
+            
+            # Initial query
+            result = self.qa_chain.invoke({
+                self.qa_chain.input_key: """
+                When comparing plot metrics, use the date in the plot ID to determine temporal order.
+                For example:
+                - wifire:plot_CASBC_0001_20240910_1 was measured on 2024-09-10
+                - wifire:plot_CASBC_0001_20241116_1 was measured on 2024-11-16
+                
+                Query: """ + query
+            })
+            all_results = [result]
+            reasoning_chain = []
+            
+            max_iterations = 2
+            iteration = 0
+            
+            while iteration < max_iterations:
+                previous_results = "\n".join([
+                    f"Step {i+1}: {r[self.qa_chain.output_key]}"
+                    for i, r in enumerate(all_results)
+                ])
+                
+                reasoning = reasoning_llm.invoke(
+                    f"""Query: {query}
+                    Previous Results: {previous_results}
+                    
+                    For temporal comparisons of plot metrics:
+                    1. Extract dates from plot IDs (format: plot_SITE_PLOT_YYYYMMDD_VERSION)
+                    2. Order measurements chronologically
+                    3. Compare metrics between timestamps
+                    
+                    For fuel consumption queries, we need to:
+                    1. Get FireBehaviorMetrics (LF_FBFM13, LF_FBFM40) for both plots
+                    2. Get TreeShrubMetrics (CBH, TreesN, ShrubsN) for both plots
+                    3. Compare the metrics between the two timestamps
+                    4. Calculate the consumption based on changes in these metrics
+                    
+                    Determine if additional queries are needed. Consider:
+                    1. Are there related metrics we should look up?
+                    2. Do we need to compare values across time periods?
+                    3. Should we calculate differences between measurements?
+                    4. Are there connected entities we should explore?"""
                 )
-                answer = answer[:4000] + "... [Answer truncated due to length]"
+                
+                reasoning_chain.append({
+                    "iteration": iteration,
+                    "reasoning": reasoning.reasoning,
+                    "needs_more_queries": reasoning.needs_additional_queries,
+                    "next_query": reasoning.next_query
+                })
+                
+                if not reasoning.needs_additional_queries:
+                    break
+                    
+                if reasoning.next_query:
+                    logger.info(f"Executing follow-up query: {reasoning.next_query}")
+                    next_result = self.qa_chain.invoke({
+                        self.qa_chain.input_key: "Remember to use dates from plot IDs for temporal ordering. " + reasoning.next_query
+                    })
+                    all_results.append(next_result)
+                
+                iteration += 1
 
-            end_time = datetime.now()
-            execution_time = (end_time - start_time).total_seconds()
+            final_answer = reasoning_llm.invoke(
+                f"""Synthesize a complete answer from these query results:
+                {chr(10).join([r[self.qa_chain.output_key] for r in all_results])}
+                
+                Remember:
+                1. Plot IDs contain measurement dates (format: plot_SITE_PLOT_YYYYMMDD_VERSION)
+                2. Order and compare metrics chronologically
+                3. Calculate changes between timestamps
+                
+                Focus on:
+                1. Changes in fuel models (LF_FBFM13, LF_FBFM40)
+                2. Changes in vegetation metrics (CBH, TreesN, ShrubsN)
+                3. Calculate and explain the fuel consumption based on these changes"""
+            ).final_answer
 
-            # Structure the response to be more compact
+            execution_time = (datetime.now() - start_time).total_seconds()
+            
             return {
                 "query": query,
-                "answer": answer,
+                "answer": final_answer,
                 "execution_time": execution_time,
+                "intermediate_steps": {
+                    "iterations": iteration,
+                    "all_results": all_results,
+                    "reasoning_chain": reasoning_chain
+                }
             }
 
         except Exception as e:
-            logger.error(f"Error querying knowledge graph: {str(e)}", exc_info=True)
-            # Return a compact error response
+            logger.error(f"Error in recursive KG query: {str(e)}", exc_info=True)
             return {
                 "query": query,
                 "error": str(e),
-                "answer": "I couldn't find information about that in our knowledge graph.",
+                "answer": "I encountered an error while querying the knowledge graph.",
+                "intermediate_steps": {"error": str(e)}
             }
 
     async def _arun(self, query: str) -> Dict[str, Any]:
