@@ -1,0 +1,63 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+
+CONSTRUCT {
+    ?area rdf:type wifire:FireManagementArea .
+    ?area wifire:geometry ?geometry .
+    ?area wifire:hasPlot ?plot .
+    ?area wifire:hasFireIgnitionSensor ?sensor .
+    
+    ?plot rdf:type wifire:PlotMetrics .
+    ?plot wifire:hasVegetationMetrics ?veg .
+    ?plot wifire:hasFireBehaviorMetrics ?fire .
+    ?plot wifire:hasTreeShrubMetrics ?tree .
+    ?plot wifire:hasLocationData ?plot_location .
+    
+    ?plot_location rdf:type wifire:LocationData .
+    ?plot_location wifire:longitude ?plot_lon .
+    ?plot_location wifire:latitude ?plot_lat .
+    
+    ?sensor rdf:type wifire:FireIgnitionSensor .
+    ?sensor wifire:hasSensorMetadata ?metadata .
+    ?sensor wifire:hasLocationData ?sensor_location .
+    
+    ?metadata rdf:type wifire:SensorMetadata .
+    ?metadata wifire:db_id ?sensor_id .
+    
+    ?sensor_location rdf:type wifire:LocationData .
+    ?sensor_location wifire:longitude ?sensor_lon .
+    ?sensor_location wifire:latitude ?sensor_lat .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/fire_management_area> {
+        ?area rdf:type wifire:FireManagementArea .
+        ?area wifire:geometry ?geometry .
+        ?area wifire:hasPlot ?plot .
+        ?area wifire:hasFireIgnitionSensor ?sensor .
+    }
+    
+    OPTIONAL {
+        GRAPH <http://wifire.ucsd.edu/plot_metrics> {
+            ?plot wifire:hasVegetationMetrics ?veg .
+            ?plot wifire:hasFireBehaviorMetrics ?fire .
+            ?plot wifire:hasTreeShrubMetrics ?tree .
+            ?plot wifire:hasLocationData ?plot_location .
+            
+            ?plot_location wifire:longitude ?plot_lon .
+            ?plot_location wifire:latitude ?plot_lat .
+        }
+    }
+    
+    OPTIONAL {
+        GRAPH <http://wifire.ucsd.edu/sensor_data> {
+            ?sensor wifire:hasSensorMetadata ?metadata .
+            ?sensor wifire:hasLocationData ?sensor_location .
+            
+            ?metadata wifire:db_id ?sensor_id .
+            
+            ?sensor_location wifire:longitude ?sensor_lon .
+            ?sensor_location wifire:latitude ?sensor_lat .
+        }
+    }
+} 
