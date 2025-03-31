@@ -6,6 +6,7 @@ from src.orchestration.agents.router_agent import create_router_agent
 from src.orchestration.agents.response_agent import create_response_agent
 from src.orchestration.tools.kg_tool import KnowledgeGraphTool
 from src.orchestration.tools.rag_tool import RAGTool
+from src.orchestration.tools.weather_tool import WeatherTool
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,7 @@ def create_chat_graph():
     # Initialize the tools
     kg_tool = KnowledgeGraphTool()
     rag_tool = RAGTool()
+    weather_tool = WeatherTool()
 
     # Initialize the agents
     router = create_router_agent()
@@ -222,6 +224,39 @@ def create_chat_graph():
 
             return new_state
 
+    def query_weather(state: ConversationState) -> ConversationState:
+        """Process weather queries in the graph."""
+        user_query = state.get("user_query", "")
+        
+        # Extract location if present
+        location = None
+        if "in" in user_query:
+            location = user_query.split("in")[-1].strip()
+        
+        # Execute weather query
+        try:
+            result = weather_tool._run(
+                query=user_query,
+                location=location
+            )
+            
+            # Update state with results
+            state["weather_results"] = {
+                "query": user_query,
+                "location": location or result.get("location"),
+                "weather_data": result.get("weather_data"),
+                "execution_time": result.get("execution_time")
+            }
+            
+        except Exception as e:
+            state["weather_results"] = {
+                "query": user_query,
+                "error": str(e),
+                "execution_time": 0
+            }
+        
+        return state
+
     # Create the graph
     workflow = StateGraph(ConversationState)
 
@@ -230,6 +265,7 @@ def create_chat_graph():
     workflow.add_node("kg_query", query_knowledge_graph)
     workflow.add_node("rag_query", query_rag)
     workflow.add_node("both", handle_both_queries)
+    workflow.add_node("weather_query", query_weather)
     workflow.add_node(
         "direct_response", lambda state: state
     )  # Placeholder for direct response
@@ -243,6 +279,7 @@ def create_chat_graph():
             "kg_query": "kg_query",
             "rag_query": "rag_query",
             "both": "both",
+            "weather_query": "weather_query",
             "direct_response": "direct_response",
         },
     )
@@ -258,6 +295,9 @@ def create_chat_graph():
 
     # From direct_response, go straight to generate_response
     workflow.add_edge("direct_response", "generate_response")
+
+    # From weather_query, go to generate_response
+    workflow.add_edge("weather_query", "generate_response")
 
     # From generate_response, end the workflow
     workflow.add_edge("generate_response", END)

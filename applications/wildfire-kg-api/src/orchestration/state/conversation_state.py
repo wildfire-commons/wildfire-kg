@@ -28,6 +28,14 @@ class RAGResult(BaseModel):
     source: str
 
 
+class WeatherResult(BaseModel):
+    """Result from a weather query."""
+    query: str
+    location: Optional[str]
+    weather_data: Dict[str, Any]
+    execution_time: float
+
+
 class ConversationState(TypedDict, total=False):
     """State of the conversation."""
 
@@ -51,3 +59,6 @@ class ConversationState(TypedDict, total=False):
 
     # Metadata about the conversation
     metadata: Dict[str, Any]
+
+    # Weather results
+    weather_results: Optional[WeatherResult]
