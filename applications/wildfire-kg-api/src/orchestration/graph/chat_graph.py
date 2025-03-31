@@ -159,6 +159,53 @@ def create_chat_graph():
         )
         return new_state
 
+    def handle_all_queries(state: ConversationState) -> ConversationState:
+        """Handle execution of all three tools in sequence."""
+        query = state.get("user_query", "")
+        logger.info(f"Starting execution of all tools for query: {query}")
+        
+        # Create a new state to update
+        new_state = state.copy()
+        
+        # Initialize results containers
+        new_state["kg_results"] = {}
+        new_state["rag_results"] = {}
+        new_state["weather_results"] = {}
+        
+        try:
+            # Step 1: Execute Weather query
+            logger.info("🌤️ Executing Weather query...")
+            weather_result = weather_tool._run(query)
+            new_state["weather_results"] = weather_result
+            logger.info("✅ Weather query completed")
+            
+            # Step 2: Execute Knowledge Graph query
+            logger.info("🔍 Executing Knowledge Graph query...")
+            kg_result = kg_tool._run(query)
+            new_state["kg_results"] = kg_result
+            logger.info("✅ KG query completed")
+            
+            # Step 3: Execute RAG query
+            logger.info("📚 Executing RAG query...")
+            rag_result = rag_tool._run(query)
+            new_state["rag_results"] = rag_result
+            logger.info("✅ RAG query completed")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in all-tools execution: {str(e)}", exc_info=True)
+            new_state["error"] = str(e)
+        
+        # Add execution metadata
+        metadata = new_state.get("metadata", {})
+        metadata["all_executed"] = True
+        metadata["weather_success"] = "error" not in new_state["weather_results"]
+        metadata["kg_success"] = "error" not in new_state["kg_results"]
+        metadata["rag_success"] = "error" not in new_state["rag_results"]
+        new_state["metadata"] = metadata
+        
+        logger.info("✨ All tools execution completed")
+        return new_state
+
     def generate_response(state: ConversationState) -> ConversationState:
         """Generate the final response and update the state."""
         query = state.get("user_query", "")
@@ -265,6 +312,7 @@ def create_chat_graph():
     workflow.add_node("kg_query", query_knowledge_graph)
     workflow.add_node("rag_query", query_rag)
     workflow.add_node("both", handle_both_queries)
+    workflow.add_node("all", handle_all_queries)
     workflow.add_node("weather_query", query_weather)
     workflow.add_node(
         "direct_response", lambda state: state
@@ -279,6 +327,7 @@ def create_chat_graph():
             "kg_query": "kg_query",
             "rag_query": "rag_query",
             "both": "both",
+            "all": "all",
             "weather_query": "weather_query",
             "direct_response": "direct_response",
         },
@@ -298,6 +347,9 @@ def create_chat_graph():
 
     # From weather_query, go to generate_response
     workflow.add_edge("weather_query", "generate_response")
+
+    # From all, go to generate_response
+    workflow.add_edge("all", "generate_response")
 
     # From generate_response, end the workflow
     workflow.add_edge("generate_response", END)
