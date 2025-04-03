@@ -8,7 +8,7 @@ template:
         
         You have access to two types of information:
         1. Knowledge Graph Results: Structured data from our wildfire knowledge graph
-        2. RAG Results: Information retrieved from external sources
+        2. Web Search Results: Information retrieved from external sources on the web
         
         Guidelines:
         - Synthesize information from both sources when available
@@ -20,7 +20,7 @@ template:
         
         Knowledge Graph Results: {kg_results}
         
-        RAG Results: {rag_results}
+        Web Search Results: {web_search_results}
         
         Previous conversation context: {conversation_history}
     - role: human

@@ -18,22 +18,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class RAGQueryInput(BaseModel):
-    """Input for the RAG query tool."""
+class WebSearchQueryInput(BaseModel):
+    """Input for the web search query tool."""
 
-    query: str = Field(description="The query to search for in external sources")
+    query: str = Field(description="The query to search for on the web")
 
 
-class RAGTool(BaseTool):
-    """Tool for retrieving information using RAG from external sources."""
+class WebSearchTool(BaseTool):
+    """Tool for searching the web for information."""
 
-    name: str = "rag_query"
+    name: str = "web_search"
     description: str = """
-    Use this tool to search for information from external sources like the web.
+    Use this tool to search for information from the web.
     This is useful when you need up-to-date information that might not be in the knowledge graph,
     such as recent wildfire events, weather conditions, or general information about wildfire management.
     """
-    args_schema: Type[RAGQueryInput] = RAGQueryInput
+    args_schema: Type[WebSearchQueryInput] = WebSearchQueryInput
 
     # Define the fields properly
     tavily_api_key: Optional[str] = Field(
@@ -42,7 +42,7 @@ class RAGTool(BaseTool):
     tavily_client: Optional[TavilyClient] = None
 
     def __init__(self, tavily_api_key: Optional[str] = None, **kwargs):
-        """Initialize the RAG tool."""
+        """Initialize the Web Search tool."""
         # Pass the values to the parent class constructor
         api_key = tavily_api_key or os.getenv("TAVILY_API_KEY")
         super().__init__(tavily_api_key=api_key, **kwargs)
@@ -67,7 +67,7 @@ class RAGTool(BaseTool):
             )
             query = query[:500] + "..."
 
-        logger.info(f"Performing RAG query: {query}")
+        logger.info(f"Performing web search: {query}")
 
         try:
             documents = []
@@ -129,11 +129,17 @@ class RAGTool(BaseTool):
             end_time = datetime.now()
             execution_time = (end_time - start_time).total_seconds()
 
-            # Get the RAG prompt
-            rag_prompt = get_prompt("tools.rag_prompt")
-            if not rag_prompt:
+            # Get the web search prompt
+            web_search_prompt = get_prompt("tools.web_search.web_search_prompt")
+            if not web_search_prompt:
+                logger.warning(
+                    "Web search prompt not found. Falling back to RAG prompt."
+                )
+                web_search_prompt = get_prompt("tools.rag_prompt")
+
+            if not web_search_prompt:
                 raise ValueError(
-                    "RAG prompt not found. Please ensure it exists in the tools directory."
+                    "Web search prompt not found. Please ensure it exists in the tools directory."
                 )
 
             # Initialize the LLM
@@ -146,7 +152,7 @@ class RAGTool(BaseTool):
             # Use this prompt with your documents
             formatted_docs = self.format_documents(documents)
             answer = chat_model.invoke(
-                rag_prompt.format(context=formatted_docs, question=query)
+                web_search_prompt.format(context=formatted_docs, question=query)
             )
 
             return {
@@ -157,7 +163,7 @@ class RAGTool(BaseTool):
             }
 
         except Exception as e:
-            logger.error(f"Error in RAG query: {str(e)}", exc_info=True)
+            logger.error(f"Error in web search: {str(e)}", exc_info=True)
             return {
                 "query": query,
                 "error": str(e),

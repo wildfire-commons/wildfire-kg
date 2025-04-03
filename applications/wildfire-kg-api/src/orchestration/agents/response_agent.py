@@ -33,23 +33,23 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
             # Extract the relevant information from the state
             query = state.get("user_query", "")
             kg_results = state.get("kg_results", {})
-            rag_results = state.get("rag_results", {})
+            web_search_results = state.get("web_search_results", {})
             messages = state.get("messages", [])
             metadata = state.get("metadata", {})
 
             # Log what we're working with
             logger.info(f"Generating response for query: {query}")
             logger.info(f"KG results available: {bool(kg_results)}")
-            logger.info(f"RAG results available: {bool(rag_results)}")
+            logger.info(f"Web search results available: {bool(web_search_results)}")
 
             # Check if we're coming from the "both" node
             both_executed = metadata.get("both_executed", False)
             if both_executed:
                 logger.info("Processing results from 'both' node execution")
                 kg_success = metadata.get("kg_success", False)
-                rag_success = metadata.get("rag_success", False)
+                web_search_success = metadata.get("web_search_success", False)
                 logger.info(
-                    f"KG query success: {kg_success}, RAG query success: {rag_success}"
+                    f"KG query success: {kg_success}, Web search query success: {web_search_success}"
                 )
 
             # Format the conversation history
@@ -75,10 +75,10 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
                         if kg_results and "error" not in kg_results
                         else "No knowledge graph results available."
                     ),
-                    rag_results=(
-                        rag_results
-                        if rag_results and "error" not in rag_results
-                        else "No RAG results available."
+                    web_search_results=(
+                        web_search_results
+                        if web_search_results and "error" not in web_search_results
+                        else "No web search results available."
                     ),
                     conversation_history=conversation_history,
                 )

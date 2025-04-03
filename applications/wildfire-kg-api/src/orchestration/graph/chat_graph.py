@@ -5,7 +5,7 @@ from src.orchestration.state.conversation_state import ConversationState, Messag
 from src.orchestration.agents.router_agent import create_router_agent
 from src.orchestration.agents.response_agent import create_response_agent
 from src.orchestration.tools.kg_tool import KnowledgeGraphTool
-from src.orchestration.tools.rag_tool import RAGTool
+from src.orchestration.tools.web_search_tool import WebSearchTool
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +16,7 @@ def create_chat_graph():
     """Create the LangGraph workflow for the chat application."""
     # Initialize the tools
     kg_tool = KnowledgeGraphTool()
-    rag_tool = RAGTool()
+    web_search_tool = WebSearchTool()
 
     # Initialize the agents
     router = create_router_agent()
@@ -43,8 +43,8 @@ def create_chat_graph():
             # Log the routing decision with emojis for better visibility
             action_emoji = {
                 "kg_query": "🔍",
-                "rag_query": "📚",
-                "both": "🔍📚",
+                "web_search_query": "🌐",
+                "both": "🔍🌐",
                 "direct_response": "💬",
             }.get(action, "❓")
 
@@ -87,24 +87,24 @@ def create_chat_graph():
 
         return state
 
-    def query_rag(state: ConversationState) -> ConversationState:
-        """Query external sources using RAG and update the state."""
+    def query_web_search(state: ConversationState) -> ConversationState:
+        """Query external sources using web search and update the state."""
         query = state.get("user_query", "")
-        logger.info(f"Executing RAG query: {query}")
+        logger.info(f"Executing web search query: {query}")
 
-        # Execute the RAG query
-        result = rag_tool._run(query)
+        # Execute the web search query
+        result = web_search_tool._run(query)
 
         # Update the state with the results
-        state["rag_results"] = result
+        state["web_search_results"] = result
 
         return state
 
     def handle_both_queries(state: ConversationState) -> ConversationState:
-        """Handle both KG and RAG queries in sequence."""
+        """Handle both KG and web search queries in sequence."""
         query = state.get("user_query", "")
         logger.info(
-            f"Starting sequential execution of both KG and RAG queries for: {query}"
+            f"Starting sequential execution of both KG and web search queries for: {query}"
         )
 
         # Create a new state dictionary to update
@@ -112,7 +112,7 @@ def create_chat_graph():
 
         # Initialize results containers
         new_state["kg_results"] = {}
-        new_state["rag_results"] = {}
+        new_state["web_search_results"] = {}
 
         # Step 1: Execute Knowledge Graph query
         try:
@@ -130,26 +130,30 @@ def create_chat_graph():
             metadata["kg_error"] = str(e)
             new_state["metadata"] = metadata
 
-        # Step 2: Execute RAG query
+        # Step 2: Execute web search query
         try:
-            logger.info("📚 Executing RAG query...")
-            rag_result = rag_tool._run(query)
-            new_state["rag_results"] = rag_result
-            doc_count = len(rag_result.get("documents", []))
-            logger.info(f"✅ RAG query completed with {doc_count} documents retrieved")
+            logger.info("🌐 Executing web search query...")
+            web_search_result = web_search_tool._run(query)
+            new_state["web_search_results"] = web_search_result
+            doc_count = len(web_search_result.get("documents", []))
+            logger.info(
+                f"✅ Web search query completed with {doc_count} documents retrieved"
+            )
         except Exception as e:
-            logger.error(f"❌ Error in RAG query: {str(e)}", exc_info=True)
-            new_state["rag_results"] = {"error": f"Error in RAG query: {str(e)}"}
+            logger.error(f"❌ Error in web search query: {str(e)}", exc_info=True)
+            new_state["web_search_results"] = {
+                "error": f"Error in web search query: {str(e)}"
+            }
             # Add error metadata
             metadata = new_state.get("metadata", {})
-            metadata["rag_error"] = str(e)
+            metadata["web_search_error"] = str(e)
             new_state["metadata"] = metadata
 
         # Step 3: Add execution metadata
         metadata = new_state.get("metadata", {})
         metadata["both_executed"] = True
         metadata["kg_success"] = "error" not in new_state["kg_results"]
-        metadata["rag_success"] = "error" not in new_state["rag_results"]
+        metadata["web_search_success"] = "error" not in new_state["web_search_results"]
         new_state["metadata"] = metadata
 
         logger.info(
@@ -184,11 +188,13 @@ def create_chat_graph():
         if both_executed:
             logger.info("📊 Processing results from 'both' node execution")
             kg_success = metadata.get("kg_success", False)
-            rag_success = metadata.get("rag_success", False)
-            logger.info(f"KG success: {kg_success}, RAG success: {rag_success}")
+            web_search_success = metadata.get("web_search_success", False)
+            logger.info(
+                f"KG success: {kg_success}, Web search success: {web_search_success}"
+            )
 
-            if not kg_success and not rag_success:
-                logger.warning("⚠️ Both KG and RAG queries failed")
+            if not kg_success and not web_search_success:
+                logger.warning("⚠️ Both KG and web search queries failed")
 
         # Generate the response using the response agent
         try:
@@ -228,7 +234,7 @@ def create_chat_graph():
     # Add the nodes
     workflow.add_node("route", route_query)
     workflow.add_node("kg_query", query_knowledge_graph)
-    workflow.add_node("rag_query", query_rag)
+    workflow.add_node("web_search_query", query_web_search)
     workflow.add_node("both", handle_both_queries)
     workflow.add_node(
         "direct_response", lambda state: state
@@ -241,7 +247,7 @@ def create_chat_graph():
         lambda state: state.get("next"),
         {
             "kg_query": "kg_query",
-            "rag_query": "rag_query",
+            "web_search_query": "web_search_query",
             "both": "both",
             "direct_response": "direct_response",
         },
@@ -250,8 +256,8 @@ def create_chat_graph():
     # From kg_query, go to generate_response
     workflow.add_edge("kg_query", "generate_response")
 
-    # From rag_query, go to generate_response
-    workflow.add_edge("rag_query", "generate_response")
+    # From web_search_query, go to generate_response
+    workflow.add_edge("web_search_query", "generate_response")
 
     # From both, go directly to generate_response since it handles both queries internally
     workflow.add_edge("both", "generate_response")

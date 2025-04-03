@@ -8,6 +8,12 @@ template:
     - wifire:hasVegetationMetrics
     - wifire:hasFireBehaviorMetrics
     
+    Include ALL of the following in your query when relevant:
+    1. When querying entities that have metrics relationships, ALWAYS include a JOIN to retrieve their metrics
+    2. For any entity with metric relationships, include all metric properties in your SELECT statement
+    3. Use OPTIONAL patterns to retrieve metrics when they might not be present
+    4. Include property paths to directly access metric values from the main entities
+    
     The ontology schema delimited by triple backticks in Turtle format is:
     ```
     {schema}

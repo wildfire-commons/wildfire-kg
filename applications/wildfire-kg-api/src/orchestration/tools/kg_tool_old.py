@@ -104,9 +104,15 @@ class KnowledgeGraphTool(BaseTool):
                         ?s ?p ?o .
                     }
                     WHERE {
-                        ?s ?p ?o
+                        VALUES ?p {
+                            rdf:type
+                            wifire:hasTreeShrubMetrics
+                            wifire:hasVegetationMetrics
+                            wifire:hasFireBehaviorMetrics
+                        }
+                        ?s ?p ?o .
                     }
-                    LIMIT 345
+                    LIMIT 100
                 """,
             )
 
@@ -152,6 +158,124 @@ class KnowledgeGraphTool(BaseTool):
             )
             raise
 
+    def _get_metric_relationships(self) -> Dict[str, Dict[str, Any]]:
+        """Define the metric relationships and their corresponding properties."""
+        return {
+            "TreeShrubMetrics": {
+                "relationship": "wifire:hasTreeShrubMetrics",
+                "properties": [
+                    "TreesN",
+                    "ShrubsN",
+                    "MeanSA",
+                    "shrubArea",
+                    "scaledShrubArea",
+                    "CBH",
+                    "MeanSH",
+                    "MeanTH",
+                    "LF_CBD",
+                ],
+            },
+            "VegetationMetrics": {
+                "relationship": "wifire:hasVegetationMetrics",
+                "properties": ["NDVI", "EVI", "LAI", "FPAR", "GPP"],
+            },
+            "FireBehaviorMetrics": {
+                "relationship": "wifire:hasFireBehaviorMetrics",
+                "properties": ["ROS", "FLI", "FL", "CBD", "CBH"],
+            },
+        }
+
+    def _fetch_related_metrics(
+        self, entity_uri: str, metric_type: str
+    ) -> List[Dict[str, Any]]:
+        """Fetch metrics related to an entity through a specific relationship."""
+        try:
+            metric_info = self._get_metric_relationships().get(metric_type, {})
+            if not metric_info:
+                logger.warning(f"Unknown metric type: {metric_type}")
+                return []
+
+            # Construct SPARQL query to get metrics directly
+            metric_query = f"""
+                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                
+                SELECT ?metric ?value ?datatype
+                FROM <http://wifire.ucsd.edu/plot_metrics>
+                WHERE {{
+                    <{entity_uri}> {metric_info["relationship"]} ?metrics .
+                    ?metrics ?metric ?value .
+                    BIND(DATATYPE(?value) as ?datatype)
+                    FILTER(STRSTARTS(STR(?metric), STR(wifire:)))
+                    FILTER(?metric != rdf:type)
+                }}
+                ORDER BY ?metric
+            """
+
+            logger.info(f"Fetching {metric_type} metrics for {entity_uri}")
+            result = self.graph.query(metric_query)
+
+            # Process and structure the results to match the format
+            processed_metrics = []
+            for binding in result.get("bindings", []):
+                metric_name = binding.get("metric", {}).get("value", "").split("#")[-1]
+                value = binding.get("value", {}).get("value")
+                datatype = binding.get("datatype", {}).get("value", "")
+
+                # Format the value based on datatype
+                if "integer" in datatype:
+                    typed_value = f'"{value}"^^xsd:integer'
+                elif "float" in datatype or "double" in datatype:
+                    typed_value = f'"{value}"^^xsd:float'
+                else:
+                    typed_value = f'"{value}"'
+
+                processed_metrics.append(
+                    {
+                        "subject": entity_uri,
+                        "predicate": f"wifire:{metric_name}",
+                        "object": typed_value,
+                        "graph": "http://wifire.ucsd.edu/plot_metrics",
+                    }
+                )
+
+            return processed_metrics
+
+        except Exception as e:
+            logger.error(f"Error fetching related metrics: {str(e)}", exc_info=True)
+            return []
+
+    def _format_metric_summary(self, metrics: List[Dict[str, Any]]) -> str:
+        """Format metrics into a readable summary."""
+        if not metrics:
+            return ""
+
+        summary = "\n\nAdditional Metrics Found:\n"
+        # Group metrics by subject
+        metrics_by_subject = {}
+        for metric in metrics:
+            subject = metric["subject"]
+            if subject not in metrics_by_subject:
+                metrics_by_subject[subject] = []
+            metrics_by_subject[subject].append(metric)
+
+        # Format each subject's metrics
+        for subject, subject_metrics in metrics_by_subject.items():
+            summary += f"\nEntity: {subject}\n"
+            for metric in subject_metrics:
+                predicate = metric["predicate"].split(":")[-1]
+                # Clean up the object value for display
+                obj_value = metric["object"]
+                if "^^" in obj_value:
+                    obj_value = obj_value.split("^^")[0].strip('"')
+                else:
+                    obj_value = obj_value.strip('"')
+                summary += f"- {predicate}: {obj_value}\n"
+
+        return summary
+
     def count_tokens(self, text: str) -> int:
         """Count the number of tokens in a text string."""
         try:
@@ -186,6 +310,40 @@ class KnowledgeGraphTool(BaseTool):
             # Get the generated SPARQL query
             sparql_query = intermediate_steps.get("query", "")
             logger.info(f"Generated SPARQL query: {sparql_query[:200]}...")
+
+            # Check for metric relationships in the query
+            metric_relationships = self._get_metric_relationships()
+            found_relationships = [
+                metric_type
+                for metric_type, info in metric_relationships.items()
+                if info["relationship"].lower() in sparql_query.lower()
+            ]
+
+            # If we found relationships mentioned in the query, fetch additional metrics
+            if found_relationships:
+                entity_uris = []
+                # Extract entity URIs from query results
+                if "results" in intermediate_steps:
+                    for binding in intermediate_steps["results"].get("bindings", []):
+                        for value in binding.values():
+                            if isinstance(value, dict) and value.get("type") == "uri":
+                                entity_uris.append(value["value"])
+
+                # Fetch additional metrics for each entity
+                additional_metrics = []
+                for uri in entity_uris:
+                    for metric_type in found_relationships:
+                        metrics = self._fetch_related_metrics(uri, metric_type)
+                        if metrics:
+                            additional_metrics.extend(metrics)
+
+                # Add metrics to response if found
+                if additional_metrics:
+                    intermediate_steps["additional_metrics"] = additional_metrics
+                    metric_summary = self._format_metric_summary(additional_metrics)
+                    # Only add metrics if we have them
+                    if metric_summary:
+                        answer = answer + metric_summary
 
             # Truncate intermediate steps if they exist
             if intermediate_steps:

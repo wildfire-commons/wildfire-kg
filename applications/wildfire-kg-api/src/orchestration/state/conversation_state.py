@@ -20,8 +20,8 @@ class KnowledgeGraphResult(BaseModel):
     execution_time: float
 
 
-class RAGResult(BaseModel):
-    """Result from a RAG query."""
+class WebSearchResult(BaseModel):
+    """Result from a web search query."""
 
     query: str
     documents: List[Dict[str, Any]]
@@ -40,8 +40,8 @@ class ConversationState(TypedDict, total=False):
     # Knowledge graph results
     kg_results: Optional[KnowledgeGraphResult]
 
-    # RAG results
-    rag_results: Optional[RAGResult]
+    # Web search results
+    web_search_results: Optional[WebSearchResult]
 
     # The final response to return to the user
     response: Optional[str]
