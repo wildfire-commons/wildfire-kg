@@ -20,6 +20,13 @@ router = APIRouter(
     },
 )
 
+# TODO: FIX RUNNING WITH ENV VARIABLES IN DOCKER
+s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
+        )
 
 class BucketInfo(BaseModel):
     name: str
@@ -52,13 +59,6 @@ class GeneratePresignedUrlRequest(BaseModel):
 async def list_buckets():
     """List all available S3 buckets in a directory tree format"""
     try:
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-        )
-
         logger.debug("Attempting to list buckets")
         response = s3_client.list_buckets()
 
@@ -79,13 +79,6 @@ async def list_buckets():
 async def list_objects(bucket_name: str, prefix: str = Query(default="")):
     """List objects in a bucket with folder navigation"""
     try:
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-        )
-
         # Calculate parent prefix for navigation
         parent_prefix = None
         if prefix:
@@ -147,13 +140,6 @@ async def list_objects(bucket_name: str, prefix: str = Query(default="")):
 async def create_folder(bucket_name: str, prefix: str = Query(...)):
     """Create a new folder in the bucket"""
     try:
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-        )
-
         # Ensure prefix ends with /
         if not prefix.endswith("/"):
             prefix += "/"
@@ -172,13 +158,6 @@ async def create_folder(bucket_name: str, prefix: str = Query(...)):
 async def delete_folder(bucket_name: str, prefix: str = Query(...)):
     """Delete a folder and optionally all its contents"""
     try:
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-        )
-
         # First, list objects to check if folder is empty
         response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
 
@@ -207,13 +186,6 @@ async def generate_presigned_url(
     """Generate a presigned URL for uploading a file to S3"""
     try:
         # Set up S3 client
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-        )
-
         # Construct the full path for the file (only file_name is needed)
         file_key = request.file_name
         logger.debug(f"Generated file_key: {file_key}")
@@ -235,4 +207,26 @@ async def generate_presigned_url(
 
     except ClientError as e:
         logger.error(f"Error generating presigned URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/buckets/{bucket_name}/download")
+async def get_download_url(bucket_name: str, file_key: str = Query(...)):
+    """Generate a presigned URL for downloading a file from S3"""
+    try:
+        # Generate the presigned URL for downloading
+        presigned_url = s3_client.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': bucket_name,
+                'Key': file_key
+            },
+            ExpiresIn=3600  # URL expires in 1 hour
+        )
+        
+        logger.debug(f"Generated download URL for {file_key}")
+        return {"download_url": presigned_url}
+
+    except ClientError as e:
+        logger.error(f"Error generating download URL: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

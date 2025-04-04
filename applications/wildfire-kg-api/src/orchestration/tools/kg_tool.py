@@ -130,6 +130,8 @@ class KnowledgeGraphTool(BaseTool):
                     api_key=self.openai_api_key,
                     model="gpt-3.5-turbo-0125",
                     max_tokens=1000,
+                    model="gpt-3.5-turbo-0125",
+                    max_tokens=1000,
                 ),
                 graph=self.graph,
                 verbose=True,
@@ -165,7 +167,7 @@ class KnowledgeGraphTool(BaseTool):
             return len(text) // 4
 
     def _run(self, query: str) -> Dict[str, Any]:
-        """Run the tool."""
+        """Run the tool with recursive reasoning."""
         start_time = datetime.now()
 
         # Truncate very long queries to prevent context length issues

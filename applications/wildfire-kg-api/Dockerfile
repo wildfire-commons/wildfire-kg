@@ -5,8 +5,14 @@ ENV PYTHON_ENV=$PYTHON_ENV
 
 WORKDIR /app
 
-# Copy pyproject.toml and other necessary files for installation
-COPY pyproject.toml ./
+# Install system dependencies required for building Python packages
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the entire project first
+COPY . .
 
 # Install dependencies - for dev, we install both prod dependencies + dev extras
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -18,11 +24,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
         pip install --no-cache-dir ".[dev]"; \
     fi
 
-# Copy the rest of the application
-COPY . .
-
 CMD if [ "$PYTHON_ENV" = "production" ]; then \
-        uvicorn src.api:app --host 0.0.0.0 --port 8000; \
+        uvicorn src.app:app --host 0.0.0.0 --port 8000; \
     else \
-        uvicorn src.api:app --host 0.0.0.0 --port 8000 --reload --reload-dir src; \
+        uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload --reload-dir src; \
     fi 
