@@ -5,7 +5,8 @@ from src.orchestration.state.conversation_state import ConversationState, Messag
 from src.orchestration.agents.router_agent import create_router_agent
 from src.orchestration.agents.response_agent import create_response_agent
 from src.orchestration.tools.kg_tool import KnowledgeGraphTool
-from src.orchestration.tools.web_search_tool import WebSearchTool
+from src.orchestration.tools.rag_tool import RAGTool
+from src.orchestration.tools.weather_tool import WeatherTool
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +17,8 @@ def create_chat_graph():
     """Create the LangGraph workflow for the chat application."""
     # Initialize the tools
     kg_tool = KnowledgeGraphTool()
-    web_search_tool = WebSearchTool()
+    rag_tool = RAGTool()
+    weather_tool = WeatherTool()
 
     # Initialize the agents
     router = create_router_agent()
@@ -161,6 +163,53 @@ def create_chat_graph():
         )
         return new_state
 
+    def handle_all_queries(state: ConversationState) -> ConversationState:
+        """Handle execution of all three tools in sequence."""
+        query = state.get("user_query", "")
+        logger.info(f"Starting execution of all tools for query: {query}")
+
+        # Create a new state to update
+        new_state = state.copy()
+
+        # Initialize results containers
+        new_state["kg_results"] = {}
+        new_state["rag_results"] = {}
+        new_state["weather_results"] = {}
+
+        try:
+            # Step 1: Execute Weather query
+            logger.info("🌤️ Executing Weather query...")
+            weather_result = weather_tool._run(query)
+            new_state["weather_results"] = weather_result
+            logger.info("✅ Weather query completed")
+
+            # Step 2: Execute Knowledge Graph query
+            logger.info("🔍 Executing Knowledge Graph query...")
+            kg_result = kg_tool._run(query)
+            new_state["kg_results"] = kg_result
+            logger.info("✅ KG query completed")
+
+            # Step 3: Execute RAG query
+            logger.info("📚 Executing RAG query...")
+            rag_result = rag_tool._run(query)
+            new_state["rag_results"] = rag_result
+            logger.info("✅ RAG query completed")
+
+        except Exception as e:
+            logger.error(f"❌ Error in all-tools execution: {str(e)}", exc_info=True)
+            new_state["error"] = str(e)
+
+        # Add execution metadata
+        metadata = new_state.get("metadata", {})
+        metadata["all_executed"] = True
+        metadata["weather_success"] = "error" not in new_state["weather_results"]
+        metadata["kg_success"] = "error" not in new_state["kg_results"]
+        metadata["rag_success"] = "error" not in new_state["rag_results"]
+        new_state["metadata"] = metadata
+
+        logger.info("✨ All tools execution completed")
+        return new_state
+
     def generate_response(state: ConversationState) -> ConversationState:
         """Generate the final response and update the state."""
         query = state.get("user_query", "")
@@ -228,6 +277,36 @@ def create_chat_graph():
 
             return new_state
 
+    def query_weather(state: ConversationState) -> ConversationState:
+        """Process weather queries in the graph."""
+        user_query = state.get("user_query", "")
+
+        # Extract location if present
+        location = None
+        if "in" in user_query:
+            location = user_query.split("in")[-1].strip()
+
+        # Execute weather query
+        try:
+            result = weather_tool._run(query=user_query, location=location)
+
+            # Update state with results
+            state["weather_results"] = {
+                "query": user_query,
+                "location": location or result.get("location"),
+                "weather_data": result.get("weather_data"),
+                "execution_time": result.get("execution_time"),
+            }
+
+        except Exception as e:
+            state["weather_results"] = {
+                "query": user_query,
+                "error": str(e),
+                "execution_time": 0,
+            }
+
+        return state
+
     # Create the graph
     workflow = StateGraph(ConversationState)
 
@@ -236,6 +315,8 @@ def create_chat_graph():
     workflow.add_node("kg_query", query_knowledge_graph)
     workflow.add_node("web_search_query", query_web_search)
     workflow.add_node("both", handle_both_queries)
+    workflow.add_node("all", handle_all_queries)
+    workflow.add_node("weather_query", query_weather)
     workflow.add_node(
         "direct_response", lambda state: state
     )  # Placeholder for direct response
@@ -249,6 +330,8 @@ def create_chat_graph():
             "kg_query": "kg_query",
             "web_search_query": "web_search_query",
             "both": "both",
+            "all": "all",
+            "weather_query": "weather_query",
             "direct_response": "direct_response",
         },
     )
@@ -264,6 +347,12 @@ def create_chat_graph():
 
     # From direct_response, go straight to generate_response
     workflow.add_edge("direct_response", "generate_response")
+
+    # From weather_query, go to generate_response
+    workflow.add_edge("weather_query", "generate_response")
+
+    # From all, go to generate_response
+    workflow.add_edge("all", "generate_response")
 
     # From generate_response, end the workflow
     workflow.add_edge("generate_response", END)
