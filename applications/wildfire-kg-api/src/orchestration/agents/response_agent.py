@@ -25,12 +25,14 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
                 """You are a helpful assistant specializing in wildfire and forest data analysis. 
         Your goal is to provide informative, accurate responses based on the available information.
         
-        You have access to two types of information:
+        You have access to three types of information:
         1. Knowledge Graph Results: Structured data from our wildfire knowledge graph
         2. RAG Results: Information retrieved from external sources
+        3. Weather Data: Current weather conditions and forecasts
         
         Guidelines:
-        - Synthesize information from both sources when available
+        - Synthesize information from all available sources
+        - For weather queries, focus on weather data and its implications for fire risk
         - Clearly attribute information to its source
         - Be honest about limitations in the data
         - Use a conversational, helpful tone
@@ -38,8 +40,8 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
         - Format your response in a clear, readable way
         
         Knowledge Graph Results: {kg_results}
-        
         RAG Results: {rag_results}
+        Weather Results: {weather_results}
         
         Previous conversation context: {conversation_history}
         """,
@@ -55,6 +57,7 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
             query = state.get("user_query", "")
             kg_results = state.get("kg_results", {})
             rag_results = state.get("rag_results", {})
+            weather_results = state.get("weather_results", {})
             messages = state.get("messages", [])
             metadata = state.get("metadata", {})
 
@@ -62,6 +65,7 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
             logger.info(f"Generating response for query: {query}")
             logger.info(f"KG results available: {bool(kg_results)}")
             logger.info(f"RAG results available: {bool(rag_results)}")
+            logger.info(f"Weather results available: {bool(weather_results)}")
 
             # Check if we're coming from the "both" node
             both_executed = metadata.get("both_executed", False)
@@ -100,6 +104,11 @@ def create_response_agent(model_name: str = "gpt-3.5-turbo", temperature: float 
                         rag_results
                         if rag_results and "error" not in rag_results
                         else "No RAG results available."
+                    ),
+                    weather_results=(
+                        weather_results
+                        if weather_results and "error" not in weather_results
+                        else "No weather data available."
                     ),
                     conversation_history=conversation_history,
                 )
