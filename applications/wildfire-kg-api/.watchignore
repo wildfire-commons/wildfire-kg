@@ -1,0 +1,24 @@
+# Ignore the .langgraph_api directory
+.langgraph_api/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore notebooks
+notebooks/
+
+# Ignore test files
+**/tests/
+
+# Ignore virtual environment
+venv/
+.env
+
+# Ignore git files
+.git/
+.gitignore
+
+# Ignore logs
+*.log 

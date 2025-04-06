@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./applications/wildfire-kg-frontend
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=${NODE_ENV:-development}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./applications/wildfire-kg-frontend:/app
+      - /app/node_modules/
+      - /app/.next/
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - WATCHPACK_POLLING=${WATCHPACK_POLLING:-true}
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./applications/wildfire-kg-api
+      dockerfile: Dockerfile
+      args:
+        - PYTHON_ENV=${PYTHON_ENV:-development}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./applications/wildfire-kg-api:/app${DEV_MOUNT:-}
+      - /app/.venv
+    environment:
+      - PYTHON_ENV=${PYTHON_ENV:-development}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - AWS_S3_ENDPOINT_URL=${AWS_S3_ENDPOINT_URL}
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge 
