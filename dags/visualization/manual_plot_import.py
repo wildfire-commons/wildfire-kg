@@ -69,8 +69,17 @@ def process_and_load_data():
         df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
         print(f"Available columns: {df.columns.tolist()}")
         
+        # Process latlon column if it exists
+        if 'latlon' in df.columns:
+            # Split latlon into separate lat and lon
+            df[['latitude', 'longitude']] = df['latlon'].str.strip('[]').str.split(',', expand=True).astype(float)
+        
         for _, plot in df.iterrows():
             plot_id = plot['PLOT_NAME']
+            
+            # Prepare lat/lon values, handling both separate and combined formats
+            lat_value = plot.get('latitude', plot.get('latlon', '').strip('[]').split(',')[0] if 'latlon' in plot else None)
+            lon_value = plot.get('longitude', plot.get('latlon', '').strip('[]').split(',')[1] if 'latlon' in plot else None)
             
             update_query = f"""
             PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
@@ -81,6 +90,14 @@ def process_and_load_data():
                 GRAPH <http://wifire.ucsd.edu/plot_metrics> {{
                     # Main PlotMetrics instance
                     wifire:plot_{plot_id} rdf:type wifire:PlotMetrics .
+                    
+                    # LocationData
+                    wifire:location_{plot_id} rdf:type wifire:LocationData ;
+                        wifire:longitude "{lon_value}"^^xsd:float ;
+                        wifire:latitude "{lat_value}"^^xsd:float .
+                    
+                    # Link PlotMetrics to LocationData
+                    wifire:plot_{plot_id} wifire:hasLocationData wifire:location_{plot_id} .
                     
                     # VegetationMetrics
                     wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;

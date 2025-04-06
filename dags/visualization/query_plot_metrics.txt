@@ -3,10 +3,12 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
 CONSTRUCT {
     ?plot rdf:type wifire:PlotMetrics .
+    ?plot wifire:hasLocationData ?location .
     ?plot wifire:hasVegetationMetrics ?veg .
     ?plot wifire:hasFireBehaviorMetrics ?fire .
     ?plot wifire:hasTreeShrubMetrics ?tree .
     
+    ?location rdf:type wifire:LocationData .
     ?veg rdf:type wifire:VegetationMetrics .
     ?fire rdf:type wifire:FireBehaviorMetrics .
     ?tree rdf:type wifire:TreeShrubMetrics .
@@ -14,6 +16,7 @@ CONSTRUCT {
 WHERE {
     GRAPH <http://wifire.ucsd.edu/plot_metrics> {
         ?plot rdf:type wifire:PlotMetrics .
+        ?plot wifire:hasLocationData ?location .
         ?plot wifire:hasVegetationMetrics ?veg .
         ?plot wifire:hasFireBehaviorMetrics ?fire .
         ?plot wifire:hasTreeShrubMetrics ?tree .

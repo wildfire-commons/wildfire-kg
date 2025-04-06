@@ -3,61 +3,53 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX geo: <http://www.opengis.net/ont/geosparql#>
 
 CONSTRUCT {
-    ?area rdf:type wifire:FireManagementArea .
-    ?area wifire:geometry ?geometry .
-    ?area wifire:hasPlot ?plot .
-    ?area wifire:hasFireIgnitionSensor ?sensor .
+    ?area rdf:type wifire:FireManagementArea ;
+          geo:asWKT ?geometry ;
+          wifire:plotCount ?plot_count ;
+          wifire:sensorCount ?sensor_count ;
+          wifire:hasPlot ?plot ;
+          wifire:hasFireIgnitionSensor ?sensor .
+
+    ?plot rdf:type wifire:PlotMetrics ;
+          wifire:hasLocationData ?plot_loc .
     
-    ?plot rdf:type wifire:PlotMetrics .
-    ?plot wifire:hasVegetationMetrics ?veg .
-    ?plot wifire:hasFireBehaviorMetrics ?fire .
-    ?plot wifire:hasTreeShrubMetrics ?tree .
-    ?plot wifire:hasLocationData ?plot_location .
+    ?plot_loc rdf:type wifire:LocationData ;
+              wifire:latitude ?plot_lat ;
+              wifire:longitude ?plot_lon .
     
-    ?plot_location rdf:type wifire:LocationData .
-    ?plot_location wifire:longitude ?plot_lon .
-    ?plot_location wifire:latitude ?plot_lat .
+    ?sensor rdf:type wifire:FireIgnitionSensor ;
+            wifire:hasLocationData ?sensor_loc .
     
-    ?sensor rdf:type wifire:FireIgnitionSensor .
-    ?sensor wifire:hasSensorMetadata ?metadata .
-    ?sensor wifire:hasLocationData ?sensor_location .
-    
-    ?metadata rdf:type wifire:SensorMetadata .
-    ?metadata wifire:db_id ?sensor_id .
-    
-    ?sensor_location rdf:type wifire:LocationData .
-    ?sensor_location wifire:longitude ?sensor_lon .
-    ?sensor_location wifire:latitude ?sensor_lat .
+    ?sensor_loc rdf:type wifire:LocationData ;
+                wifire:latitude ?sensor_lat ;
+                wifire:longitude ?sensor_lon .
 }
 WHERE {
-    GRAPH <http://wifire.ucsd.edu/fire_management_area> {
-        ?area rdf:type wifire:FireManagementArea .
-        ?area wifire:geometry ?geometry .
-        ?area wifire:hasPlot ?plot .
-        ?area wifire:hasFireIgnitionSensor ?sensor .
-    }
-    
-    OPTIONAL {
-        GRAPH <http://wifire.ucsd.edu/plot_metrics> {
-            ?plot wifire:hasVegetationMetrics ?veg .
-            ?plot wifire:hasFireBehaviorMetrics ?fire .
-            ?plot wifire:hasTreeShrubMetrics ?tree .
-            ?plot wifire:hasLocationData ?plot_location .
-            
-            ?plot_location wifire:longitude ?plot_lon .
-            ?plot_location wifire:latitude ?plot_lat .
+    # Get management areas with counts and geometry
+    GRAPH <http://wifire.ucsd.edu/management_areas1> {
+        ?area rdf:type wifire:FireManagementArea ;
+              geo:asWKT ?geometry ;
+              wifire:plotCount ?plot_count ;
+              wifire:sensorCount ?sensor_count .
+              
+        # Get plots in this area (if any)
+        OPTIONAL {
+            ?area wifire:hasPlot ?plot .
+            GRAPH <http://wifire.ucsd.edu/plot_metrics> {
+                ?plot wifire:hasLocationData ?plot_loc .
+                ?plot_loc wifire:latitude ?plot_lat ;
+                         wifire:longitude ?plot_lon .
+            }
         }
-    }
-    
-    OPTIONAL {
-        GRAPH <http://wifire.ucsd.edu/sensor_data> {
-            ?sensor wifire:hasSensorMetadata ?metadata .
-            ?sensor wifire:hasLocationData ?sensor_location .
-            
-            ?metadata wifire:db_id ?sensor_id .
-            
-            ?sensor_location wifire:longitude ?sensor_lon .
-            ?sensor_location wifire:latitude ?sensor_lat .
+        
+        # Get sensors in this area (if any)
+        OPTIONAL {
+            ?area wifire:hasFireIgnitionSensor ?sensor .
+            GRAPH <http://wifire.ucsd.edu/sensor_data> {
+                ?sensor wifire:hasLocationData ?sensor_loc .
+                ?sensor_loc wifire:latitude ?sensor_lat ;
+                          wifire:longitude ?sensor_lon .
+            }
         }
     }
 } 
