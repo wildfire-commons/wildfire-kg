@@ -22,7 +22,7 @@ import nest_asyncio
 import os
 
 # Load environment variables
-load_dotenv(dotenv_path="../../.env")
+load_dotenv(dotenv_path="../../applications/wildfire-kg-api/.env")
 
 # Initialize LangSmith client
 client = Client()
