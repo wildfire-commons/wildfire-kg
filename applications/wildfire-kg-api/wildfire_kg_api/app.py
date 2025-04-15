@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import the register_routers function
-from src.routes import register_routers
+from .routes import register_routers
 
 app = FastAPI(
     title="Wildfire Knowledge Graph API",

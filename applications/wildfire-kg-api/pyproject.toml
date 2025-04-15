@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wildfire-kg-api"
+name = "wildfire_kg_api"
 version = "0.1.0"
 description = "Wildfire Knowledge Graph API with LangGraph integration"
 readme = "README.md"
@@ -47,7 +47,7 @@ dependencies = [
 
 # Add command-line entry points
 [project.scripts]
-wkg-api = "src.main:cli"
+wkg-api = "wildfire_kg_api.main:cli"
 
 [project.optional-dependencies]
 dev = [
@@ -57,11 +57,10 @@ dev = [
     "flake8>=7.0.0",
     "mypy>=1.8.0",
     
-    # Testing
-    "pytest>=8.0.2",
-    "pytest-cov>=4.1.0",
-    "pytest-mock>=3.12.0",
-    "streamlit>=1.42.2",
+    # Evaluation
+    "ipykernel==6.29.5",
+    "jupyter==1.1.1",
+    "pandas==2.2.3",
     
     # Documentation
     "mkdocs>=1.5.3",
@@ -74,13 +73,6 @@ dev = [
     "langgraph-checkpoint==2.0.16",
     "langgraph-prebuilt==0.1.1",
 ]
-
-# Replace the existing setuptools configuration with this
-[tool.setuptools]
-packages = ["src"]
-
-[tool.setuptools.package-data]
-"*" = ["*.json", "*.yaml", "*.yml"]
 
 # Development tool configurations
 [tool.black]

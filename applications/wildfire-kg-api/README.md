@@ -121,7 +121,7 @@ TODO: Verify deployment instructions
 
 ```
 wildfire-kg-api/
-├── src/                        # Main source code
+├── wildfire_kg_api/                        # Main source code
 │   ├── __init__.py             # Package initialization
 │   ├── app.py                  # FastAPI application
 │   ├── main.py                 # CLI and entry points

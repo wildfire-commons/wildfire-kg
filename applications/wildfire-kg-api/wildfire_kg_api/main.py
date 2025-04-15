@@ -7,7 +7,7 @@ This module provides:
 Usage:
     # Run the API server directly
     wkg-api run
-    
+
     # Run in development mode
     wkg-api run --dev
 """
@@ -45,7 +45,7 @@ def cli():
 def run_server(dev, host, port):
     """Run the API server directly without LangGraph Studio."""
     # Common import path - but importing the string rather than module
-    uvicorn_app_path = "src.app:app"
+    uvicorn_app_path = "wildfire_kg_api.app:app"
 
     if dev:
         logger.info(f"Starting API server in development mode on {host}:{port}...")
@@ -55,13 +55,13 @@ def run_server(dev, host, port):
             host=host,
             port=port,
             reload=True,
-            reload_dirs=["src"],
+            reload_dirs=["wildfire_kg_api"],
             reload_excludes=["__pycache__", "*.pyc", "*.pyo"],
         )
     else:
         logger.info(f"Starting API server on {host}:{port}...")
         # In production mode, directly import the app
-        from src.app import app
+        from wildfire_kg_api.app import app
 
         uvicorn.run(app, host=host, port=port)
 

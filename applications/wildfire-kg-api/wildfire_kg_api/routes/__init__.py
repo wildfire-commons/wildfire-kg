@@ -29,7 +29,7 @@ def get_all_routers() -> Dict[str, APIRouter]:
         Dict[str, APIRouter]: Dictionary of module_name -> router
     """
     routers = {}
-    routes_package = "src.routes"
+    routes_package = "wildfire_kg_api.routes"
 
     # Get the actual path of the routes directory
     routes_path = os.path.dirname(__file__)
@@ -74,5 +74,5 @@ def register_routers(app: FastAPI) -> None:
 
 # For backwards compatibility - expose the routers directly
 # These will be deprecated in the future
-from src.routes.s3 import router as s3_router
-from src.routes.health import router as health_router
+from wildfire_kg_api.routes.s3 import router as s3_router
+from wildfire_kg_api.routes.health import router as health_router

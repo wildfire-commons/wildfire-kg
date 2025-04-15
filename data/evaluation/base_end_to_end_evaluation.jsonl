@@ -1,0 +1,1 @@
+{"user_query": "What number of trees(TreesN) are in plot_CASBC_0007_20241117_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["3 trees"], "tags": ["kg_only", "plot_metrics", "single_plot"]}
