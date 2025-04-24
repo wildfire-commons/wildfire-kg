@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow" "neo4j")
+VALID_COMPONENTS=("graphdb" "airflow")
 
 # Function to validate component name
 validate_component() {
@@ -133,10 +133,6 @@ deploy_component() {
             add_helm_repo "ontotext" "https://maven.ontotext.com/repository/helm-public/"
             chart="ontotext/graphdb"
             ;;
-        "neo4j")
-            add_helm_repo "neo4j" "https://helm.neo4j.com/neo4j"
-            chart="neo4j/neo4j"
-            ;;
     esac
     
     echo "Deploying $release_name to $NAMESPACE namespace..."
@@ -151,9 +147,6 @@ case $COMPONENT in
         ;;
     "graphdb")
         deploy_component "graphdb"
-        ;;
-    "neo4j")
-        deploy_component "neo4j"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"
