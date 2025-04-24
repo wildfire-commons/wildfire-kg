@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow")
+VALID_COMPONENTS=("graphdb" "airflow" "langgraph")
 
 # Function to validate component name
 validate_component() {
@@ -45,6 +45,7 @@ if [ -z "$ENV" ] || [ -z "$COMPONENT" ]; then
     echo "Examples:"
     echo "  ./deploy.sh dev graphdb    # Deploys as graphdb-dev"
     echo "  ./deploy.sh prod graphdb   # Deploys as graphdb-prod"
+    echo "  ./deploy.sh dev langgraph  # Deploys LangGraph server"
     echo "Environments: ${VALID_ENVIRONMENTS[*]}"
     echo "Components: ${VALID_COMPONENTS[*]}"
     exit 1
@@ -72,6 +73,76 @@ add_helm_repo() {
         helm repo add $repo_name $repo_url
         helm repo update $repo_name
     fi
+}
+
+# Function to deploy LangGraph
+deploy_langgraph() {
+    local env=$1
+    
+    echo "Building and deploying LangGraph for $env environment..."
+    
+    # Navigate to the LangGraph API directory
+    cd "${PROJECT_ROOT}/applications/wildfire-kg-api"
+    
+    # Create a virtual environment if it doesn't exist
+    if [[ ! -d "venv" ]]; then
+        echo "Creating virtual environment..."
+        python -m venv venv
+    fi
+    
+    # Activate the virtual environment
+    source venv/bin/activate
+    
+    # Install development dependencies
+    echo "Installing development dependencies..."
+    pip install -e ".[dev]"
+    
+    # Build the LangGraph application
+    echo "Building LangGraph application..."
+    langgraph build
+    
+    # Create a ConfigMap with the langgraph.json content
+    echo "Creating ConfigMap for LangGraph configuration..."
+    kubectl create configmap langgraph-config \
+        --namespace $NAMESPACE \
+        --from-file=langgraph.json \
+        --dry-run=client -o yaml | kubectl apply -f -
+    
+    # Deactivate the virtual environment
+    deactivate
+    
+    # Return to the project root
+    cd "${PROJECT_ROOT}"
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing LangGraph deployment..."
+        kubectl delete deployment langgraph --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service langgraph --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress langgraph-ingress --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/langgraph.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # Deploy LangGraph
+    echo "Deploying LangGraph server..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployment to be ready
+    echo "Waiting for LangGraph deployment to be ready..."
+    kubectl wait --for=condition=Available=True deployment/langgraph -n $NAMESPACE --timeout=300s
+    
+    echo "LangGraph deployment completed successfully!"
+    echo "You can access the LangGraph server at: https://langgraph-${env}-wifire-kg.nrp-nautilus.io"
 }
 
 # Function to deploy a component
@@ -147,6 +218,9 @@ case $COMPONENT in
         ;;
     "graphdb")
         deploy_component "graphdb"
+        ;;
+    "langgraph")
+        deploy_langgraph "$ENV"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"

@@ -35,6 +35,8 @@ spec:
             secretKeyRef:
               name: api-keys
               key: openai-api-key
+        - name: LANGGRAPH_CONFIG_PATH
+          value: "/app/config/langgraph.json"
         volumeMounts:
         - name: langgraph-data
           mountPath: /data
@@ -67,11 +69,10 @@ metadata:
   name: langgraph-ingress
   namespace: wifire-kg
   annotations:
-    kubernetes.io/ingress.class: nginx
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: haproxy
 spec:
   rules:
-  - host: langgraph-dev-wifire-kg.nrp-nautilus.io
+  - host: langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io
     http:
       paths:
       - path: /
@@ -83,5 +84,4 @@ spec:
               number: 8000
   tls:
   - hosts:
-    - langgraph-dev-wifire-kg.nrp-nautilus.io
-    secretName: langgraph-tls
+    - langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io
