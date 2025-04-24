@@ -2,20 +2,41 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
+from airflow.models import Variable
 
 def process_and_load_data():
     # Move imports inside
     import pandas as pd
     import requests
     import urllib3
+    import boto3
     from rdflib import Graph, Namespace, Literal, URIRef
+    import io
     
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    # local GraphDB connection details
+    # Get S3 and GraphDB variables from Airflow
+    try:
+        aws_access_key = Variable.get("AWS_ACCESS_KEY_ID")
+        aws_secret_key = Variable.get("AWS_SECRET_ACCESS_KEY")
+        endpoint_url = Variable.get("AWS_S3_ENDPOINT_URL")
+        bucket_name = Variable.get("AWS_S3_BUCKET_NAME")
+        graph_name = Variable.get("GRAPHDB_GRAPH_NAME", "http://wifire.ucsd.edu/plot_metrics")
+    except KeyError as e:
+        print(f"Missing required Airflow variable: {str(e)}")
+        raise
+
+    # Initialize S3 client
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        endpoint_url=endpoint_url
+    )
+
+    # GraphDB connection details
     GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
     REPOSITORY = "wildfire-kg"
-    SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
 
     WIFIRE = Namespace("http://wifire.ucsd.edu/ontology/")
@@ -24,24 +45,30 @@ def process_and_load_data():
 
     print("Starting data import...")
     try:
-        file_path = "/opt/airflow/dags/data/raw/CASBC_plot_metrics.csv"
-        df = pd.read_csv(file_path)
+        # Download file from S3
+        obj = s3_client.get_object(Bucket=bucket_name, Key='cleaned_intelimon_metrics.csv')
+        df = pd.read_csv(io.BytesIO(obj['Body'].read()))
         
-        # convert latlon string to actual coordinates
-        df['latitude'] = df['latlon'].str.extract(r'\[(.*?),').astype(float)
-        df['longitude'] = df['latlon'].str.extract(r',\s*(.*?)\]').astype(float)
+        # Process latlon column if it exists
+        if 'latlon' in df.columns:
+            # Split latlon into separate lat and lon
+            df[['latitude', 'longitude']] = df['latlon'].str.strip('[]').str.split(',', expand=True).astype(float)
         
-        # process each plot
+        # Process each plot
         for _, plot in df.iterrows():
             plot_id = plot['PLOT_NAME']
+            
+            # Prepare lat/lon values, handling both separate and combined formats
+            lat_value = plot.get('latitude', plot.get('latlon', '').strip('[]').split(',')[0] if 'latlon' in plot else None)
+            lon_value = plot.get('longitude', plot.get('latlon', '').strip('[]').split(',')[1] if 'latlon' in plot else None)
             
             update_query = f"""
             PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
             PREFIX geo: <http://www.opengis.net/ont/geosparql#>
             PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
             
-            INSERT {{ 
-                GRAPH <http://wifire.ucsd.edu/plot_metrics> {{
+            INSERT DATA {{ 
+                GRAPH <{graph_name}> {{
                     wifire:plot_{plot_id} 
                         wifire:hasID "{plot_id}" ;
                         wifire:hasLocation wifire:loc_{plot_id} ;
@@ -78,14 +105,15 @@ def process_and_load_data():
                         wifire:landFireFuelModel13 "{plot['LF_FBFM13']}"^^xsd:string ;
                         wifire:landFireFuelModel40 "{plot['LF_FBFM40']}"^^xsd:string ;
                         wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
-                        wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float .
-                        
+                        wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float ;
+                        wifire:latlon "{plot.get('latlon', '')}" .
+
                     wifire:loc_{plot_id} 
                         wifire:type geo:Feature ;
-                        wifire:longitude "{plot['longitude']}"^^xsd:float ;
-                        wifire:latitude "{plot['latitude']}"^^xsd:float .
+                        wifire:longitude "{lon_value}"^^xsd:float ;
+                        wifire:latitude "{lat_value}"^^xsd:float .
                 }}
-            }} WHERE {{}}
+            }}
             """
             
             headers = {
@@ -93,20 +121,27 @@ def process_and_load_data():
                 'Accept': '*/*'
             }
             
-            response = requests.post(
-                UPDATE_ENDPOINT,
-                data={'update': update_query},
-                headers=headers
-            )
-            
-            if response.status_code not in [200, 204]:
-                print(f"Failed to add plot {plot_id}. Status: {response.status_code}")
-                return
+            try:
+                response = requests.post(
+                    UPDATE_ENDPOINT,
+                    data={'update': update_query},
+                    headers=headers
+                )
+                
+                if response.status_code not in [200, 204]:
+                    print(f"Failed to add plot {plot_id}. Status: {response.status_code}")
+                    print(f"Response content: {response.text}")
+                    continue  # Skip this plot but continue with others
+                
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed for plot {plot_id}: {str(e)}")
+                continue  # Skip this plot but continue with others
             
         print(f"Successfully loaded {len(df)} plot metrics to GraphDB")
             
     except Exception as e:
         print(f"Error processing and loading data: {str(e)}")
+        raise
 
 with DAG(
     'graphdb_plot_metrics_import',
