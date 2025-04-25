@@ -72,113 +72,134 @@ def process_and_load_data():
         # Get file from S3
         s3_response = s3_client.get_object(
             Bucket=aws_s3_bucket_name,
-            Key='metrics/CASBC_plot_metrics.csv'
+            Key='cleaned_intelimon_metrics.csv'
         )
         
         # Read CSV directly from S3 response
         df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
-        print(f"Available columns: {df.columns.tolist()}")
+        print(f"Loaded {len(df)} plot metrics from S3")
         
-        # Process latlon column if it exists
-        if 'latlon' in df.columns:
-            # Split latlon into separate lat and lon
-            df[['latitude', 'longitude']] = df['latlon'].str.strip('[]').str.split(',', expand=True).astype(float)
+        successful_uploads = 0
+        failed_uploads = 0
         
         for _, plot in df.iterrows():
             plot_id = plot['PLOT_NAME']
-            
-            # Prepare lat/lon values, handling both separate and combined formats
-            lat_value = plot.get('latitude', plot.get('latlon', '').strip('[]').split(',')[0] if 'latlon' in plot else None)
-            lon_value = plot.get('longitude', plot.get('latlon', '').strip('[]').split(',')[1] if 'latlon' in plot else None)
-            
-            update_query = f"""
-            PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
-            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-            PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-            
-            INSERT DATA {{ 
-                GRAPH <http://wifire.ucsd.edu/plot_metrics> {{
-                    # Main PlotMetrics instance
-                    wifire:plot_{plot_id} rdf:type wifire:PlotMetrics .
-                    
-                    # LocationData
-                    wifire:location_{plot_id} rdf:type wifire:LocationData ;
-                        wifire:longitude "{lon_value}"^^xsd:float ;
-                        wifire:latitude "{lat_value}"^^xsd:float .
-                    
-                    # Link PlotMetrics to LocationData
-                    wifire:plot_{plot_id} wifire:hasLocationData wifire:location_{plot_id} .
-                    
-                    # VegetationMetrics
-                    wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;
-                        wifire:basalArea "{plot['Basalarea']}"^^xsd:float ;
-                        wifire:LAI "{plot['LAI']}"^^xsd:float ;
-                        wifire:TBA "{plot['TBA']}"^^xsd:float ;
-                        wifire:OLAI "{plot['OLAI']}"^^xsd:float ;
-                        wifire:ULAI "{plot['ULAI']}"^^xsd:float ;
-                        wifire:GCvol "{plot['GCvol']}"^^xsd:float ;
-                        wifire:MSvol "{plot['MSvol']}"^^xsd:float ;
-                        wifire:OSvol "{plot['OSvol']}"^^xsd:float ;
-                        wifire:USvol "{plot['USvol']}"^^xsd:float .
-                    
-                    # Link PlotMetrics to VegetationMetrics
-                    wifire:plot_{plot_id} wifire:hasVegetationMetrics wifire:veg_{plot_id} .
-                    
-                    # FireBehaviorMetrics
-                    wifire:fire_{plot_id} rdf:type wifire:FireBehaviorMetrics ;
-                        wifire:LF_FBFM13 "{plot['LF_FBFM13']}"^^xsd:string ;
-                        wifire:LF_FBFM40 "{plot['LF_FBFM40']}"^^xsd:string ;
-                        wifire:LF_EVEL "{plot['LF_EVEL']}"^^xsd:float ;
-                        wifire:LF_SLPD "{plot['LF_SLPD']}"^^xsd:float ;
-                        wifire:LF_ASP "{plot['LF_ASP']}"^^xsd:float ;
-                        wifire:LF_FDist "{plot['LF_FDist']}"^^xsd:string ;
-                        wifire:LF_EVC "{plot['LF_EVC']}"^^xsd:string ;
-                        wifire:LF_EVT "{plot['LF_EVT']}"^^xsd:string .
-                    
-                    # Link PlotMetrics to FireBehaviorMetrics
-                    wifire:plot_{plot_id} wifire:hasFireBehaviorMetrics wifire:fire_{plot_id} .
-                    
-                    # TreeShrubMetrics
-                    wifire:tree_{plot_id} rdf:type wifire:TreeShrubMetrics ;
-                        wifire:plotName "{plot_id}"^^xsd:string ;
-                        wifire:MDBH "{plot['MDBH']}"^^xsd:float ;
-                        wifire:MLAI "{plot['MLAI']}"^^xsd:float ;
-                        wifire:SDHT "{plot['SDHT']}"^^xsd:float ;
-                        wifire:SDSHT "{plot['SDSHT']}"^^xsd:float ;
-                        wifire:SDSD "{plot['SDSD']}"^^xsd:float ;
-                        wifire:MaxSD "{plot['MaxSD']}"^^xsd:float ;
-                        wifire:MaxSH "{plot['MaxSH']}"^^xsd:float ;
-                        wifire:MaxTH "{plot['MaxTH']}"^^xsd:float ;
-                        wifire:MinSD "{plot['MinSD']}"^^xsd:float ;
-                        wifire:TreesN "{plot['TreesN']}"^^xsd:integer ;
-                        wifire:ShrubsN "{plot['ShrubsN']}"^^xsd:integer ;
-                        wifire:MeanSA "{plot['MeanSA']}"^^xsd:float ;
-                        wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
-                        wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float .
-                    
-                    # Link PlotMetrics to TreeShrubMetrics
-                    wifire:plot_{plot_id} wifire:hasTreeShrubMetrics wifire:tree_{plot_id} .
+            try:
+                update_query = f"""
+                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                
+                INSERT DATA {{ 
+                    GRAPH <http://wifire.ucsd.edu/plot_metrics> {{
+                        # Main PlotMetrics instance
+                        wifire:plot_{plot_id} rdf:type wifire:PlotMetrics .
+                        
+                        # VegetationMetrics
+                        wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;
+                            wifire:basalArea "{plot['Basalarea']}"^^xsd:float ;
+                            wifire:LAI "{plot['LAI']}"^^xsd:float ;
+                            wifire:TBA "{plot['TBA']}"^^xsd:float ;
+                            wifire:OLAI "{plot['OLAI']}"^^xsd:float ;
+                            wifire:ULAI "{plot['ULAI']}"^^xsd:float ;
+                            wifire:GCvol "{plot['GCvol']}"^^xsd:float ;
+                            wifire:MSvol "{plot['MSvol']}"^^xsd:float ;
+                            wifire:OSvol "{plot['OSvol']}"^^xsd:float ;
+                            wifire:USvol "{plot['USvol']}"^^xsd:float .
+                        
+                        # Link PlotMetrics to VegetationMetrics
+                        wifire:plot_{plot_id} wifire:hasVegetationMetrics wifire:veg_{plot_id} .
+                        
+                        # FireBehaviorMetrics
+                        wifire:fire_{plot_id} rdf:type wifire:FireBehaviorMetrics ;
+                            wifire:LF_FBFM13 "{plot['LF_FBFM13']}"^^xsd:string ;
+                            wifire:LF_FBFM40 "{plot['LF_FBFM40']}"^^xsd:string ;
+                            wifire:LF_EVEL "{plot['LF_EVEL']}"^^xsd:float ;
+                            wifire:LF_SLPD "{plot['LF_SLPD']}"^^xsd:float ;
+                            wifire:LF_ASP "{plot['LF_ASP']}"^^xsd:float ;
+                            wifire:LF_FDist "{plot['LF_FDist']}"^^xsd:string ;
+                            wifire:LF_EVC "{plot['LF_EVC']}"^^xsd:string ;
+                            wifire:LF_EVT "{plot['LF_EVT']}"^^xsd:string .
+                        
+                        # Link PlotMetrics to FireBehaviorMetrics
+                        wifire:plot_{plot_id} wifire:hasFireBehaviorMetrics wifire:fire_{plot_id} .
+                        
+                        # TreeShrubMetrics
+                        wifire:tree_{plot_id} rdf:type wifire:TreeShrubMetrics ;
+                            wifire:plotName "{plot_id}"^^xsd:string ;
+                            wifire:MDBH "{plot['MDBH']}"^^xsd:float ;
+                            wifire:MLAI "{plot['MLAI']}"^^xsd:float ;
+                            wifire:SDHT "{plot['SDHT']}"^^xsd:float ;
+                            wifire:SDSHT "{plot['SDSHT']}"^^xsd:float ;
+                            wifire:SDSD "{plot['SDSD']}"^^xsd:float ;
+                            wifire:MaxSD "{plot['MaxSD']}"^^xsd:float ;
+                            wifire:MaxSH "{plot['MaxSH']}"^^xsd:float ;
+                            wifire:MaxTH "{plot['MaxTH']}"^^xsd:float ;
+                            wifire:MinSD "{plot['MinSD']}"^^xsd:float ;
+                            wifire:TreesN "{plot['TreesN']}"^^xsd:integer ;
+                            wifire:ShrubsN "{plot['ShrubsN']}"^^xsd:integer ;
+                            wifire:MeanSA "{plot['MeanSA']}"^^xsd:float ;
+                            wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
+                            wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float .
+                        
+                        # Link PlotMetrics to TreeShrubMetrics
+                        wifire:plot_{plot_id} wifire:hasTreeShrubMetrics wifire:tree_{plot_id} .
+                    }}
                 }}
-            }}
-            """
+                """
+                
+                headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': '*/*'
+                }
+                
+                response = requests.post(
+                    UPDATE_ENDPOINT,
+                    data={'update': update_query},
+                    headers=headers,
+                    verify=False
+                )
+                
+                if response.status_code not in [200, 204]:
+                    print(f"Failed to add plot {plot_id}. Status: {response.status_code}")
+                    print(f"Response: {response.text}")
+                    failed_uploads += 1
+                    continue
+                
+                successful_uploads += 1
+                
+            except Exception as plot_error:
+                print(f"Error processing plot {plot_id}: {str(plot_error)}")
+                failed_uploads += 1
+                continue
             
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': '*/*'
-            }
-            
-            response = requests.post(
-                UPDATE_ENDPOINT,
-                data={'update': update_query},
-                headers=headers,
-                verify=False
-            )
-            
-            if response.status_code not in [200, 204]:
-                print(f"Failed to add plot {plot_id}. Status: {response.status_code}")
-                return
-            
-        print(f"Successfully loaded {len(df)} plot metrics to GraphDB")
+        print(f"Upload summary:")
+        print(f"- Successfully uploaded: {successful_uploads}")
+        print(f"- Failed uploads: {failed_uploads}")
+        print(f"- Total plots processed: {successful_uploads + failed_uploads}")
+        
+        # Verify the count in GraphDB
+        verify_query = """
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        
+        SELECT (COUNT(DISTINCT ?plot) as ?plotCount) 
+        FROM <http://wifire.ucsd.edu/plot_metrics>
+        WHERE {
+            ?plot rdf:type wifire:PlotMetrics .
+        }
+        """
+        
+        verify_response = requests.get(
+            SPARQL_ENDPOINT,
+            params={'query': verify_query},
+            headers={'Accept': 'application/sparql-results+json'},
+            verify=False
+        )
+        
+        if verify_response.status_code == 200:
+            plot_count = verify_response.json()['results']['bindings'][0]['plotCount']['value']
+            print(f"Final count in GraphDB: {plot_count} plots")
             
     except Exception as e:
         print(f"Error processing and loading data: {str(e)}")
