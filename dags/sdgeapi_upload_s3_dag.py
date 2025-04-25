@@ -7,6 +7,7 @@ from botocore.client import Config
 from typing import Optional
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.models import Variable
 from datetime import datetime
 
 wfs_url = "https://sdge.sdsc.edu/geoserver/wfs?service=wfs&version=1.0.0&request=GetFeature&outputFormat=application/json&typeName=SDGE:intelimon_metrics"
@@ -44,16 +45,18 @@ def fetch_and_clean_data() -> Optional[str]:
 
     return output_filename
 
+def get_s3_client():
+    return boto3.client(
+        "s3",
+        aws_access_key_id=Variable.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=Variable.get("AWS_SECRET_ACCESS_KEY"),
+        endpoint_url=Variable.get("AWS_S3_ENDPOINT_URL"),
+        config=Config(signature_version="s3v4")
+    )
+
 def generate_presigned_put_url(bucket: str, key: str, expiration: int = 3600) -> Optional[str]:
     try:
-        s3_client = boto3.client(
-            "s3",
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            endpoint_url=os.getenv("AWS_S3_ENDPOINT_URL"),
-            config=Config(signature_version="s3v4")
-        )
-
+        s3_client = get_s3_client()
         url = s3_client.generate_presigned_url(
             ClientMethod="put_object",
             Params={"Bucket": bucket, "Key": key},
@@ -93,9 +96,10 @@ def fetch_and_upload():
         print("Skipping upload.")
         return
 
-    bucket = os.getenv("AWS_S3_BUCKET_NAME")
-    if not bucket:
-        print("AWS_S3_BUCKET_NAME environment variable not set.")
+    try:
+        bucket = Variable.get("AWS_S3_BUCKET_NAME")
+    except KeyError:
+        print("AWS_S3_BUCKET_NAME variable not set in Airflow.")
         return
 
     object_key = os.path.basename(cleaned_file_path)
@@ -106,6 +110,23 @@ def fetch_and_upload():
 
     upload_to_s3_with_presigned_url(cleaned_file_path, bucket, object_key)
 
+def ensure_variables():
+    """Ensure all required variables are set"""
+    required_vars = [
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_S3_ENDPOINT_URL",
+        "AWS_S3_BUCKET_NAME"
+    ]
+    
+    for var in required_vars:
+        try:
+            Variable.get(var)
+        except KeyError:
+            print(f"Required variable {var} is not set")
+            return False
+    return True
+
 # Airflow DAG definition
 with DAG(
     dag_id="sdgeapi_upload_to_s3",
@@ -115,7 +136,14 @@ with DAG(
     catchup=False
 ) as dag:
 
+    check_vars = PythonOperator(
+        task_id="check_variables",
+        python_callable=ensure_variables
+    )
+
     upload_task = PythonOperator(
         task_id="fetch_clean_upload",
         python_callable=fetch_and_upload
     )
+
+    check_vars >> upload_task

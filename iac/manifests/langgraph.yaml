@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: langgraph
+  namespace: wifire-kg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: langgraph
+  template:
+    metadata:
+      labels:
+        app: langgraph
+    spec:
+      containers:
+      - name: langgraph
+        image: langchain/langgraph-server:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        env:
+        - name: LANGGRAPH_HOST
+          value: "0.0.0.0"
+        - name: LANGGRAPH_PORT
+          value: "8000"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: openai-api-key
+        - name: LANGGRAPH_CONFIG_PATH
+          value: "/app/config/langgraph.json"
+        volumeMounts:
+        - name: langgraph-data
+          mountPath: /data
+        - name: langgraph-config
+          mountPath: /app/config
+      volumes:
+      - name: langgraph-data
+        emptyDir: {}
+      - name: langgraph-config
+        configMap:
+          name: langgraph-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: langgraph
+  namespace: wifire-kg
+spec:
+  type: ClusterIP
+  selector:
+    app: langgraph
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: langgraph-ingress
+  namespace: wifire-kg
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+spec:
+  rules:
+  - host: langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: langgraph
+            port:
+              number: 8000
+  tls:
+  - hosts:
+    - langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io
