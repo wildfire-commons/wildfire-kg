@@ -22,9 +22,9 @@
     rdfs:label "Sensor Metadata" ;
     rdfs:comment "Metadata related to the FireIgnitionSensor" .
 
-:LocationData rdf:type rdfs:Class ;
+:LocationDataSensor rdf:type rdfs:Class ;
     rdfs:subClassOf :FireIgnitionSensor ;
-    rdfs:label "Location Data" ;
+    rdfs:label "Location Data Sensor" ;
     rdfs:comment "Represents the geographical location of the FireIgnitionSensor" .
 
 :SensorTypeData rdf:type rdfs:Class ;
@@ -105,16 +105,16 @@
     rdfs:label "sensor_type_id" ;
     rdfs:comment "ID for the sensor type" .
 
-:longitude rdf:type rdf:Property ;
-    rdfs:domain :LocationData ;
+:longitudeSensor rdf:type rdf:Property ;
+    rdfs:domain :LocationDataSensor ;
     rdfs:range xsd:float ;
-    rdfs:label "longitude" ;
+    rdfs:label "longitudeSensor" ;
     rdfs:comment "Longitude coordinate of the sensor" .
 
-:latitude rdf:type rdf:Property ;
-    rdfs:domain :LocationData ;
+:latitudeSensor rdf:type rdf:Property ;
+    rdfs:domain :LocationDataSensor ;
     rdfs:range xsd:float ;
-    rdfs:label "latitude" ;
+    rdfs:label "latitudeSensor" ;
     rdfs:comment "Latitude coordinate of the sensor" .
 
 :type rdf:type rdf:Property ;
@@ -177,7 +177,56 @@
     rdfs:label "wind_windSpeedCmS" ;
     rdfs:comment "Wind speed in cm/s" .
 
+:provider rdf:type rdf:Property ;
+    rdfs:domain :SensorMetadata ;
+    rdfs:range xsd:string ;
+    rdfs:label "provider" ;
+    rdfs:comment "Name of the organization or entity that provided the sensor data, e.g., 'Redline Safety'" .
+	
+# Relationship Properties for Sublcasses of :PlotMetrics
+:hasSensorMetadata rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :SensorMetadata ;
+    rdfs:label "hasSensorMetadata" ;
+    rdfs:comment "Links a FireIgnitionSensor to its metadata" .
+
+:hasLocationDataSensor rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :LocationDataSensor ;
+    rdfs:label "hasLocationDataSensor" ;
+    rdfs:comment "Links a FireIgnitionSensor to its geographic location data" .
+
+:hasSensorTypeData rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :SensorTypeData ;
+    rdfs:label "hasSensorTypeData" ;
+    rdfs:comment "Links a FireIgnitionSensor to its type information" .
+
+:hasEnvironmentalData rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :EnvironmentalData ;
+    rdfs:label "hasEnvironmentalData" ;
+    rdfs:comment "Links a FireIgnitionSensor to its environmental readings" .
+
+:hasParticleData rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :ParticleData ;
+    rdfs:label "hasParticleData" ;
+    rdfs:comment "Links a FireIgnitionSensor to its particle measurement data" .
+
+:hasWindData rdf:type rdf:Property ;
+    rdfs:domain :FireIgnitionSensor ;
+    rdfs:range :WindData ;
+    rdfs:label "hasWindData" ;
+    rdfs:comment "Links a FireIgnitionSensor to its wind-related data" .
+
 # Properties for PlotMetrics
+:plotName rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotName" ;
+    rdfs:comment "The name of the plot" .
+
 :basalArea rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -195,31 +244,6 @@
     rdfs:range xsd:float ;
     rdfs:label "TBA" ;
     rdfs:comment "Total Basal Area" .
-
-:plotName rdf:type rdf:Property ;
-    rdfs:domain :TreeShrubMetrics ;
-    rdfs:range xsd:string ;
-    rdfs:label "plotName" ;
-    rdfs:comment "The name of the plot" .
-
-# Properties for FireManagementArea
-:geometry rdf:type rdf:Property ;
-    rdfs:domain :FireManagementArea ;
-    rdfs:range xsd:string ;
-    rdfs:label "geometry" ;
-    rdfs:comment "Geospatial representation of the FireManagementArea in GeoJSON or WKT format" .
-
-:hasPlot rdf:type rdf:Property ;
-    rdfs:domain :FireManagementArea ;
-    rdfs:range :PlotMetrics ;
-    rdfs:label "hasPlot" ;
-    rdfs:comment "Indicates the plots that intersect the FireManagementArea" .
-
-:hasFireIgnitionSensor rdf:type rdf:Property ;
-    rdfs:domain :FireManagementArea ;
-    rdfs:range :FireIgnitionSensor ;
-    rdfs:label "hasFireIgnitionSensor" ;
-    rdfs:comment "Indicates the sensors that intersect the FireManagementArea" .
 
 # Properties for PlotMetrics: VegetationMetrics
 :GCvol rdf:type rdf:Property ;
@@ -410,9 +434,52 @@
     rdfs:label "LF_CBD" ;
     rdfs:comment "Canopy bulk density" .
 
+:MeanSD rdf:type rdf:Property ;
+    rdfs:domain :TreeShrubMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "MeanSD" ;
+    rdfs:comment "Mean Stem Density (stems/ha) - Average density of trees" .
+
+# Properties for PlotMetrics: LocationDataPlot
+:plotLatitude rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:float ;
+    rdfs:label "plotLatitude" ;
+    rdfs:comment "Latitude coordinate of the plot" .
+
+:plotLongitude rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:float ;
+    rdfs:label "plotLongitude" ;
+    rdfs:comment "Longitude coordinate of the plot" .
+	
+# Relationship Properties for Subclasses of :PlotMetrics
+:hasVegetationMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :VegetationMetrics ;
+    rdfs:label "hasVegetationMetrics" ;
+    rdfs:comment "Links a plot to its vegetation metrics" .
+
+:hasFireBehaviorMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :FireBehaviorMetrics ;
+    rdfs:label "hasFireBehaviorMetrics" ;
+    rdfs:comment "Links a plot to its fire behavior metrics" .
+
+:hasTreeShrubMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :TreeShrubMetrics ;
+    rdfs:label "hasTreeShrubMetrics" ;
+    rdfs:comment "Links a plot to its tree and shrub metrics" .
+
+:hasLocationDataPlot rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :LocationDataPlot ;
+    rdfs:label "hasLocationDataPlot" ;
+    rdfs:comment "Links a plot to its location data" .
+ 
 # Properties for FireManagementArea
 # These properties define the relationships and the geographical information
-
 :hasPlot rdf:type rdf:Property ;
     rdfs:domain :FireManagementArea ;
     rdfs:range :PlotMetrics ;
