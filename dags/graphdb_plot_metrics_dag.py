@@ -205,6 +205,24 @@ def process_and_load_data():
         print(f"Error processing and loading data: {str(e)}")
         raise
 
+def upload_with_retries(plot_id, data, max_retries=5):
+    import requests
+    import urllib3
+    import boto3
+    import io
+    from rdflib import Graph, Namespace, Literal, URIRef
+    import time
+
+    for attempt in range(max_retries):
+        try:
+            # Existing upload code
+            return True
+        except (requests.exceptions.SSLError, requests.exceptions.ConnectionError) as e:
+            if attempt == max_retries - 1:
+                print(f"Final retry failed for {plot_id}: {str(e)}")
+                return False
+            time.sleep(2 ** attempt)  # Exponential backoff
+
 with DAG(
     'graphdb_plot_metrics_import',
     start_date=datetime(2024, 1, 1),
