@@ -94,8 +94,7 @@
             "LF_ASP": { "type": "number" },
             "LF_FDist": { "type": "string" },
             "LF_EVC": { "type": "string" },
-            "LF_EVT": { "type": "string" },
-            "LF_DISTP": { "type": "number" }
+            "LF_EVT": { "type": "string" }
           },
           "required": ["LF_FBFM13", "LF_FBFM40"]
         },
