@@ -50,23 +50,14 @@ def query_knowledge_graph(query: str) -> str:
         # Initialize GraphDB connection
         query_endpoint = f"{graphdb_url}/repositories/{graphdb_repository}"
 
-        # Initialize the GraphDB graph with wildfire ontology schema query
+        # Path to the local ontology file
+        ontology_file_path = "../../knowledge-representation/wildfire_kg_ontology.owl"
+
+        # Initialize the GraphDB graph with local ontology file
         graph = OntotextGraphDBGraph(
             query_endpoint=query_endpoint,
-            # Custom query to fetch schema information relevant to wildfire data
-            query_ontology="""
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
-                
-                CONSTRUCT {
-                    ?s ?p ?o .
-                }
-                WHERE {
-                    ?s ?p ?o
-                }
-                LIMIT 345
-            """,
+            local_file=ontology_file_path,
+            local_file_format="turtle",  # Explicitly specify the format as Turtle
         )
 
         # Get prompt templates from the registry
