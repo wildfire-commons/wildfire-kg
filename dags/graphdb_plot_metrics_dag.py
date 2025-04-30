@@ -4,6 +4,7 @@ from airflow.operators.bash import BashOperator
 from airflow.models import Variable
 from datetime import datetime
 import os
+import time
 from dotenv import load_dotenv
 
 # Load .env file
@@ -15,6 +16,7 @@ def process_and_load_data():
     import requests
     import urllib3
     import boto3
+    from botocore.config import Config
     import io
     from rdflib import Graph, Namespace, Literal, URIRef
     
@@ -33,13 +35,21 @@ def process_and_load_data():
     print(f"AWS_S3_ENDPOINT_URL: {aws_s3_endpoint_url}")
     print(f"AWS_S3_BUCKET_NAME: {aws_s3_bucket_name}")
 
-    # Set up S3 client
+    # Set up S3 client with retry configuration
+    s3_config = Config(
+        retries=dict(
+            max_attempts=5,
+            mode='adaptive'
+        )
+    )
+    
     s3_client = boto3.client(
         "s3",
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         endpoint_url=aws_s3_endpoint_url,
-        verify=False
+        verify=False,
+        config=s3_config
     )
 
     # local GraphDB connection details
@@ -48,13 +58,25 @@ def process_and_load_data():
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
 
-    # connection test
+    # Set up requests session with retry configuration
+    session = requests.Session()
+    retry = urllib3.Retry(
+        total=5,
+        backoff_factor=0.5,
+        status_forcelist=[500, 502, 503, 504]
+    )
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    # connection test with timeout
     try:
-        test_response = requests.get(
+        test_response = session.get(
             SPARQL_ENDPOINT,
             params={'query': 'ASK { ?s ?p ?o }'},
             headers={'Accept': 'application/sparql-results+json'},
-            verify=False
+            verify=False,
+            timeout=30
         )
         print(f"GraphDB connection test status: {test_response.status_code}")
         if test_response.status_code != 200:
@@ -69,11 +91,20 @@ def process_and_load_data():
 
     print("Starting data import...")
     try:
-        # Get file from S3
-        s3_response = s3_client.get_object(
-            Bucket=aws_s3_bucket_name,
-            Key='cleaned_intelimon_metrics.csv'
-        )
+        # Get file from S3 with retry
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                s3_response = s3_client.get_object(
+                    Bucket=aws_s3_bucket_name,
+                    Key='cleaned_intelimon_metrics.csv'
+                )
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise
+                print(f"Retry {attempt + 1}/{max_retries} for S3 download: {str(e)}")
+                time.sleep(2 ** attempt)  # Exponential backoff
         
         # Read CSV directly from S3 response
         df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
@@ -200,118 +231,162 @@ def process_and_load_data():
         print(f"Found {len(valid_plots)} valid plots out of {len(df)} total plots")
         print(f"Invalid date format count: {invalid_date_count}")
         
-        for plot in valid_plots:
-            plot_id = plot['PLOT_NAME']
-            try:
-                print(f"\nProcessing plot {plot_id} ({successful_uploads + failed_uploads + 1}/{total_plots})")
-                
-                if plot_id in temporal_relations:
-                    temporal_info = []
-                    for next_plot in temporal_relations[plot_id]['next']:
-                        temporal_info.append(f"nextMetrics: {next_plot}")
-                    for last_plot in temporal_relations[plot_id]['last']:
-                        temporal_info.append(f"lastMetrics: {last_plot}")
-                    if temporal_info:
-                        print(f"Temporal relations: {', '.join(temporal_info)}")
-
-                update_query = f"""
-                PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-                
-                INSERT DATA {{ 
-                    GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal> {{
-                        # Main PlotMetrics instance
-                        wifire:plot_{plot_id} rdf:type wifire:PlotMetrics .
-                        
-                        # Temporal relationships
-                        {' '.join(f'wifire:plot_{plot_id} wifire:lastMetrics wifire:plot_{last_plot} .' for last_plot in temporal_relations[plot_id]["last"]) if plot_id in temporal_relations else ''}
-                        {' '.join(f'wifire:plot_{plot_id} wifire:nextMetrics wifire:plot_{next_plot} .' for next_plot in temporal_relations[plot_id]["next"]) if plot_id in temporal_relations else ''}
-                        
-                        # VegetationMetrics
-                        wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;
-                            wifire:basalArea "{plot['Basalarea']}"^^xsd:float ;
-                            wifire:LAI "{plot['LAI']}"^^xsd:float ;
-                            wifire:TBA "{plot['TBA']}"^^xsd:float ;
-                            wifire:OLAI "{plot['OLAI']}"^^xsd:float ;
-                            wifire:ULAI "{plot['ULAI']}"^^xsd:float ;
-                            wifire:GCvol "{plot['GCvol']}"^^xsd:float ;
-                            wifire:MSvol "{plot['MSvol']}"^^xsd:float ;
-                            wifire:OSvol "{plot['OSvol']}"^^xsd:float ;
-                            wifire:USvol "{plot['USvol']}"^^xsd:float .
-                        
-                        # Link PlotMetrics to VegetationMetrics
-                        wifire:plot_{plot_id} wifire:hasVegetationMetrics wifire:veg_{plot_id} .
-                        
-                        # FireBehaviorMetrics
-                        wifire:fire_{plot_id} rdf:type wifire:FireBehaviorMetrics ;
-                            wifire:LF_FBFM13 "{plot['LF_FBFM13']}"^^xsd:string ;
-                            wifire:LF_FBFM40 "{plot['LF_FBFM40']}"^^xsd:string ;
-                            wifire:LF_EVEL "{plot['LF_EVEL']}"^^xsd:float ;
-                            wifire:LF_SLPD "{plot['LF_SLPD']}"^^xsd:float ;
-                            wifire:LF_ASP "{plot['LF_ASP']}"^^xsd:float ;
-                            wifire:LF_FDist "{plot['LF_FDist']}"^^xsd:string ;
-                            wifire:LF_EVC "{plot['LF_EVC']}"^^xsd:string ;
-                            wifire:LF_EVT "{plot['LF_EVT']}"^^xsd:string .
-                        
-                        # Link PlotMetrics to FireBehaviorMetrics
-                        wifire:plot_{plot_id} wifire:hasFireBehaviorMetrics wifire:fire_{plot_id} .
-                        
-                        # TreeShrubMetrics
-                        wifire:tree_{plot_id} rdf:type wifire:TreeShrubMetrics ;
-                            wifire:plotName "{plot_id}"^^xsd:string ;
-                            wifire:MDBH "{plot['MDBH']}"^^xsd:float ;
-                            wifire:MLAI "{plot['MLAI']}"^^xsd:float ;
-                            wifire:SDHT "{plot['SDHT']}"^^xsd:float ;
-                            wifire:SDSHT "{plot['SDSHT']}"^^xsd:float ;
-                            wifire:SDSD "{plot['SDSD']}"^^xsd:float ;
-                            wifire:MaxSD "{plot['MaxSD']}"^^xsd:float ;
-                            wifire:MaxSH "{plot['MaxSH']}"^^xsd:float ;
-                            wifire:MaxTH "{plot['MaxTH']}"^^xsd:float ;
-                            wifire:MinSD "{plot['MinSD']}"^^xsd:float ;
-                            wifire:TreesN "{plot['TreesN']}"^^xsd:integer ;
-                            wifire:ShrubsN "{plot['ShrubsN']}"^^xsd:integer ;
-                            wifire:MeanSA "{plot['MeanSA']}"^^xsd:float ;
-                            wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
-                            wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float .
-                        
-                        # Link PlotMetrics to TreeShrubMetrics
-                        wifire:plot_{plot_id} wifire:hasTreeShrubMetrics wifire:tree_{plot_id} .
-                    }}
-                }}
-                """
-                
-                headers = {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': '*/*'
-                }
-                
-                response = requests.post(
-                    UPDATE_ENDPOINT,
-                    data={'update': update_query},
-                    headers=headers,
-                    verify=False
-                )
-                
-                if response.status_code in [200, 204]:
-                    successful_uploads += 1
-                    print(f"✓ Successfully uploaded plot {plot_id}")
-                else:
-                    print(f"✗ Failed to add plot {plot_id}. Status: {response.status_code}")
-                    print(f"Response: {response.text}")
-                    failed_uploads += 1
-                    
-            except Exception as plot_error:
-                print(f"✗ Error processing plot {plot_id}: {str(plot_error)}")
-                failed_uploads += 1
-                continue
+        # Batch processing configuration
+        BATCH_SIZE = 50  # Process 50 plots at a time
+        total_batches = (len(valid_plots) + BATCH_SIZE - 1) // BATCH_SIZE
+        
+        for batch_idx in range(total_batches):
+            start_idx = batch_idx * BATCH_SIZE
+            end_idx = min((batch_idx + 1) * BATCH_SIZE, len(valid_plots))
+            batch_plots = valid_plots[start_idx:end_idx]
             
+            print(f"\nProcessing batch {batch_idx + 1}/{total_batches} ({start_idx + 1}-{end_idx} of {len(valid_plots)})")
+            
+            batch_queries = []
+            for plot in batch_plots:
+                plot_id = plot['PLOT_NAME']
+                try:
+                    if plot_id in temporal_relations:
+                        temporal_info = []
+                        for next_plot in temporal_relations[plot_id]['next']:
+                            temporal_info.append(f"nextMetrics: {next_plot}")
+                        for last_plot in temporal_relations[plot_id]['last']:
+                            temporal_info.append(f"lastMetrics: {last_plot}")
+                        if temporal_info:
+                            print(f"Temporal relations: {', '.join(temporal_info)}")
+
+                    update_query = f"""
+                    PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+                    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+                    
+                    INSERT DATA {{ 
+                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal> {{
+                            # Main PlotMetrics instance
+                            wifire:plot_{plot_id} rdf:type wifire:PlotMetrics ;
+                                rdfs:label "Plot Metrics" ;
+                                rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" ;
+                                wifire:plotName "{plot_id}"^^xsd:string .
+                            
+                            # Temporal relationships
+                            {' '.join(f'wifire:plot_{plot_id} wifire:lastMetrics wifire:plot_{last_plot} .' for last_plot in temporal_relations[plot_id]["last"]) if plot_id in temporal_relations else ''}
+                            {' '.join(f'wifire:plot_{plot_id} wifire:nextMetrics wifire:plot_{next_plot} .' for next_plot in temporal_relations[plot_id]["next"]) if plot_id in temporal_relations else ''}
+                            
+                            # VegetationMetrics
+                            wifire:veg_{plot_id} rdf:type wifire:VegetationMetrics ;
+                                rdfs:label "Vegetation Metrics" ;
+                                rdfs:comment "Represents vegetation data collected from a plot" ;
+                                wifire:basalArea "{plot['Basalarea']}"^^xsd:float ;
+                                wifire:LAI "{plot['LAI']}"^^xsd:float ;
+                                wifire:TBA "{plot['TBA']}"^^xsd:float ;
+                                wifire:OLAI "{plot['OLAI']}"^^xsd:float ;
+                                wifire:ULAI "{plot['ULAI']}"^^xsd:float ;
+                                wifire:GCvol "{plot['GCvol']}"^^xsd:float ;
+                                wifire:MSvol "{plot['MSvol']}"^^xsd:float ;
+                                wifire:OSvol "{plot['OSvol']}"^^xsd:float ;
+                                wifire:USvol "{plot['USvol']}"^^xsd:float .
+                            
+                            # Link PlotMetrics to VegetationMetrics
+                            wifire:plot_{plot_id} wifire:hasVegetationMetrics wifire:veg_{plot_id} .
+                            
+                            # FireBehaviorMetrics
+                            wifire:fire_{plot_id} rdf:type wifire:FireBehaviorMetrics ;
+                                rdfs:label "Fire Behavior Metrics" ;
+                                rdfs:comment "Captures the behavior of fire including intensity, spread, and firefront data" ;
+                                wifire:LF_FBFM13 "{plot['LF_FBFM13']}"^^xsd:string ;
+                                wifire:LF_FBFM40 "{plot['LF_FBFM40']}"^^xsd:string ;
+                                wifire:LF_EVEL "{plot['LF_EVEL']}"^^xsd:float ;
+                                wifire:LF_SLPD "{plot['LF_SLPD']}"^^xsd:float ;
+                                wifire:LF_ASP "{plot['LF_ASP']}"^^xsd:float ;
+                                wifire:LF_FDist "{plot['LF_FDist']}"^^xsd:string ;
+                                wifire:LF_EVC "{plot['LF_EVC']}"^^xsd:string ;
+                                wifire:LF_EVT "{plot['LF_EVT']}"^^xsd:string .
+                            
+                            # Link PlotMetrics to FireBehaviorMetrics
+                            wifire:plot_{plot_id} wifire:hasFireBehaviorMetrics wifire:fire_{plot_id} .
+                            
+                            # TreeShrubMetrics
+                            wifire:tree_{plot_id} rdf:type wifire:TreeShrubMetrics ;
+                                rdfs:label "Tree Shrub Metrics" ;
+                                rdfs:comment "Captures metrics related to trees and shrubs in a plot" ;
+                                wifire:MDBH "{plot['MDBH']}"^^xsd:float ;
+                                wifire:MLAI "{plot['MLAI']}"^^xsd:float ;
+                                wifire:SDHT "{plot['SDHT']}"^^xsd:float ;
+                                wifire:SDSHT "{plot['SDSHT']}"^^xsd:float ;
+                                wifire:SDSD "{plot['SDSD']}"^^xsd:float ;
+                                wifire:MaxSD "{plot['MaxSD']}"^^xsd:float ;
+                                wifire:MaxSH "{plot['MaxSH']}"^^xsd:float ;
+                                wifire:MaxTH "{plot['MaxTH']}"^^xsd:float ;
+                                wifire:MinSD "{plot['MinSD']}"^^xsd:float ;
+                                wifire:TreesN "{plot['TreesN']}"^^xsd:integer ;
+                                wifire:ShrubsN "{plot['ShrubsN']}"^^xsd:integer ;
+                                wifire:MeanSA "{plot['MeanSA']}"^^xsd:float ;
+                                wifire:shrubArea "{plot['shrubArea']}"^^xsd:float ;
+                                wifire:scaledShrubArea "{plot['scaledShrubArea']}"^^xsd:float ;
+                                wifire:CBH "{plot['CBH']}"^^xsd:float ;
+                                wifire:MeanSH "{plot['MeanSH']}"^^xsd:float ;
+                                wifire:MeanTH "{plot['MeanTH']}"^^xsd:float ;
+                                wifire:LF_CBD "{plot['LF_CBD']}"^^xsd:float ;
+                                wifire:MeanSD "{plot['MeanSD']}"^^xsd:float .
+                            
+                            # Link PlotMetrics to TreeShrubMetrics
+                            wifire:plot_{plot_id} wifire:hasTreeShrubMetrics wifire:tree_{plot_id} .
+                        }}
+                    }}
+                    """
+                    batch_queries.append(update_query)
+                    
+                except Exception as plot_error:
+                    print(f"✗ Error processing plot {plot_id}: {str(plot_error)}")
+                    failed_uploads += 1
+                    continue
+            
+            # Execute batch update with retry
+            if batch_queries:
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        # Join queries with semicolons to properly terminate each query
+                        combined_query = ';\n'.join(batch_queries) + ';'
+                        response = session.post(
+                            UPDATE_ENDPOINT,
+                            data={'update': combined_query},
+                            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                            verify=False,
+                            timeout=60
+                        )
+                        
+                        if response.status_code in [200, 204]:
+                            successful_uploads += len(batch_queries)
+                            print(f"✓ Successfully uploaded batch {batch_idx + 1}")
+                            break
+                        else:
+                            if attempt == max_retries - 1:
+                                print(f"✗ Failed to upload batch {batch_idx + 1}. Status: {response.status_code}")
+                                print(f"Response: {response.text}")
+                                failed_uploads += len(batch_queries)
+                            else:
+                                print(f"Retry {attempt + 1}/{max_retries} for batch {batch_idx + 1}")
+                                time.sleep(2 ** attempt)  # Exponential backoff
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            print(f"✗ Error uploading batch {batch_idx + 1}: {str(e)}")
+                            failed_uploads += len(batch_queries)
+                        else:
+                            print(f"Retry {attempt + 1}/{max_retries} for batch {batch_idx + 1}: {str(e)}")
+                            time.sleep(2 ** attempt)  # Exponential backoff
+            
+            # Add a small delay between batches to prevent overwhelming the server
+            if batch_idx < total_batches - 1:
+                time.sleep(1)
+        
         print(f"\nUpload summary:")
         print(f"- Successfully uploaded: {successful_uploads}")
         print(f"- Failed uploads: {failed_uploads}")
         print(f"- Total plots processed: {successful_uploads + failed_uploads}")
         
-        # Verify the count in GraphDB
+        # Verify the count in GraphDB with retry
         verify_query = """
         PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -323,16 +398,27 @@ def process_and_load_data():
         }
         """
         
-        verify_response = requests.get(
-            SPARQL_ENDPOINT,
-            params={'query': verify_query},
-            headers={'Accept': 'application/sparql-results+json'},
-            verify=False
-        )
-        
-        if verify_response.status_code == 200:
-            plot_count = verify_response.json()['results']['bindings'][0]['plotCount']['value']
-            print(f"Final count in GraphDB: {plot_count} plots")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                verify_response = session.get(
+                    SPARQL_ENDPOINT,
+                    params={'query': verify_query},
+                    headers={'Accept': 'application/sparql-results+json'},
+                    verify=False,
+                    timeout=30
+                )
+                
+                if verify_response.status_code == 200:
+                    plot_count = verify_response.json()['results']['bindings'][0]['plotCount']['value']
+                    print(f"Final count in GraphDB: {plot_count} plots")
+                    break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    print(f"Error verifying final count: {str(e)}")
+                else:
+                    print(f"Retry {attempt + 1}/{max_retries} for verification: {str(e)}")
+                    time.sleep(2 ** attempt)  # Exponential backoff
             
     except Exception as e:
         print(f"Error processing and loading data: {str(e)}")

@@ -1,24 +1,142 @@
 PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 CONSTRUCT {
     ?plot rdf:type wifire:PlotMetrics .
+    ?plot rdfs:label ?plotLabel .
+    ?plot rdfs:comment ?plotComment .
+    ?plot wifire:plotName ?plotName .
     ?plot wifire:hasLocationData ?location .
     ?plot wifire:hasVegetationMetrics ?veg .
     ?plot wifire:hasFireBehaviorMetrics ?fire .
     ?plot wifire:hasTreeShrubMetrics ?tree .
+    ?plot wifire:lastMetrics ?lastPlot .
+    ?plot wifire:nextMetrics ?nextPlot .
     
     ?location rdf:type wifire:LocationData .
+    ?location rdfs:label ?locationLabel .
+    ?location rdfs:comment ?locationComment .
+    
     ?veg rdf:type wifire:VegetationMetrics .
+    ?veg rdfs:label ?vegLabel .
+    ?veg rdfs:comment ?vegComment .
+    ?veg wifire:basalArea ?basalArea .
+    ?veg wifire:LAI ?lai .
+    ?veg wifire:TBA ?tba .
+    ?veg wifire:OLAI ?olai .
+    ?veg wifire:ULAI ?ulai .
+    ?veg wifire:GCvol ?gcvol .
+    ?veg wifire:MSvol ?msvol .
+    ?veg wifire:OSvol ?osvol .
+    ?veg wifire:USvol ?usvol .
+    
     ?fire rdf:type wifire:FireBehaviorMetrics .
+    ?fire rdfs:label ?fireLabel .
+    ?fire rdfs:comment ?fireComment .
+    ?fire wifire:LF_FBFM13 ?fbfm13 .
+    ?fire wifire:LF_FBFM40 ?fbfm40 .
+    ?fire wifire:LF_EVEL ?evel .
+    ?fire wifire:LF_SLPD ?slpd .
+    ?fire wifire:LF_ASP ?asp .
+    ?fire wifire:LF_FDist ?fdist .
+    ?fire wifire:LF_EVC ?evc .
+    ?fire wifire:LF_EVT ?evt .
+    
     ?tree rdf:type wifire:TreeShrubMetrics .
+    ?tree rdfs:label ?treeLabel .
+    ?tree rdfs:comment ?treeComment .
+    ?tree wifire:MDBH ?mdbh .
+    ?tree wifire:MLAI ?mlai .
+    ?tree wifire:SDHT ?sdht .
+    ?tree wifire:SDSHT ?sdsht .
+    ?tree wifire:SDSD ?sdsd .
+    ?tree wifire:MaxSD ?maxsd .
+    ?tree wifire:MaxSH ?maxsh .
+    ?tree wifire:MaxTH ?maxth .
+    ?tree wifire:MinSD ?minsd .
+    ?tree wifire:TreesN ?treesn .
+    ?tree wifire:ShrubsN ?shrubsn .
+    ?tree wifire:MeanSA ?meansa .
+    ?tree wifire:shrubArea ?shrubarea .
+    ?tree wifire:scaledShrubArea ?scaledshrubarea .
+    ?tree wifire:CBH ?cbh .
+    ?tree wifire:MeanSH ?meansh .
+    ?tree wifire:MeanTH ?meanth .
+    ?tree wifire:LF_CBD ?cbd .
+    ?tree wifire:MeanSD ?meansd .
 }
 WHERE {
-    GRAPH <http://wifire.ucsd.edu/plot_metrics> {
+    GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal> {
         ?plot rdf:type wifire:PlotMetrics .
-        ?plot wifire:hasLocationData ?location .
-        ?plot wifire:hasVegetationMetrics ?veg .
-        ?plot wifire:hasFireBehaviorMetrics ?fire .
-        ?plot wifire:hasTreeShrubMetrics ?tree .
+        OPTIONAL { ?plot rdfs:label ?plotLabel }
+        OPTIONAL { ?plot rdfs:comment ?plotComment }
+        OPTIONAL { ?plot wifire:plotName ?plotName }
+        OPTIONAL { ?plot wifire:hasLocationData ?location }
+        OPTIONAL { ?plot wifire:hasVegetationMetrics ?veg }
+        OPTIONAL { ?plot wifire:hasFireBehaviorMetrics ?fire }
+        OPTIONAL { ?plot wifire:hasTreeShrubMetrics ?tree }
+        OPTIONAL { ?plot wifire:lastMetrics ?lastPlot }
+        OPTIONAL { ?plot wifire:nextMetrics ?nextPlot }
+        
+        OPTIONAL {
+            ?location rdf:type wifire:LocationData .
+            OPTIONAL { ?location rdfs:label ?locationLabel }
+            OPTIONAL { ?location rdfs:comment ?locationComment }
+        }
+        
+        OPTIONAL {
+            ?veg rdf:type wifire:VegetationMetrics .
+            OPTIONAL { ?veg rdfs:label ?vegLabel }
+            OPTIONAL { ?veg rdfs:comment ?vegComment }
+            OPTIONAL { ?veg wifire:basalArea ?basalArea }
+            OPTIONAL { ?veg wifire:LAI ?lai }
+            OPTIONAL { ?veg wifire:TBA ?tba }
+            OPTIONAL { ?veg wifire:OLAI ?olai }
+            OPTIONAL { ?veg wifire:ULAI ?ulai }
+            OPTIONAL { ?veg wifire:GCvol ?gcvol }
+            OPTIONAL { ?veg wifire:MSvol ?msvol }
+            OPTIONAL { ?veg wifire:OSvol ?osvol }
+            OPTIONAL { ?veg wifire:USvol ?usvol }
+        }
+        
+        OPTIONAL {
+            ?fire rdf:type wifire:FireBehaviorMetrics .
+            OPTIONAL { ?fire rdfs:label ?fireLabel }
+            OPTIONAL { ?fire rdfs:comment ?fireComment }
+            OPTIONAL { ?fire wifire:LF_FBFM13 ?fbfm13 }
+            OPTIONAL { ?fire wifire:LF_FBFM40 ?fbfm40 }
+            OPTIONAL { ?fire wifire:LF_EVEL ?evel }
+            OPTIONAL { ?fire wifire:LF_SLPD ?slpd }
+            OPTIONAL { ?fire wifire:LF_ASP ?asp }
+            OPTIONAL { ?fire wifire:LF_FDist ?fdist }
+            OPTIONAL { ?fire wifire:LF_EVC ?evc }
+            OPTIONAL { ?fire wifire:LF_EVT ?evt }
+        }
+        
+        OPTIONAL {
+            ?tree rdf:type wifire:TreeShrubMetrics .
+            OPTIONAL { ?tree rdfs:label ?treeLabel }
+            OPTIONAL { ?tree rdfs:comment ?treeComment }
+            OPTIONAL { ?tree wifire:MDBH ?mdbh }
+            OPTIONAL { ?tree wifire:MLAI ?mlai }
+            OPTIONAL { ?tree wifire:SDHT ?sdht }
+            OPTIONAL { ?tree wifire:SDSHT ?sdsht }
+            OPTIONAL { ?tree wifire:SDSD ?sdsd }
+            OPTIONAL { ?tree wifire:MaxSD ?maxsd }
+            OPTIONAL { ?tree wifire:MaxSH ?maxsh }
+            OPTIONAL { ?tree wifire:MaxTH ?maxth }
+            OPTIONAL { ?tree wifire:MinSD ?minsd }
+            OPTIONAL { ?tree wifire:TreesN ?treesn }
+            OPTIONAL { ?tree wifire:ShrubsN ?shrubsn }
+            OPTIONAL { ?tree wifire:MeanSA ?meansa }
+            OPTIONAL { ?tree wifire:shrubArea ?shrubarea }
+            OPTIONAL { ?tree wifire:scaledShrubArea ?scaledshrubarea }
+            OPTIONAL { ?tree wifire:CBH ?cbh }
+            OPTIONAL { ?tree wifire:MeanSH ?meansh }
+            OPTIONAL { ?tree wifire:MeanTH ?meanth }
+            OPTIONAL { ?tree wifire:LF_CBD ?cbd }
+            OPTIONAL { ?tree wifire:MeanSD ?meansd }
+        }
     }
 }
