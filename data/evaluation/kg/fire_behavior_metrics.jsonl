@@ -1,0 +1,5 @@
+{"user_query": "What is the slope in degrees for fire_CASBC_0011_20240913_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["LF_SLPD", "10"], "tags": ["kg_only", "slope", "fire_metrics"]}
+{"user_query": "What is the aspect value for fire_CASBC_0011_20240913_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["LF_ASP", "194"], "tags": ["kg_only", "aspect", "fire_metrics"]}
+{"user_query": "What is the recorded elevation for fire_CASBC_0011_20240913_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["LF_EVEL", "401"], "tags": ["kg_only", "elevation", "fire_metrics"]}
+{"user_query": "What is the disturbance status for fire_CASBC_0011_20240913_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["LF_FDist", "No Disturbance"], "tags": ["kg_only", "disturbance", "fire_metrics"]}
+{"user_query": "What is the EVT classification for fire_CASBC_0011_20240913_1?", "expected_tools": ["query_knowledge_graph"], "expected_response_contains": ["LF_EVT", "Northern and Central California Dry-Mesic Chaparral"], "tags": ["kg_only", "evt", "fire_metrics"]}
