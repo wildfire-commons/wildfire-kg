@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow" "langgraph")
+VALID_COMPONENTS=("graphdb" "airflow" "langgraph" "frontend")
 
 # Function to validate component name
 validate_component() {
@@ -62,6 +62,12 @@ NAMESPACE="wifire-kg"
 # if [ "$ENV" = "prod" ]; then
 #     NAMESPACE="wifire-kg-prod" # Prod namespace
 # fi
+
+# Load environment variables from .env file
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    echo "Loading environment variables from .env file..."
+    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
+fi
 
 # Function to add helm repo if it doesn't exist
 add_helm_repo() {
@@ -212,6 +218,68 @@ deploy_component() {
         --values "${PROJECT_ROOT}/iac/helm/values/${ENV}/${component}.${ENV}.values.yaml"
 }
 
+# Function to deploy frontend
+deploy_frontend() {
+    local env=$1
+    
+    # Check if GitLab credentials are set
+    if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
+        echo "Error: GitLab credentials not found. Please set GITLAB_USER and GITLAB_PASSWORD in .env file"
+        exit 1
+    fi
+    
+    echo "Building and deploying frontend for $env environment..."
+    
+    # Navigate to the frontend directory
+    cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
+    
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
+    
+    # Build the frontend Docker image with proper registry path and platform
+    echo "Building frontend Docker image..."
+    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:frontend .
+    
+    # Push the image to GitLab registry
+    echo "Pushing frontend Docker image..."
+    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:frontend
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing frontend deployment..."
+        kubectl delete deployment wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # Deploy frontend
+    echo "Deploying frontend..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployment to be ready
+    echo "Waiting for frontend deployment to be ready..."
+    kubectl wait --for=condition=available deployment/wildfire-kg-frontend --namespace $NAMESPACE --timeout=300s
+    
+    # Check frontend ingress status
+    echo "Checking frontend ingress status..."
+    kubectl get ingress wildfire-kg-frontend --namespace $NAMESPACE
+    
+    echo "Frontend deployment completed successfully!"
+    echo "You can access the frontend at: https://wildfire-${env}.nrp-nautilus.io"
+}
+
 case $COMPONENT in
     "airflow")
         deploy_component "airflow"
@@ -221,6 +289,9 @@ case $COMPONENT in
         ;;
     "langgraph")
         deploy_langgraph "$ENV"
+        ;;
+    "frontend")
+        deploy_frontend "$ENV"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"
