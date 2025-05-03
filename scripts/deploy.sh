@@ -237,20 +237,20 @@ deploy_frontend() {
     echo "Logging in to GitLab registry..."
     echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
     
-    # Build the frontend Docker image with proper registry path and platform
+    # Build the frontend Docker image with proper registry path
     echo "Building frontend Docker image..."
-    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:frontend .
+    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest .
     
     # Push the image to GitLab registry
     echo "Pushing frontend Docker image..."
-    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:frontend
+    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest
     
     # Clean up existing deployment if --clean flag is set
     if [ "$CLEAN" = true ]; then
         echo "Cleaning up existing frontend deployment..."
-        kubectl delete deployment wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
-        kubectl delete service wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
-        kubectl delete ingress wildfire-kg-frontend --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
         
         # Wait for resources to be cleaned up
         echo "Waiting for resources to be cleaned up..."
@@ -261,6 +261,11 @@ deploy_frontend() {
     TEMP_MANIFEST=$(mktemp)
     cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
     
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    fi
+    
     # Deploy frontend
     echo "Deploying frontend..."
     kubectl apply -f "$TEMP_MANIFEST"
@@ -270,14 +275,22 @@ deploy_frontend() {
     
     # Wait for deployment to be ready
     echo "Waiting for frontend deployment to be ready..."
-    kubectl wait --for=condition=available deployment/wildfire-kg-frontend --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/wildfire-kg-frontend-${env} --namespace $NAMESPACE --timeout=300s
     
     # Check frontend ingress status
     echo "Checking frontend ingress status..."
-    kubectl get ingress wildfire-kg-frontend --namespace $NAMESPACE
+    kubectl get ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://wildfire.nrp-nautilus.io"
+    else
+        url="https://wildfire-${env}.nrp-nautilus.io"
+    fi
     
     echo "Frontend deployment completed successfully!"
-    echo "You can access the frontend at: https://wildfire-${env}.nrp-nautilus.io"
+    echo "You can access the frontend at: ${url}"
 }
 
 case $COMPONENT in
