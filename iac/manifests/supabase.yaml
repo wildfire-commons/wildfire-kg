@@ -1,0 +1,247 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: supabase-secrets
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: postgres
+  GOTRUE_JWT_SECRET: your-256-bit-secret
+  ANON_KEY: YW5vbi1rZXk=  # base64 encoded 'anon-key'
+  SERVICE_KEY: c2VydmljZS1yb2xlLWtleQ==  # base64 encoded 'service-role-key'
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: supabase-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: supabase-storage-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-db
+  template:
+    metadata:
+      labels:
+        app: supabase-db
+    spec:
+      containers:
+      - name: postgres
+        image: supabase/postgres:15.1.0.144
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supabase-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        startupProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+            - -d
+            - postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+            - -d
+            - postgres
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - postgres
+            - -d
+            - postgres
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: supabase-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-db
+spec:
+  selector:
+    app: supabase-db
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supabase-auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: supabase-auth
+  template:
+    metadata:
+      labels:
+        app: supabase-auth
+    spec:
+      initContainers:
+      - name: wait-for-db
+        image: postgres:15
+        command: ['sh', '-c', 
+          'until pg_isready -h supabase-db -p 5432 -U postgres -d postgres; do echo waiting for database; sleep 2; done;']
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supabase-secrets
+              key: POSTGRES_PASSWORD
+      containers:
+      - name: auth
+        image: supabase/gotrue:v2.120.0
+        ports:
+        - containerPort: 9999
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: GOTRUE_SITE_URL
+          value: "https://wildfire-ENV_PLACEHOLDER.nrp-nautilus.io"
+        - name: GOTRUE_API_HOST
+          value: "0.0.0.0"
+        - name: GOTRUE_API_PORT
+          value: "9999"
+        - name: GOTRUE_DB_DRIVER
+          value: "postgres"
+        - name: GOTRUE_DB_DATABASE_URL
+          value: "postgres://postgres:$(POSTGRES_PASSWORD)@supabase-db:5432/postgres?sslmode=disable"
+        - name: GOTRUE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: supabase-secrets
+              key: GOTRUE_JWT_SECRET
+        - name: GOTRUE_JWT_EXP
+          value: "3600"
+        - name: GOTRUE_MAILER_AUTOCONFIRM
+          value: "true"
+        - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+          value: "true"
+        - name: API_EXTERNAL_URL
+          value: "https://supabase-ENV_PLACEHOLDER.nrp-nautilus.io/auth"
+        - name: GOTRUE_DB_MAX_CONNECTIONS
+          value: "10"
+        - name: GOTRUE_DB_POOL_SIZE
+          value: "10"
+        - name: GOTRUE_DB_CONNECTION_TIMEOUT
+          value: "10"
+        - name: GOTRUE_DB_STATEMENT_TIMEOUT
+          value: "30000"
+        - name: GOTRUE_DB_MIGRATIONS_PATH
+          value: "/app/migrations"
+        - name: GOTRUE_DB_MIGRATIONS_SCHEMA
+          value: "auth"
+        - name: GOTRUE_DB_MIGRATIONS_TABLE
+          value: "schema_migrations"
+        - name: GOTRUE_DB_MIGRATIONS_MAX_RETRIES
+          value: "3"
+        - name: GOTRUE_DB_MIGRATIONS_RETRY_INTERVAL
+          value: "5"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9999
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9999
+          initialDelaySeconds: 15
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supabase-auth
+spec:
+  selector:
+    app: supabase-auth
+  ports:
+  - port: 9999
+    targetPort: 9999
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: supabase-ingress
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+    haproxy.router.openshift.io/timeout: 60s
+spec:
+  rules:
+  - host: supabase-ENV_PLACEHOLDER.nrp-nautilus.io
+    http:
+      paths:
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: supabase-auth
+            port:
+              number: 9999
+  tls:
+  - hosts:
+    - supabase-ENV_PLACEHOLDER.nrp-nautilus.io 

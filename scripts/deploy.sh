@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow" "langgraph" "frontend")
+VALID_COMPONENTS=("graphdb" "airflow" "langgraph" "frontend" "supabase")
 
 # Function to validate component name
 validate_component() {
@@ -293,6 +293,72 @@ deploy_frontend() {
     echo "You can access the frontend at: ${url}"
 }
 
+# Function to deploy supabase
+deploy_supabase() {
+    local env=$1
+    
+    echo "Deploying Supabase for $env environment..."
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing Supabase deployment..."
+        kubectl delete deployment supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress supabase-ingress --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-db-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-storage-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete secret supabase-secrets --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/supabase.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i '' 's/supabase-prod.nrp-nautilus.io/supabase.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    fi
+    
+    # Deploy Supabase
+    echo "Deploying Supabase..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployments to be ready
+    echo "Waiting for Supabase deployments to be ready..."
+    kubectl wait --for=condition=available deployment/supabase-db --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-auth --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-storage --namespace $NAMESPACE --timeout=300s
+    
+    # Check ingress status
+    echo "Checking Supabase ingress status..."
+    kubectl get ingress supabase-ingress --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://supabase.nrp-nautilus.io"
+    else
+        url="https://supabase-${env}.nrp-nautilus.io"
+    fi
+    
+    echo "Supabase deployment completed successfully!"
+    echo "You can access Supabase at: ${url}"
+    echo "Auth endpoint: ${url}/auth"
+    echo "Storage endpoint: ${url}/storage"
+}
+
 case $COMPONENT in
     "airflow")
         deploy_component "airflow"
@@ -305,6 +371,9 @@ case $COMPONENT in
         ;;
     "frontend")
         deploy_frontend "$ENV"
+        ;;
+    "supabase")
+        deploy_supabase "$ENV"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"
