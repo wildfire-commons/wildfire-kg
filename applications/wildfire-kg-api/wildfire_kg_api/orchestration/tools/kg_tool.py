@@ -2,19 +2,15 @@
 Knowledge Graph tool for ReAct pattern using LangChain's tool decorator.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
 import os
-from datetime import datetime
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain_community.chains.graph_qa.ontotext_graphdb import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
-import tiktoken  # For token counting
 
-# Import the prompt registry
-from ..prompts import get_prompt
+from wildfire_kg_api.orchestration.prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +39,8 @@ def query_knowledge_graph(query: str) -> str:
             "GRAPHDB_URL", "https://graphdb-dev-wildfire-kg.nrp-nautilus.io/"
         )
         graphdb_repository = os.getenv("GRAPHDB_REPOSITORY", "wildfire-kg")
+
+        # TODO: Ensure graphdb prevents unauthenticated access
         graphdb_username = os.getenv("GRAPHDB_USERNAME")
         graphdb_password = os.getenv("GRAPHDB_PASSWORD")
         openai_api_key = os.getenv("OPENAI_API_KEY")

@@ -17,8 +17,12 @@ from langchain_core.tools import BaseTool
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.callbacks import StdOutCallbackHandler
 
-from .state import State
-from .tools import query_knowledge_graph, get_weather, web_search
+from wildfire_kg_api.orchestration.tools import (
+    query_knowledge_graph,
+    get_weather,
+    web_search,
+)
+from wildfire_kg_api.orchestration.prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -38,30 +42,6 @@ def get_all_tools() -> List[BaseTool]:
         get_weather,
         web_search,
     ]
-
-
-def get_system_prompt() -> str:
-    """Get the system prompt for the ReAct agent."""
-    return """
-    You are a helpful assistant specializing in wildfire information, prevention, and management.
-    Your goal is to provide accurate, helpful information about wildfires, their impacts, 
-    prevention strategies, and related environmental topics.
-    
-    You have access to several tools:
-    1. A knowledge graph with information about wildfires, their causes, and impacts
-    2. A weather tool that can check current weather conditions that might affect fire risk
-    3. A web search tool for finding recent or additional information on wildfires
-    
-    Guidelines for providing assistance:
-    - For factual information about wildfires, use the knowledge graph tool first
-    - For location-specific weather that might affect fire danger, use the weather tool
-    - For recent events or information not in the knowledge graph, use the web search tool
-    - Provide clear, concise information with appropriate context
-    - If you're uncertain, acknowledge the limitations of your knowledge
-    
-    Prioritize public safety in your responses and provide helpful information that could
-    assist in wildfire awareness, prevention, and safety.
-    """
 
 
 def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
@@ -89,7 +69,7 @@ def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
         )
 
     # Get runtime settings from config
-    model_name = config.get("configurable", {}).get("model_name", "gpt-4")
+    model_name = config.get("configurable", {}).get("model_name", "gpt-4o-mini")
     temperature = config.get("configurable", {}).get("temperature", 0.0)
 
     # Initialize the LLM with config
@@ -104,11 +84,11 @@ def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
     # Get all tools
     tools = get_all_tools()
 
-    # Get system prompt
-    system_message = get_system_prompt()
+    # Get the prompt template
+    agent_prompt = get_prompt("agents.agent_prompt").template
 
     # Create and return the ReAct agent
-    return create_react_agent(llm, tools, prompt=system_message)
+    return create_react_agent(llm, tools, prompt=agent_prompt)
 
 
 def process_message(
@@ -137,6 +117,10 @@ def process_message(
     # Initialize message history if none provided
     if message_history is None:
         message_history = []
+        # Add system message if not present
+        if not any(isinstance(msg, SystemMessage) for msg in message_history):
+            system_prompt = get_prompt("agents.agent_prompt")
+            message_history.insert(0, SystemMessage(content=system_prompt))
 
     # Add the current user message
     message_history.append(HumanMessage(content=user_message))

@@ -15,7 +15,7 @@ pip install --upgrade pip
 # Install dependencies based on environment
 case "$ENV" in
   prod|production)
-    echo "Installing production dependencies..."
+    echo "Installing production dependencies and building wildfire-kg-api package..."
     pip install .
     ;;
   dev|development)

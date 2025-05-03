@@ -17,8 +17,8 @@ class PromptRegistry:
     A singleton registry that loads and provides access to prompts from YAML files.
 
     Automatically creates namespaced prompt names like:
-    - agents.router_prompt (for prompts in agents/ directory)
-    - tools.kg_prompt (for prompts in tools/ directory)
+    - agents.agent_prompt (for prompts in agents/ directory)
+    - tools.kg.sparql_generation_prompt (for prompts in tools/ directory)
     """
 
     _instance = None
@@ -31,11 +31,11 @@ class PromptRegistry:
 
     def _initialize(self):
         """Initialize the registry by loading prompts from files."""
-        self._prompts = {}
+        self._prompts: Dict[str, PromptTemplate] = {}
         self._prompts_dir = Path(__file__).parent
         self.refresh()
 
-    def _create_prompt_from_yaml(self, file_path: str) -> Any:
+    def _create_prompt_from_yaml(self, file_path: str) -> PromptTemplate:
         """Create a prompt template from a YAML file."""
         try:
             # Load YAML
@@ -101,7 +101,7 @@ class PromptRegistry:
             f"Loaded {len(self._prompts)} prompts: {list(self._prompts.keys())}"
         )
 
-    def get(self, name: str) -> Optional[Any]:
+    def get(self, name: str) -> Optional[PromptTemplate]:
         """
         Get a prompt by name.
 
@@ -113,7 +113,7 @@ class PromptRegistry:
         """
         return self._prompts.get(name)
 
-    def list(self, category: Optional[str] = None) -> Dict[str, Any]:
+    def list(self, category: Optional[str] = None) -> Dict[str, PromptTemplate]:
         """
         List all available prompts, optionally filtered by category.
 
@@ -129,7 +129,7 @@ class PromptRegistry:
             }
         return dict(self._prompts)
 
-    def add(self, name: str, prompt: Any):
+    def add(self, name: str, prompt: PromptTemplate):
         """
         Add a prompt to the registry (in-memory only).
 

@@ -10,16 +10,14 @@ from pathlib import Path
 from typing import Dict, List, Any
 from wildfire_kg_api.orchestration.agent import create_wildfire_react_agent
 from wildfire_kg_api.orchestration.state import State
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
 from langsmith import Client
-from langsmith.evaluation import evaluate
 from langsmith.schemas import Example, Run, ExampleCreate
 import asyncio
 from dotenv import load_dotenv
 import uuid
 import nest_asyncio
 import os
+from datetime import datetime
 
 # Load environment variables
 load_dotenv(dotenv_path="../../applications/wildfire-kg-api/.env")
@@ -27,12 +25,45 @@ load_dotenv(dotenv_path="../../applications/wildfire-kg-api/.env")
 # Initialize LangSmith client
 client = Client()
 
+# Data paths
+DATA_PATH = "../../data/evaluation"
+
+# %% [markdown]
+# ## Dataset Configuration
+#
+# Define the datasets to be used for evaluation. Each dataset should have:
+# - A unique name
+# - A description
+# - A path to the data file
+# - Expected tools and tags
+
+# %%
+
+# Dataset configuration
+datasets = [
+    {
+        "name": "tree-shrub-metrics",
+        "description": "Knowledge graph tree shrub metrics evaluation dataset",
+        "data_path": f"{DATA_PATH}/kg/tree_shrub_metrics.jsonl",
+    },
+    {
+        "name": "fire-behavior-metrics",
+        "description": "Knowledge graph fire behavior metrics evaluation dataset",
+        "data_path": f"{DATA_PATH}/kg/fire_behavior_metrics.jsonl",
+    },
+    {
+        "name": "vegetation-metrics",
+        "description": "Knowledge graph vegetation metrics evaluation dataset",
+        "data_path": f"{DATA_PATH}/kg/vegetation_metrics.jsonl",
+    },
+]
+
 # %% [markdown]
 # ## Evaluation Setup
 #
 # We'll use the following components for evaluation:
 #
-# 1. **Data Loading**: Load test cases from a JSONL file containing questions and expected responses
+# 1. **Data Loading**: Load test cases from JSONL files containing questions and expected responses
 # 2. **LangSmith Integration**: Track runs and evaluate responses with LangSmith
 # 3. **Evaluators**: Custom evaluators to check response accuracy and tool usage
 # 4. **Agent Execution**: Run the wildfire knowledge graph agent on each test case
@@ -46,7 +77,9 @@ def load_evaluation_data(file_path: str) -> List[Dict[str, Any]]:
 
 
 # Convert evaluation data to LangSmith examples
-def create_langsmith_examples(eval_data: List[Dict[str, Any]]) -> List[ExampleCreate]:
+def create_langsmith_examples(
+    eval_data: List[Dict[str, Any]], dataset_config: Dict[str, Any]
+) -> List[ExampleCreate]:
     examples = []
     for item in eval_data:
         examples.append(
@@ -268,33 +301,9 @@ def evaluate_tool_usage(run: Run, example: Example) -> Dict[str, Any]:
 # %% [markdown]
 # ## Run Evaluation
 #
-# Now we'll load the test data, create a LangSmith dataset, and run the evaluation on our agent.
+# Now we'll load the test data, create LangSmith datasets, and run the evaluation on our agent.
 
 # %%
-# Load and prepare evaluation data
-eval_data = load_evaluation_data(
-    "../../data/evaluation/base_end_to_end_evaluation.jsonl"
-)
-examples = create_langsmith_examples(eval_data)
-
-# Create a dataset in LangSmith with a unique name to avoid conflicts
-dataset_name = f"wildfire-kg-evaluation-{str(uuid.uuid4())[:8]}"
-print(f"Creating dataset: {dataset_name}")
-
-# Create the dataset and add examples
-dataset = client.create_dataset(
-    dataset_name=dataset_name,
-    description="Evaluation dataset for wildfire knowledge graph",
-)
-print(f"Dataset created with ID: {dataset.id}")
-
-# Add examples to the dataset
-response = client.create_examples(
-    dataset_id=dataset.id,  # Use ID instead of name
-    examples=examples,
-)
-print(f"Added {len(examples)} examples to the dataset")
-
 # Create the agent graph
 agent_graph = create_wildfire_react_agent()
 
@@ -312,30 +321,111 @@ async def run_evaluation(question: Dict[str, str]) -> Dict[str, Any]:
     return result
 
 
-# Run the evaluation
-async def run_experiment():
-    print(f"Starting evaluation with dataset: {dataset_name}")
+# Run evaluation for all datasets
+async def run_experiments():
+    all_examples = []
+    dataset_info = {}
+
+    # Load and prepare evaluation data for all datasets
+    for dataset_config in datasets:
+        print(f"\nProcessing dataset: {dataset_config['name']}")
+
+        # Load evaluation data
+        eval_data = load_evaluation_data(dataset_config["data_path"])
+        examples = create_langsmith_examples(eval_data, dataset_config)
+
+        # Store dataset info for later reference
+        dataset_info[dataset_config["name"]] = {
+            "start_idx": len(all_examples),
+            "end_idx": len(all_examples) + len(examples),
+            "config": dataset_config,
+        }
+
+        # Add examples to combined list
+        all_examples.extend(examples)
+
+    # Create a single dataset in LangSmith for all examples with version
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dataset_name = f"wildfire-kg-combined-v{timestamp}"
+
+    print("\nCreating combined dataset")
+    dataset = client.create_dataset(
+        dataset_name=dataset_name,
+        description="Combined evaluation dataset for wildfire knowledge graph",
+    )
+    print(f"Dataset created with ID: {dataset.id}")
+
+    # Add all examples to the dataset
+    response = client.create_examples(
+        dataset_id=dataset.id,
+        examples=all_examples,
+    )
+    print(f"Added {len(all_examples)} total examples to the dataset")
+
+    # Run the evaluation
+    print("\nStarting evaluation for all datasets")
     experiment_results = await client.aevaluate(
         run_evaluation,
         data=dataset_name,
         evaluators=[evaluate_response_contains, evaluate_tool_usage],
-        experiment_prefix="wildfire-kg-evaluation",
+        experiment_prefix=f"wildfire-kg-evaluation-v{timestamp}",
         num_repetitions=1,
         max_concurrency=4,
     )
-    return experiment_results
+
+    # Process results by dataset
+    results_by_dataset = {}
+    results_df = experiment_results.to_pandas()
+
+    for dataset_name, info in dataset_info.items():
+        # Get results for this dataset using indices
+        dataset_results = results_df.iloc[info["start_idx"] : info["end_idx"]]
+
+        # Calculate metrics
+        response_scores = []
+        if "feedback.response_contains" in dataset_results.columns:
+            response_scores = (
+                dataset_results["feedback.response_contains"].dropna().tolist()
+            )
+
+        tool_scores = []
+        if "feedback.tool_usage" in dataset_results.columns:
+            tool_scores = dataset_results["feedback.tool_usage"].dropna().tolist()
+
+        overall_metrics = {}
+        if response_scores:
+            overall_metrics["Response Accuracy"] = sum(response_scores) / len(
+                response_scores
+            )
+        if tool_scores:
+            overall_metrics["Tool Usage Accuracy"] = sum(tool_scores) / len(tool_scores)
+
+        results_by_dataset[dataset_name] = {
+            "results": dataset_results,
+            "metrics": overall_metrics,
+        }
+
+    return results_by_dataset
 
 
 # For Jupyter notebook execution
 try:
     nest_asyncio.apply()
-    print("Running evaluation...")
-    results_df = (
-        asyncio.get_event_loop().run_until_complete(run_experiment()).to_pandas()
-    )
-    print("Evaluation complete!")
+    print("Running evaluations...")
+    results = asyncio.get_event_loop().run_until_complete(run_experiments())
+    print("All evaluations complete!")
+
+    # Display results for each dataset
+    for dataset_name, dataset_results in results.items():
+        print(f"\nResults for {dataset_name}:")
+        display(dataset_results["results"])
+
+        print("\nOverall Evaluation Metrics:")
+        for metric, value in dataset_results["metrics"].items():
+            print(f"{metric}: {value:.2%}")
+
 except Exception as e:
-    print(f"Error running evaluation: {e}")
+    print(f"Error running evaluations: {e}")
     import traceback
 
     traceback.print_exc()
@@ -343,39 +433,39 @@ except Exception as e:
 # %% [markdown]
 # ## Results and Metrics
 #
-# Display the evaluation results and calculate overall performance metrics.
+# Display the evaluation results and calculate overall performance metrics for each dataset.
 
 # %%
-# Display the complete results DataFrame
-print("\nEvaluation Results:")
-display(results_df)
+# Display results for each dataset
+for dataset_name, dataset_results in results.items():
+    print(f"\nResults for {dataset_name}:")
+    results_df = dataset_results["results"]
+    display(results_df)
 
-# %%
-# Calculate and display overall metrics
-try:
-    # Use the actual column names from the DataFrame
-    response_scores = []
-    if "feedback.response_contains" in results_df.columns:
-        response_scores = results_df["feedback.response_contains"].dropna().tolist()
+    # Calculate and display overall metrics
+    try:
+        response_scores = []
+        if "feedback.response_contains" in results_df.columns:
+            response_scores = results_df["feedback.response_contains"].dropna().tolist()
 
-    tool_scores = []
-    if "feedback.tool_usage" in results_df.columns:
-        tool_scores = results_df["feedback.tool_usage"].dropna().tolist()
+        tool_scores = []
+        if "feedback.tool_usage" in results_df.columns:
+            tool_scores = results_df["feedback.tool_usage"].dropna().tolist()
 
-    overall_metrics = {}
-    if response_scores:
-        overall_metrics["Response Accuracy"] = sum(response_scores) / len(
-            response_scores
-        )
-    if tool_scores:
-        overall_metrics["Tool Usage Accuracy"] = sum(tool_scores) / len(tool_scores)
+        overall_metrics = {}
+        if response_scores:
+            overall_metrics["Response Accuracy"] = sum(response_scores) / len(
+                response_scores
+            )
+        if tool_scores:
+            overall_metrics["Tool Usage Accuracy"] = sum(tool_scores) / len(tool_scores)
 
-    if overall_metrics:
-        print("\nOverall Evaluation Metrics:")
-        for metric, value in overall_metrics.items():
-            print(f"{metric}: {value:.2%}")
-    else:
-        print("\nNo evaluation scores found in results")
-except Exception as e:
-    print(f"Error calculating metrics: {e}")
-    print("\nAvailable columns:", results_df.columns.tolist())
+        if overall_metrics:
+            print("\nOverall Evaluation Metrics:")
+            for metric, value in overall_metrics.items():
+                print(f"{metric}: {value:.2%}")
+        else:
+            print("\nNo evaluation scores found in results")
+    except Exception as e:
+        print(f"Error calculating metrics: {e}")
+        print("\nAvailable columns:", results_df.columns.tolist())

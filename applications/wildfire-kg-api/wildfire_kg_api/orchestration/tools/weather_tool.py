@@ -2,12 +2,11 @@
 Weather tool using LangChain's tool decorator.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import logging
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 import os
-from datetime import datetime
 import requests
 import json
 

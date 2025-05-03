@@ -46,11 +46,11 @@ wkg-api run
 wkg-api run --dev
 ```
 
-### LangGraph Studio
+### LangGraph
 
-With the LangGraph integration, you can use LangGraph Studio for development:
+The LangGraph server can be launched locally with the following command:
 > [!NOTE]
-> You must have the dev dependencies installed to use LangGraph Studio.
+> You must have the dev dependencies installed to launch a local LangGraph server.
 
 ```bash
 # Start LangGraph Studio
@@ -59,44 +59,19 @@ langgraph dev
 
 This will:
 1. Start a local development server
-2. Open LangGraph Studio in your browser
+2. Open LangSmith Studio in your browser
 3. Allow you to visualize and debug your conversation graph
 4. Provide access to your API endpoints
 
 You can trace graph executions, inspect state at each node, and test your graph interactively.
 
-## Streamlit App
+### Evaluation
 
-The API includes a Streamlit app for test configuration management and development.
+The LangGraph agent is currently evaluated using the LangSmith SDK and a variety of datasets defined in [evaluation/](data/evaluation/). 
 
-```bash
-# Make sure you have the dev dependencies installed
-pip install -e '.[dev]'
-
-# Start the Streamlit app
-wkg-api ui
-```
-
-This will launch the Test Configuration Manager UI, which allows you to:
-- View, edit, and delete saved test configurations
-- Create new test configurations
-- Send configurations directly to the LangGraph Studio
-- Check the status of your LangGraph server
-
-The testing tools are organized in a dedicated directory structure:
-```
-tests/
-├── streamlit/           # Streamlit app directory
-│   └── app.py           # Main Streamlit application
-├── utils/               # Shared utility modules
-│   └── test_config_manager.py  # Configuration management utilities
-├── performance/         # Performance testing utilities
-│   └── run_performance_tests.py  # Script for running performance tests
-├── test_configs/        # Directory for saved test configurations
-└── README.md            # This file
-```
-
-More information can be found in the [tests/README.md](tests/README.md) file.
+The notebook [notebooks/langgraph/evaluate.ipynb](evaluation/evaluate.ipynb) provides an example of how to run an experiment that evaluates the agent's performance on the datasets. For detailed results the experiment can be viewed in the LangSmith UI. 
+> [!NOTE]
+> You must have wildfire-kg-api package installed to run the evaluation notebook.
 
 ### API Endpoints
 
@@ -115,13 +90,13 @@ The API provides several endpoints:
 
 ## Deployment
 
-TODO: Verify deployment instructions
+At the moment, the LangGraph server is deployed using the LangGraph platform but may be deployed with a custom container image in the future.
 
 ## Project Structure
 
 ```
 wildfire-kg-api/
-├── wildfire_kg_api/                        # Main source code
+├── wildfire_kg_api/            # Main source code
 │   ├── __init__.py             # Package initialization
 │   ├── app.py                  # FastAPI application
 │   ├── main.py                 # CLI and entry points
@@ -130,14 +105,10 @@ wildfire-kg-api/
 │   │   ├── health.py           # Health check endpoints
 │   │   └── s3.py               # S3 storage endpoints
 │   └── orchestration/          # LangGraph orchestration
-│       ├── agents/             # Agents for routing queries and generating responses
-│       ├── graph/              # LangGraph workflow definitions and orchestration logic
-│       ├── state/              # Conversation state management and data models
-│       └── tools/              # Knowledge graph and RAG tools for retrieving information
-├── tests/                      # Test suite
-│   ├── streamlit/              # Streamlit app for test configuration management
-│   ├── utils/                  # Shared utility modules
-│   └── performance/            # Performance testing utilities
+│       ├── prompts/            # Prompt templates
+│       ├── tools/              # Tools for retrieving information
+│       ├── agent.py            # ReAct tool calling agent definition
+│       └── state.py            # Conversation state management and data models
 ├── .env.example                # Example environment variables
 ├── .env                        # Environment variables (not in git)
 ├── pyproject.toml              # Project configuration and dependencies

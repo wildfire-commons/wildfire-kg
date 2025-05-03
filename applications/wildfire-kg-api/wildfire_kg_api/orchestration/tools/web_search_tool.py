@@ -2,20 +2,14 @@
 Web Search tool using LangChain's tool decorator.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import logging
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
 import os
-from datetime import datetime
 from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-
-# Import Tavily for web search (you can replace this with any search API)
 from tavily import TavilyClient
 
-# Import the prompt registry
-from ..prompts import get_prompt
+from wildfire_kg_api.orchestration.prompts import get_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
