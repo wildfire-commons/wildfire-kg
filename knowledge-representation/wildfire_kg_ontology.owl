@@ -227,6 +227,14 @@
     rdfs:label "plotName" ;
     rdfs:comment "The name of the plot" .
 
+:time rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "time" ;
+    rdfs:comment "Timestamp for the plot data" .
+
+# Properties for PlotMetrics: VegetationMetrics
+
 :basalArea rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -245,7 +253,6 @@
     rdfs:label "TBA" ;
     rdfs:comment "Total Basal Area" .
 
-# Properties for PlotMetrics: VegetationMetrics
 :GCvol rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -269,6 +276,18 @@
     rdfs:range xsd:float ;
     rdfs:label "USvol" ;
     rdfs:comment "Understory solid volume of vegetation" .
+
+:OLAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "OLAI" ;
+    rdfs:comment "Overstory Leaf Area Index of upper canopy" .
+
+:ULAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "ULAI" ;
+    rdfs:comment "Understory Leaf Area Index of lower canopy" .
 
 # Properties for PlotMetrics: FireBehaviorMetrics
 :LF_FBFM13 rdf:type rdf:Property ;
@@ -319,12 +338,18 @@
     rdfs:label "LF_EVT" ;
     rdfs:comment "Expected vegetation type at the site" .
 
+:LF_DISTP rdf:type rdf:Property ;
+    rdfs:domain :FireBehaviorMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "LF_DISTP" ;
+    rdfs:comment "Distance to the nearest plot" .
+
 # Properties for PlotMetrics: TreeShrubMetrics
 :MDBH rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "MDBH" ;
-    rdfs:comment "Mean diameter at breast height for trees" .
+    rdfs:comment "Mean diameter at breast height for trees in the plot" .
 
 :MLAI rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
@@ -336,19 +361,19 @@
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDHT" ;
-    rdfs:comment "Shrub height in the plot" .
+    rdfs:comment "Standard deviation of tree heights in the plot" .
 
 :SDSHT rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDSHT" ;
-    rdfs:comment "Standard deviation of shrub height" .
+    rdfs:comment "Standard deviation of shrub heights in the plot" .
 
 :SDSD rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDSD" ;
-    rdfs:comment "Standard deviation of shrub diameter" .
+    rdfs:comment "Standard deviation of shrub diameters in the plot" .
 
 :MaxSD rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
@@ -435,17 +460,35 @@
     rdfs:comment "Mean Stem Density (stems/ha) - Average density of trees" .
 
 # Properties for PlotMetrics: LocationDataPlot
-:plotLatitude rdf:type rdf:Property ;
+:latitudePlot rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:float ;
-    rdfs:label "plotLatitude" ;
+    rdfs:label "latitudePlot" ;
     rdfs:comment "Latitude coordinate of the plot" .
 
-:plotLongitude rdf:type rdf:Property ;
+:longitudePlot rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:float ;
-    rdfs:label "plotLongitude" ;
+    rdfs:label "longitudePlot" ;
     rdfs:comment "Longitude coordinate of the plot" .
+
+:city rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "city" ;
+    rdfs:comment "City where the plot is located" .
+
+:state rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "state" ;
+    rdfs:comment "State where the plot is located" .
+
+:country rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "country" ;
+    rdfs:comment "Country where the plot is located" .
 	
 # Relationship Properties for Subclasses of :PlotMetrics
 :hasVegetationMetrics rdf:type rdf:Property ;
