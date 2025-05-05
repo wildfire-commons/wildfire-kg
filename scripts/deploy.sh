@@ -150,10 +150,24 @@ EOF
     echo "Applying LangGraph manifest..."
     kubectl apply -f "${temp_manifest}"
 
+    # Wait for deployment to be ready
+    echo "Waiting for LangGraph deployment to be ready..."
+    kubectl rollout status deployment/langgraph -n ${namespace} --timeout=300s
+
+    if [ $? -ne 0 ]; then
+        echo "Error: LangGraph deployment failed to become ready"
+        echo "Checking pod status..."
+        kubectl get pods -n ${namespace} -l app=langgraph
+        echo "Checking pod logs..."
+        kubectl logs -n ${namespace} -l app=langgraph --tail=50
+        cd "${PROJECT_ROOT}"
+        exit 1
+    fi
+
     # Clean up temporary file
     rm "${temp_manifest}"
 
-    echo "LangGraph deployment completed!"
+    echo "LangGraph deployment completed and ready!"
 }
 
 # Function to deploy a component

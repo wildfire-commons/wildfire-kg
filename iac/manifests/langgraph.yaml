@@ -245,6 +245,16 @@ spec:
               key: POSTGRES_PASSWORD
         - name: LANGGRAPH_CONFIG_PATH
           value: "/app/config/langgraph.json"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Waiting for dependencies..."
+            until nc -z langgraph-postgres 5432 && nc -z langgraph-redis 6379; do
+              echo "Waiting for dependencies..."
+              sleep 2
+            done
+            echo "Starting LangGraph server..."
+            cd /app && uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 4
         volumeMounts:
         - name: langgraph-data
           mountPath: /data
