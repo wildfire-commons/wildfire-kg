@@ -69,8 +69,8 @@ export default function AboutPage() {
               <li>
                 <strong>Wesley Schiller</strong>
                 <ul className="list-none pl-4 mt-1">
-                  <li>TODO: Fill in</li>
-                  <li>Ontology & Data Modeling: TODO: Fill in</li>
+                  <li>Software Engineer at BAE Systems</li>
+                  <li>Ontology & Data Modeling</li>
                 </ul>
               </li>
             </ul>
