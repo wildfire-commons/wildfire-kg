@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     fi
 
 CMD if [ "$PYTHON_ENV" = "production" ]; then \
-        uvicorn src.app:app --host 0.0.0.0 --port 8000; \
+        uvicorn wildfire_kg_api.app:app --host 0.0.0.0 --port 8000; \
     else \
-        uvicorn src.app:app --host 0.0.0.0 --port 8000 --reload --reload-dir src; \
+        uvicorn wildfire_kg_api.app:app --host 0.0.0.0 --port 8000 --reload --reload-dir wildfire_kg_api; \
     fi 

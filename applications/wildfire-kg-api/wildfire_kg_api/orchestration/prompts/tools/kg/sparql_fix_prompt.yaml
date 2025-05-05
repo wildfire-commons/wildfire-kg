@@ -1,0 +1,28 @@
+template:
+  type: text
+  template: |
+    This following SPARQL query delimited by triple backticks:
+    ```
+    {generated_sparql}
+    ```
+    
+    is not valid. The error delimited by triple backticks is:
+    ```
+    {error_message}
+    ```
+    
+    Give me a correct version of the SPARQL query.
+    Focus on working with these wildfire relationships:
+    - wifire:hasTreeShrubMetrics
+    - wifire:hasVegetationMetrics
+    - wifire:hasFireBehaviorMetrics
+    
+    Do not change the logic of the query.
+    Do not include any explanations or apologies in your response.
+    Do not wrap the query in backticks.
+    Do not include any text except the SPARQL query generated.
+    
+    The ontology schema delimited by triple backticks in Turtle format is:
+    ```
+    {schema}
+    ``` 
