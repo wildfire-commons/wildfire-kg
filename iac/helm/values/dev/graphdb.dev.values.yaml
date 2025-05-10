@@ -66,7 +66,7 @@ persistence:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 5Gi
+          storage: 100Gi
 
 ##########################
 # Resource Configuration #
@@ -77,11 +77,11 @@ persistence:
 # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/assign-pods-nodes/
 resources:
   limits:
-    memory: 4Gi
-    cpu: 1
+    memory: 12Gi   
+    cpu: 4        
   requests:
-    memory: 2Gi
-    cpu: 500m
+    memory: 12Gi   
+    cpu: 2000m     
 
 ########################################
 # Pod Disruption Budget Configurations #

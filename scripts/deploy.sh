@@ -212,12 +212,190 @@ deploy_component() {
         --values "${PROJECT_ROOT}/iac/helm/values/${ENV}/${component}.${ENV}.values.yaml"
 }
 
+<<<<<<< Updated upstream
+=======
+# Function to deploy frontend
+deploy_frontend() {
+    local env=$1
+    
+    # Check if GitLab credentials are set
+    if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
+        echo "Error: GitLab credentials not found. Please set GITLAB_USER and GITLAB_PASSWORD in .env file"
+        exit 1
+    fi
+    
+    echo "Building and deploying frontend for $env environment..."
+    
+    # Navigate to the frontend directory
+    cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
+    
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
+    
+    # Build the frontend Docker image with proper registry path
+    echo "Building frontend Docker image..."
+    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest .
+    
+    # Push the image to GitLab registry
+    echo "Pushing frontend Docker image..."
+    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing frontend deployment..."
+        kubectl delete deployment wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    fi
+    
+    # Deploy frontend
+    echo "Deploying frontend..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployment to be ready
+    echo "Waiting for frontend deployment to be ready..."
+    kubectl wait --for=condition=available deployment/wildfire-kg-frontend-${env} --namespace $NAMESPACE --timeout=300s
+    
+    # Check frontend ingress status
+    echo "Checking frontend ingress status..."
+    kubectl get ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://wildfire.nrp-nautilus.io"
+    else
+        url="https://wildfire-${env}.nrp-nautilus.io"
+    fi
+    
+    echo "Frontend deployment completed successfully!"
+    echo "You can access the frontend at: ${url}"
+}
+
+# Function to deploy supabase
+deploy_supabase() {
+    local env=$1
+    
+    echo "Deploying Supabase for $env environment..."
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing Supabase deployment..."
+        kubectl delete deployment supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress supabase-ingress --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-db-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-storage-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete secret supabase-secrets --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/supabase.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i '' 's/supabase-prod.nrp-nautilus.io/supabase.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    fi
+    
+    # Deploy Supabase
+    echo "Deploying Supabase..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployments to be ready
+    echo "Waiting for Supabase deployments to be ready..."
+    kubectl wait --for=condition=available deployment/supabase-db --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-auth --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-storage --namespace $NAMESPACE --timeout=300s
+    
+    # Check ingress status
+    echo "Checking Supabase ingress status..."
+    kubectl get ingress supabase-ingress --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://supabase.nrp-nautilus.io"
+    else
+        url="https://supabase-${env}.nrp-nautilus.io"
+    fi
+    
+    echo "Supabase deployment completed successfully!"
+    echo "You can access Supabase at: ${url}"
+    echo "Auth endpoint: ${url}/auth"
+    echo "Storage endpoint: ${url}/storage"
+}
+
+deploy_graphdb() {
+    local env=$1
+    local clean=$2
+    local namespace="wifire-kg"
+    local release_name="graphdb-${env}"
+
+    echo "Deploying graphdb-${env} to ${namespace} namespace..."
+
+    # Add Ontotext Helm repository
+    add_helm_repo "ontotext" "https://maven.ontotext.com/repository/helm-public/"
+
+    # If clean is true, delete everything including PVCs
+    if [ "$clean" = true ]; then
+        echo "Cleaning up existing GraphDB deployment..."
+        kubectl delete statefulset ${release_name} -n ${namespace} --cascade=true
+        kubectl delete pvc -l app.kubernetes.io/instance=${release_name} -n ${namespace}
+        sleep 5
+    fi
+
+    # Deploy using Helm
+    helm upgrade --install ${release_name} \
+        ontotext/graphdb \
+        --namespace ${namespace} \
+        --values ./iac/helm/values/${env}/graphdb.${env}.values.yaml \
+        --wait
+
+    if [ $? -ne 0 ]; then
+        echo "Error: GraphDB deployment failed"
+        exit 1
+    fi
+
+    echo "GraphDB deployment completed!"
+}
+
+>>>>>>> Stashed changes
 case $COMPONENT in
     "airflow")
         deploy_component "airflow"
         ;;
     "graphdb")
-        deploy_component "graphdb"
+        deploy_graphdb "$ENV" "$CLEAN"
         ;;
     "langgraph")
         deploy_langgraph "$ENV"
