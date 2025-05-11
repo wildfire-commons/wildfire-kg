@@ -1,0 +1,161 @@
+stages:
+  - deploy
+
+# Define which files/directories should trigger deployments for each component
+variables:
+  GRAPHDB_TRIGGER_PATHS: |
+    iac/helm/values/**/graphdb.*.values.yaml
+    iac/manifests/graphdb/
+  AIRFLOW_TRIGGER_PATHS: |
+    iac/manifests/airflow/
+    applications/airflow/
+  LANGGRAPH_TRIGGER_PATHS: |
+    applications/wildfire-kg-api/
+    iac/manifests/langgraph.yaml
+  FRONTEND_TRIGGER_PATHS: |
+    applications/wildfire-kg-frontend/
+    iac/manifests/frontend.yaml
+  SUPABASE_TRIGGER_PATHS: |
+    iac/manifests/supabase.yaml
+
+# Development deployments
+deploy_dev_graphdb:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh dev graphdb
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $GRAPHDB_TRIGGER_PATHS
+  environment:
+    name: development
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_airflow:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh dev airflow
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $AIRFLOW_TRIGGER_PATHS
+  environment:
+    name: development
+    url: https://wifire-kg-airflow.nrp-nautilus.io
+
+deploy_dev_langgraph:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh dev langgraph
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  environment:
+    name: development
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_frontend:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh dev frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  environment:
+    name: development
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_supabase:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh dev supabase
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $SUPABASE_TRIGGER_PATHS
+  environment:
+    name: development
+    url: https://supabase-dev.nrp-nautilus.io
+
+# Production deployments
+deploy_prod_graphdb:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh prod graphdb
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $GRAPHDB_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_airflow:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh prod airflow
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $AIRFLOW_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wifire-kg-airflow.nrp-nautilus.io
+
+deploy_prod_langgraph:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh prod langgraph
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_frontend:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh prod frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_supabase:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - ./scripts/deploy.sh prod supabase
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $SUPABASE_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://supabase.nrp-nautilus.io 
