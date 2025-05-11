@@ -26,6 +26,25 @@ show_help() {
     echo "  ./run.sh airflow -d       # Stop Airflow containers"
 }
 
+# Function to load environment variables from .env files
+load_env_files() {
+    local env_type=$1
+    local base_env_file=".env"
+    local env_specific_file=".env.${env_type}"
+
+    # Load base .env file if it exists
+    if [ -f "$base_env_file" ]; then
+        echo "Loading base environment variables from $base_env_file"
+        export $(cat "$base_env_file" | grep -v '^#' | xargs)
+    fi
+
+    # Load environment-specific .env file if it exists
+    if [ -f "$env_specific_file" ]; then
+        echo "Loading ${env_type} environment variables from $env_specific_file"
+        export $(cat "$env_specific_file" | grep -v '^#' | xargs)
+    fi
+}
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -68,6 +87,9 @@ else
     export DEV_MOUNT=""
     export WATCHPACK_POLLING=true
 fi
+
+# Load environment variables
+load_env_files "$ENV"
 
 # Function to handle docker compose commands
 run_compose() {
