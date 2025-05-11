@@ -84,71 +84,76 @@ add_helm_repo() {
 # Function to deploy LangGraph
 deploy_langgraph() {
     local env=$1
-    
-    echo "Building and deploying LangGraph for $env environment..."
-    
-    # Navigate to the LangGraph API directory
-    cd "${PROJECT_ROOT}/applications/wildfire-kg-api"
-    
-    # Create a virtual environment if it doesn't exist
-    if [[ ! -d "venv" ]]; then
-        echo "Creating virtual environment..."
-        python -m venv venv
+    local clean=$2
+    local namespace="wifire-kg"
+    local registry="gitlab-registry.nrp-nautilus.io"
+    local image_name="wildfire-kg/wildfire-kg"
+    local image_tag="langgraph-${env}"
+    local full_image_name="${registry}/${image_name}:${image_tag}"
+    local api_dir="${PROJECT_ROOT}/applications/wildfire-kg-api"
+
+    echo "Deploying LangGraph to ${env} environment..."
+
+    # Check if the API directory exists
+    if [ ! -d "$api_dir" ]; then
+        echo "Error: LangGraph API directory not found at $api_dir"
+        exit 1
     fi
-    
-    # Activate the virtual environment
-    source venv/bin/activate
-    
-    # Install development dependencies
-    echo "Installing development dependencies..."
-    pip install -e ".[dev]"
-    
-    # Build the LangGraph application
-    echo "Building LangGraph application..."
-    langgraph build
-    
-    # Create a ConfigMap with the langgraph.json content
-    echo "Creating ConfigMap for LangGraph configuration..."
-    kubectl create configmap langgraph-config \
-        --namespace $NAMESPACE \
-        --from-file=langgraph.json \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Deactivate the virtual environment
-    deactivate
-    
+
+    # Change to the API directory
+    cd "$api_dir"
+
+    # Create langgraph.json if it doesn't exist
+    if [ ! -f "langgraph.json" ]; then
+        echo "Creating langgraph.json configuration..."
+        cat > langgraph.json << EOF
+{
+    "host": "0.0.0.0",
+    "port": 8000,
+    "log_level": "info",
+    "workers": 4,
+    "timeout": 300,
+    "max_requests": 1000,
+    "max_requests_jitter": 50
+}
+EOF
+    fi
+
+    # Build the Docker image for x86_64 platform
+    echo "Building LangGraph image for x86_64 platform..."
+    docker buildx build --platform linux/amd64 -t ${full_image_name} --build-arg PYTHON_ENV=production --push .
+
+    # Check if the build was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: LangGraph image build failed"
+        cd "${PROJECT_ROOT}"
+        exit 1
+    fi
+
     # Return to the project root
     cd "${PROJECT_ROOT}"
+
+    # Update the manifest with environment-specific values
+    local manifest_path="iac/manifests/langgraph.yaml"
+    local temp_manifest=$(mktemp)
     
-    # Clean up existing deployment if --clean flag is set
-    if [ "$CLEAN" = true ]; then
+    # Replace ENV_PLACEHOLDER with the actual environment
+    sed "s/ENV_PLACEHOLDER/${env}/g" "${manifest_path}" > "${temp_manifest}"
+
+    # Apply the manifest
+    if [ "$clean" = true ]; then
         echo "Cleaning up existing LangGraph deployment..."
-        kubectl delete deployment langgraph --namespace $NAMESPACE --ignore-not-found
-        kubectl delete service langgraph --namespace $NAMESPACE --ignore-not-found
-        kubectl delete ingress langgraph-ingress --namespace $NAMESPACE --ignore-not-found
-        
-        # Wait for resources to be cleaned up
-        echo "Waiting for resources to be cleaned up..."
+        kubectl delete -f "${temp_manifest}" --ignore-not-found=true
         sleep 5
     fi
-    
-    # Create a temporary file with environment-specific values
-    TEMP_MANIFEST=$(mktemp)
-    cat "${PROJECT_ROOT}/iac/manifests/langgraph.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
-    
-    # Deploy LangGraph
-    echo "Deploying LangGraph server..."
-    kubectl apply -f "$TEMP_MANIFEST"
-    
+
+    echo "Applying LangGraph manifest..."
+    kubectl apply -f "${temp_manifest}"
+
     # Clean up temporary file
-    rm "$TEMP_MANIFEST"
-    
-    # Wait for deployment to be ready
-    echo "Waiting for LangGraph deployment to be ready..."
-    kubectl wait --for=condition=Available=True deployment/langgraph -n $NAMESPACE --timeout=300s
-    
-    echo "LangGraph deployment completed successfully!"
-    echo "You can access the LangGraph server at: https://langgraph-${env}-wifire-kg.nrp-nautilus.io"
+    rm "${temp_manifest}"
+
+    echo "LangGraph deployment completed!"
 }
 
 # Function to deploy a component
@@ -367,7 +372,7 @@ case $COMPONENT in
         deploy_component "graphdb"
         ;;
     "langgraph")
-        deploy_langgraph "$ENV"
+        deploy_langgraph "$ENV" "$CLEAN"
         ;;
     "frontend")
         deploy_frontend "$ENV"
