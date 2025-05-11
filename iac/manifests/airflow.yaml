@@ -1,0 +1,522 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow-secrets
+type: Opaque
+data:
+  POSTGRES_PASSWORD: YWlyZmxvdw==  # "airflow" in base64
+  AIRFLOW_WEBSERVER_SECRET_KEY: eW91ci1zZWNyZXQta2V5LWhlcmU=  # "your-secret-key-here" in base64
+  AIRFLOW_FERNET_KEY: eW91ci1mZXJuZXQta2V5LWhlcmU=  # "your-fernet-key-here" in base64
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-config
+data:
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://airflow:$(POSTGRES_PASSWORD)@airflow-postgres:5432/airflow"
+  AIRFLOW__CELERY__RESULT_BACKEND: "db+postgresql://airflow:$(POSTGRES_PASSWORD)@airflow-postgres:5432/airflow"
+  AIRFLOW__CELERY__BROKER_URL: "redis://airflow-redis:6379/0"
+  AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+  AIRFLOW__CORE__EXECUTOR: "CeleryExecutor"
+  AIRFLOW__WEBSERVER__SECRET_KEY: "$(AIRFLOW_WEBSERVER_SECRET_KEY)"
+  AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+  AIRFLOW__WEBSERVER__WORKERS: "2"
+  AIRFLOW__CORE__DAGS_FOLDER: "/opt/airflow/dags"
+  AIRFLOW__CORE__FERNET_KEY: "$(AIRFLOW_FERNET_KEY)"
+  AIRFLOW__CELERY__DEFAULT_POOL_SIZE: "128"
+  AIRFLOW__CORE__DEFAULT_POOL_SLOTS: "128"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airflow-postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-postgres
+  template:
+    metadata:
+      labels:
+        app: airflow-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          env:
+            - name: POSTGRES_USER
+              value: "airflow"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: airflow-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              value: "airflow"
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          startupProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - airflow
+                - -d
+                - airflow
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - airflow
+                - -d
+                - airflow
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - airflow
+                - -d
+                - airflow
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: airflow-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: airflow-postgres
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-redis
+  template:
+    metadata:
+      labels:
+        app: airflow-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "512Mi"
+          startupProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-redis
+spec:
+  type: ClusterIP
+  selector:
+    app: airflow-redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-webserver
+  template:
+    metadata:
+      labels:
+        app: airflow-webserver
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z airflow-postgres 5432 && nc -z airflow-redis 6379; do echo waiting for dependencies; sleep 2; done']
+        - name: init-airflow
+          image: apache/airflow:2.7.1
+          command: ['bash', '-c']
+          args:
+            - |
+              airflow db migrate
+              sleep 5
+              if ! airflow users list | grep -q "admin"; then
+                airflow users create \
+                  --username admin \
+                  --password admin \
+                  --firstname admin \
+                  --lastname admin \
+                  --role Admin \
+                  --email nischerer@ucsd.edu
+              fi
+              airflow pools set default_pool 128 "Default pool"
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: airflow-secrets
+      containers:
+        - name: airflow-webserver
+          image: apache/airflow:2.7.1
+          args: ["webserver"]
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: airflow-secrets
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+        - name: git-sync
+          image: k8s.gcr.io/git-sync/git-sync:v3.6.3
+          securityContext:
+            runAsUser: 50000
+          env:
+            - name: GIT_SYNC_REPO
+              value: "https://github.com/wildfire-commons/wildfire-kg.git"
+            - name: GIT_SYNC_BRANCH
+              value: "dev"
+            - name: GIT_SYNC_ROOT
+              value: "/opt/airflow/dags"
+            - name: GIT_SYNC_DEST
+              value: "."
+            - name: GIT_SYNC_PERIOD
+              value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "0"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      volumes:
+        - name: dags-volume
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-scheduler
+  template:
+    metadata:
+      labels:
+        app: airflow-scheduler
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z airflow-postgres 5432 && nc -z airflow-redis 6379; do echo waiting for dependencies; sleep 2; done']
+      containers:
+        - name: airflow-scheduler
+          image: apache/airflow:2.7.1
+          args: ["scheduler"]
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: airflow-secrets
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          startupProbe:
+            exec:
+              command:
+                - airflow
+                - jobs
+                - check
+                - --job-type
+                - SchedulerJob
+                - --hostname
+                - $(hostname)
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+          readinessProbe:
+            exec:
+              command:
+                - airflow
+                - jobs
+                - check
+                - --job-type
+                - SchedulerJob
+                - --hostname
+                - $(hostname)
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - airflow
+                - jobs
+                - check
+                - --job-type
+                - SchedulerJob
+                - --hostname
+                - $(hostname)
+            initialDelaySeconds: 20
+            periodSeconds: 10
+
+        - name: git-sync
+          image: k8s.gcr.io/git-sync/git-sync:v3.6.3
+          securityContext:
+            runAsUser: 50000
+          env:
+            - name: GIT_SYNC_REPO
+              value: "https://github.com/wildfire-commons/wildfire-kg.git"
+            - name: GIT_SYNC_BRANCH
+              value: "dev"
+            - name: GIT_SYNC_ROOT
+              value: "/opt/airflow/dags"
+            - name: GIT_SYNC_DEST
+              value: "."
+            - name: GIT_SYNC_PERIOD
+              value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "0"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      volumes:
+        - name: dags-volume
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow-worker
+  template:
+    metadata:
+      labels:
+        app: airflow-worker
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox
+          command: ['sh', '-c', 'until nc -z airflow-postgres 5432 && nc -z airflow-redis 6379; do echo waiting for dependencies; sleep 2; done']
+      containers:
+        - name: airflow-worker
+          image: apache/airflow:2.7.1
+          args: ["celery", "worker"]
+          envFrom:
+            - configMapRef:
+                name: airflow-config
+            - secretRef:
+                name: airflow-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+            - name: data-volume
+              mountPath: /opt/airflow/data
+
+        - name: git-sync
+          image: k8s.gcr.io/git-sync/git-sync:v3.6.3
+          securityContext:
+            runAsUser: 50000
+          env:
+            - name: GIT_SYNC_REPO
+              value: "https://github.com/wildfire-commons/wildfire-kg.git"
+            - name: GIT_SYNC_BRANCH
+              value: "dev"
+            - name: GIT_SYNC_ROOT
+              value: "/opt/airflow/dags"
+            - name: GIT_SYNC_DEST
+              value: "."
+            - name: GIT_SYNC_PERIOD
+              value: "60"
+            - name: GIT_SYNC_MAX_SYNC_FAILURES
+              value: "0"
+          volumeMounts:
+            - name: dags-volume
+              mountPath: /opt/airflow/dags
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      volumes:
+        - name: dags-volume
+          emptyDir: {}
+        - name: data-volume
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-webserver
+spec:
+  type: ClusterIP
+  selector:
+    app: airflow-webserver
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: airflow-ingress
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+    haproxy.router.openshift.io/timeout: 60s
+spec:
+  rules:
+  - host: airflow-ENV_PLACEHOLDER.nrp-nautilus.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: airflow-webserver
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - airflow-ENV_PLACEHOLDER.nrp-nautilus.io 

@@ -1,0 +1,11 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "wildfire-kg": "wildfire_kg_api.orchestration.agent:create_wildfire_react_agent"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "http": {
+    "app": "wildfire_kg_api.app:app"
+  }
+} 

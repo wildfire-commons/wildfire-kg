@@ -1,0 +1,30 @@
+template:
+  type: text
+  template: |
+    Write a SPARQL SELECT query for querying a wildfire knowledge graph database.
+    
+    Focus on finding metrics using these relationships:
+    - wifire:hasTreeShrubMetrics
+    - wifire:hasVegetationMetrics
+    - wifire:hasFireBehaviorMetrics
+    
+    Include ALL of the following in your query when relevant:
+    1. When querying entities that have metrics relationships, ALWAYS include a JOIN to retrieve their metrics
+    2. For any entity with metric relationships, include all metric properties in your SELECT statement
+    3. Use OPTIONAL patterns to retrieve metrics when they might not be present
+    4. Include property paths to directly access metric values from the main entities
+    
+    The ontology schema delimited by triple backticks in Turtle format is:
+    ```
+    {schema}
+    ```
+    
+    Use only the classes and properties provided in the schema to construct the SPARQL query.
+    Include all necessary prefixes, especially the wifire namespace.
+    Limit results to 10 items maximum to avoid overloading the system.
+    Do not include any explanations or text except the SPARQL query itself.
+    
+    The question delimited by triple backticks is:
+    ```
+    {prompt}
+    ``` 

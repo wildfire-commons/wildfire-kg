@@ -1,0 +1,165 @@
+{
+    "FireIgnitionSensor": {
+      "type": "object",
+      "properties": {
+        "SensorMetadata": {
+          "type": "object",
+          "properties": {
+            "db_id": { "type": "integer" },
+            "model_type": { "type": "string" },
+            "time": { "type": "string", "format": "date-time" },
+            "db_urn": { "type": "string" },
+            "device_alias": { "type": "string" },
+            "sensor_type_id": { "type": "integer" }
+          },
+          "required": ["db_id", "model_type", "time"]
+        },
+        "LocationData": {
+          "type": "object",
+          "properties": {
+            "longitude": { "type": "number" },
+            "latitude": { "type": "number" }
+          },
+          "required": ["longitude", "latitude"]
+        },
+        "SensorTypeData": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" }
+          },
+          "required": ["type"]
+        },
+        "EnvironmentalData": {
+          "type": "object",
+          "properties": {
+            "temperatureMillidegreeC": { "type": "integer" },
+            "barometricPa": { "type": "integer" },
+            "humidityRh": { "type": "integer" },
+            "CO2Ppm": { "type": "integer" },
+            "mos_gasResistance": { "type": "integer" }
+          },
+          "required": ["temperatureMillidegreeC", "barometricPa"]
+        },
+        "ParticleData": {
+          "type": "object",
+          "properties": {
+            "pmsensor_pm10Standard": { "type": "integer" },
+            "pmsensor_pm25Standard": { "type": "integer" }
+          },
+          "required": ["pmsensor_pm10Standard", "pmsensor_pm25Standard"]
+        },
+        "WindData": {
+          "type": "object",
+          "properties": {
+            "wind_windDirectionDegrees": { "type": "integer" },
+            "wind_windSpeedCmS": { "type": "integer" }
+          },
+          "required": ["wind_windDirectionDegrees", "wind_windSpeedCmS"]
+        }
+      },
+      "required": [
+        "SensorMetadata",
+        "LocationData",
+        "SensorTypeData",
+        "EnvironmentalData",
+        "ParticleData",
+        "WindData"
+      ]
+    },
+    "PlotMetrics": {
+      "type": "object",
+      "properties": {
+        "VegetationMetrics": {
+          "type": "object",
+          "properties": {
+            "basalArea": { "type": "number" },
+            "LAI": { "type": "number" },
+            "TBA": { "type": "number" },
+            "OLAI": { "type": "number" },
+            "ULAI": { "type": "number" },
+            "GCvol": { "type": "number" },
+            "MSvol": { "type": "number" },
+            "OSvol": { "type": "number" },
+            "USvol": { "type": "number" }
+          },
+          "required": ["basalArea", "LAI"]
+        },
+        "FireBehaviorMetrics": {
+          "type": "object",
+          "properties": {
+            "LF_FBFM13": { "type": "string" },
+            "LF_FBFM40": { "type": "string" },
+            "LF_EVEL": { "type": "number" },
+            "LF_SLPD": { "type": "number" },
+            "LF_ASP": { "type": "number" },
+            "LF_FDist": { "type": "string" },
+            "LF_EVC": { "type": "string" },
+            "LF_EVT": { "type": "string" }
+          },
+          "required": ["LF_FBFM13", "LF_FBFM40"]
+        },
+        "TreeShrubMetrics": {
+          "type": "object",
+          "properties": {
+            "plotName": { "type": "string" },
+            "MDBH": { "type": "number" },
+            "MLAI": { "type": "number" },
+            "SDHT": { "type": "number" },
+            "SDSHT": { "type": "number" },
+            "SDSD": { "type": "number" },
+            "MaxSD": { "type": "number" },
+            "MaxSH": { "type": "number" },
+            "MaxTH": { "type": "number" },
+            "MinSD": { "type": "number" },
+            "TreesN": { "type": "integer" },
+            "ShrubsN": { "type": "integer" },
+            "MeanSA": { "type": "number" },
+            "shrubArea": { "type": "number" },
+            "scaledShrubArea": { "type": "number" },
+            "CBH": { "type": "number" },
+            "MeanSH": { "type": "number" },
+            "MeanTH": { "type": "number" },
+            "LF_CBD": { "type": "number" }
+          },
+          "required": [
+            "plotName", "MDBH", "CBH", "MeanSH", "MeanTH", "LF_CBD"
+          ]
+        },
+        "LocationData": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          },
+          "required": ["latitude", "longitude"]
+        }
+      },
+      "required": [
+        "VegetationMetrics",
+        "FireBehaviorMetrics",
+        "TreeShrubMetrics",
+        "LocationData"
+      ]
+    },
+    "FireManagementArea": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "type": "string",
+          "description": "Geospatial representation of the area (GeoJSON or WKT format)"
+        },
+        "hasPlot": {
+          "type": "array",
+          "items": { "$ref": "#/PlotMetrics" },
+          "description": "List of PlotMetrics objects that intersect the geometry of the FireManagementArea."
+        },
+        "hasFireIgnitionSensor": {
+          "type": "array",
+          "items": { "$ref": "#/FireIgnitionSensor" },
+          "description": "List of FireIgnitionSensor objects that intersect the geometry of the FireManagementArea."
+        }
+      },
+      "required": ["geometry", "hasPlot", "hasFireIgnitionSensor"]
+    }
+  }
+  
