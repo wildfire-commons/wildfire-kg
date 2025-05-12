@@ -252,18 +252,6 @@ deploy_frontend() {
     # Navigate to the frontend directory
     cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
     
-    # Login to GitLab registry
-    echo "Logging in to GitLab registry..."
-    echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
-    
-    # Build the frontend Docker image with proper registry path
-    echo "Building frontend Docker image..."
-    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest .
-    
-    # Push the image to GitLab registry
-    echo "Pushing frontend Docker image..."
-    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest
-    
     # Clean up existing deployment if --clean flag is set
     if [ "$CLEAN" = true ]; then
         echo "Cleaning up existing frontend deployment..."
