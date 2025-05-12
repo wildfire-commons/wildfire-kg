@@ -1,4 +1,6 @@
 stages:
+  - build
+  - assemble
   - deploy
 
 # Define which files/directories should trigger deployments for each component
@@ -18,13 +20,103 @@ variables:
   SUPABASE_TRIGGER_PATHS: |
     iac/manifests/supabase.yaml
 
-# Development deployments
-deploy_dev_graphdb:
+# Build stage for LangGraph
+build-langgraph:
+  stage: build
+  image: python:3.9
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  script:
+    - pip install -r applications/wildfire-kg-api/requirements.txt
+    - python -m compileall applications/wildfire-kg-api
+  artifacts:
+    paths:
+      - applications/wildfire-kg-api/**/*.pyc
+    expire_in: 1 week
+
+# Build stage for Frontend
+build-frontend:
+  stage: build
+  image: node:18.17.0
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  script:
+    - cd applications/wildfire-kg-frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - applications/wildfire-kg-frontend/.next
+      - applications/wildfire-kg-frontend/public
+      - applications/wildfire-kg-frontend/package.json
+      - applications/wildfire-kg-frontend/next.config.js
+    expire_in: 1 week
+
+# Assemble stage for LangGraph
+assemble-langgraph:
+  stage: assemble
+  needs:
+    - build-langgraph
+  image: gcr.io/kaniko-project/executor:debug
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor 
+      --context $CI_PROJECT_DIR 
+      --dockerfile $CI_PROJECT_DIR/applications/wildfire-kg-api/Dockerfile 
+      --destination $CI_REGISTRY_IMAGE/langgraph:${CI_COMMIT_SHA:0:8} 
+      --destination $CI_REGISTRY_IMAGE/langgraph:latest
+
+# Assemble stage for Frontend
+assemble-frontend:
+  stage: assemble
+  needs:
+    - build-frontend
+  image: gcr.io/kaniko-project/executor:debug
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor 
+      --context $CI_PROJECT_DIR/applications/wildfire-kg-frontend
+      --dockerfile $CI_PROJECT_DIR/applications/wildfire-kg-frontend/Dockerfile 
+      --destination $CI_REGISTRY_IMAGE/frontend:${CI_COMMIT_SHA:0:8} 
+      --destination $CI_REGISTRY_IMAGE/frontend:latest
+      --build-arg NEXT_PUBLIC_API_URL=https://langgraph-${CI_ENVIRONMENT_NAME}-wifire-kg.nrp-nautilus.io
+      --cache=true
+      --cache-ttl=24h
+
+# Deploy stage template
+.deploy_template: &deploy_template
   stage: deploy
-  image: alpine:latest
+  image: bitnami/kubectl:latest
+  before_script:
+    - mkdir -p $HOME/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > $HOME/.kube/config
+    - chmod 600 $HOME/.kube/config
+    # Install helm
+    - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    - chmod 700 get_helm.sh
+    - ./get_helm.sh
   script:
     - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh dev graphdb
+    - bash ./scripts/deploy.sh $CI_ENVIRONMENT_NAME $COMPONENT
+
+# Development deployments
+deploy_dev_graphdb:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: graphdb
   rules:
     - if: $CI_COMMIT_BRANCH == "dev"
       changes:
@@ -34,11 +126,10 @@ deploy_dev_graphdb:
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_airflow:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh dev airflow
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: airflow
   rules:
     - if: $CI_COMMIT_BRANCH == "dev"
       changes:
@@ -48,11 +139,11 @@ deploy_dev_airflow:
     url: https://wifire-kg-airflow.nrp-nautilus.io
 
 deploy_dev_langgraph:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh dev langgraph
+  <<: *deploy_template
+  needs:
+    - assemble-langgraph
+  variables:
+    COMPONENT: langgraph
   rules:
     - if: $CI_COMMIT_BRANCH == "dev"
       changes:
@@ -62,11 +153,11 @@ deploy_dev_langgraph:
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_frontend:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh dev frontend
+  <<: *deploy_template
+  needs:
+    - assemble-frontend
+  variables:
+    COMPONENT: frontend
   rules:
     - if: $CI_COMMIT_BRANCH == "dev"
       changes:
@@ -76,11 +167,10 @@ deploy_dev_frontend:
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_supabase:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh dev supabase
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: supabase
   rules:
     - if: $CI_COMMIT_BRANCH == "dev"
       changes:
@@ -91,11 +181,10 @@ deploy_dev_supabase:
 
 # Production deployments
 deploy_prod_graphdb:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh prod graphdb
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: graphdb
   rules:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -105,11 +194,10 @@ deploy_prod_graphdb:
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_airflow:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh prod airflow
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: airflow
   rules:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -119,11 +207,11 @@ deploy_prod_airflow:
     url: https://wifire-kg-airflow.nrp-nautilus.io
 
 deploy_prod_langgraph:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh prod langgraph
+  <<: *deploy_template
+  needs:
+    - assemble-langgraph
+  variables:
+    COMPONENT: langgraph
   rules:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -133,11 +221,11 @@ deploy_prod_langgraph:
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_frontend:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh prod frontend
+  <<: *deploy_template
+  needs:
+    - assemble-frontend
+  variables:
+    COMPONENT: frontend
   rules:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -147,11 +235,10 @@ deploy_prod_frontend:
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_supabase:
-  stage: deploy
-  image: alpine:latest
-  script:
-    - chmod +x ./scripts/deploy.sh
-    - ./scripts/deploy.sh prod supabase
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: supabase
   rules:
     - if: $CI_COMMIT_BRANCH == "prod"
       changes:
