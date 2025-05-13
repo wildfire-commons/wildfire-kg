@@ -32,7 +32,11 @@ class PromptRegistry:
     def _initialize(self):
         """Initialize the registry by loading prompts from files."""
         self._prompts: Dict[str, PromptTemplate] = {}
-        self._prompts_dir = Path(__file__).parent
+        # Get the absolute path to the prompts directory using pathlib
+        self._prompts_dir = Path(__file__).resolve().parent
+        logger.info(
+            f"Initializing prompt registry with prompts directory: {self._prompts_dir}"
+        )
         self.refresh()
 
     def _create_prompt_from_yaml(self, file_path: str) -> PromptTemplate:
