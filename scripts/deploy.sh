@@ -63,6 +63,50 @@ NAMESPACE="wifire-kg"
 #     NAMESPACE="wifire-kg-prod" # Prod namespace
 # fi
 
+# Function to handle secrets and environment variables
+handle_secrets() {
+    local manifest_path=$1
+    local temp_manifest=$(mktemp)
+    
+    # Function to get secret value from environment or .env file
+    get_secret_value() {
+        local secret_name=$1
+        local value
+        
+        # First try to get from environment variable
+        value="${!secret_name}"
+        
+        # If not found and .env file exists, try to get from .env
+        if [ -z "$value" ] && [ -f "${PROJECT_ROOT}/.env" ]; then
+            value=$(grep "^${secret_name}=" "${PROJECT_ROOT}/.env" | cut -d'=' -f2-)
+        fi
+        
+        # If still not found, return empty
+        echo "$value"
+    }
+    
+    # Read the manifest and substitute secrets
+    while IFS= read -r line; do
+        if [[ $line =~ \$\{([A-Z_]+)\} ]]; then
+            secret_name="${BASH_REMATCH[1]}"
+            secret_value=$(get_secret_value "$secret_name")
+            
+            if [ -z "$secret_value" ]; then
+                echo "Warning: Secret $secret_name not found in environment or .env file"
+                echo "$line" >> "$temp_manifest"
+            else
+                # Base64 encode the secret value
+                encoded_value=$(echo -n "$secret_value" | base64)
+                echo "$line" | sed "s/\${$secret_name}/$encoded_value/" >> "$temp_manifest"
+            fi
+        else
+            echo "$line" >> "$temp_manifest"
+        fi
+    done < "$manifest_path"
+    
+    echo "$temp_manifest"
+}
+
 # Load environment variables from .env file
 if [ -f "${PROJECT_ROOT}/.env" ]; then
     echo "Loading environment variables from .env file..."
@@ -133,12 +177,12 @@ EOF
     # Return to the project root
     cd "${PROJECT_ROOT}"
 
-    # Update the manifest with environment-specific values
+    # Handle secrets and environment substitution
     local manifest_path="iac/manifests/langgraph.yaml"
-    local temp_manifest=$(mktemp)
+    local temp_manifest=$(handle_secrets "$manifest_path")
     
     # Replace ENV_PLACEHOLDER with the actual environment
-    sed "s/ENV_PLACEHOLDER/${env}/g" "${manifest_path}" > "${temp_manifest}"
+    sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
 
     # Apply the manifest
     if [ "$clean" = true ]; then
@@ -252,6 +296,18 @@ deploy_frontend() {
     # Navigate to the frontend directory
     cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
     
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
+    
+    # Build the frontend Docker image with proper registry path
+    echo "Building frontend Docker image..."
+    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest .
+    
+    # Push the image to GitLab registry
+    echo "Pushing frontend Docker image..."
+    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest
+    
     # Clean up existing deployment if --clean flag is set
     if [ "$CLEAN" = true ]; then
         echo "Cleaning up existing frontend deployment..."
@@ -325,22 +381,22 @@ deploy_supabase() {
         sleep 5
     fi
     
-    # Create a temporary file with environment-specific values
-    TEMP_MANIFEST=$(mktemp)
-    cat "${PROJECT_ROOT}/iac/manifests/supabase.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    # Handle secrets and environment substitution
+    local manifest_path="${PROJECT_ROOT}/iac/manifests/supabase.yaml"
+    local temp_manifest=$(handle_secrets "$manifest_path")
+    
+    # Replace environment placeholders
+    sed -i "s/ENV_PLACEHOLDER/${env}/g" "$temp_manifest"
     
     # For production, update the host to remove the environment prefix
     if [ "$env" = "prod" ]; then
-        sed -i '' 's/supabase-prod.nrp-nautilus.io/supabase.nrp-nautilus.io/g' "$TEMP_MANIFEST"
-        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+        sed -i 's/supabase-prod.nrp-nautilus.io/supabase.nrp-nautilus.io/g' "$temp_manifest"
+        sed -i 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$temp_manifest"
     fi
     
     # Deploy Supabase
     echo "Deploying Supabase..."
-    kubectl apply -f "$TEMP_MANIFEST"
-    
-    # Clean up temporary file
-    rm "$TEMP_MANIFEST"
+    kubectl apply -f "$temp_manifest"
     
     # Wait for deployments to be ready
     echo "Waiting for Supabase deployments to be ready..."
@@ -359,6 +415,9 @@ deploy_supabase() {
     else
         url="https://supabase-${env}.nrp-nautilus.io"
     fi
+    
+    # Clean up temporary file
+    rm "$temp_manifest"
     
     echo "Supabase deployment completed successfully!"
     echo "You can access Supabase at: ${url}"
