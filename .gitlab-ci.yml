@@ -62,8 +62,6 @@ assemble-langgraph:
   needs:
     - build-langgraph
   image: gcr.io/kaniko-project/executor:debug
-  variables:
-    GODEBUG: "http2client=0"
   rules:
     - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -82,8 +80,6 @@ assemble-frontend:
   needs:
     - build-frontend
   image: gcr.io/kaniko-project/executor:debug
-  variables:
-    GODEBUG: "http2client=0"
   rules:
     - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
       changes:
@@ -102,14 +98,11 @@ assemble-frontend:
 # Deploy stage template
 .deploy_template: &deploy_template
   stage: deploy
-  image: alpine:latest
+  image: bitnami/kubectl:latest
   before_script:
-    # Install required packages
-    - apk add --no-cache curl bash openssl
-    # Install kubectl
-    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    - chmod +x kubectl
-    - mv kubectl /usr/local/bin/
+    - mkdir -p $HOME/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > $HOME/.kube/config
+    - chmod 600 $HOME/.kube/config
     # Install helm
     - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     - chmod 700 get_helm.sh
@@ -129,7 +122,7 @@ deploy_dev_graphdb:
       changes:
         - $GRAPHDB_TRIGGER_PATHS
   environment:
-    name: dev
+    name: development
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_airflow:
@@ -142,7 +135,7 @@ deploy_dev_airflow:
       changes:
         - $AIRFLOW_TRIGGER_PATHS
   environment:
-    name: dev
+    name: development
     url: https://wifire-kg-airflow.nrp-nautilus.io
 
 deploy_dev_langgraph:
@@ -156,7 +149,7 @@ deploy_dev_langgraph:
       changes:
         - $LANGGRAPH_TRIGGER_PATHS
   environment:
-    name: dev
+    name: development
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_frontend:
@@ -170,7 +163,7 @@ deploy_dev_frontend:
       changes:
         - $FRONTEND_TRIGGER_PATHS
   environment:
-    name: dev
+    name: development
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_supabase:
@@ -183,7 +176,7 @@ deploy_dev_supabase:
       changes:
         - $SUPABASE_TRIGGER_PATHS
   environment:
-    name: dev
+    name: development
     url: https://supabase-dev.nrp-nautilus.io
 
 # Production deployments
@@ -197,7 +190,7 @@ deploy_prod_graphdb:
       changes:
         - $GRAPHDB_TRIGGER_PATHS
   environment:
-    name: prod
+    name: production
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_airflow:
@@ -210,7 +203,7 @@ deploy_prod_airflow:
       changes:
         - $AIRFLOW_TRIGGER_PATHS
   environment:
-    name: prod
+    name: production
     url: https://wifire-kg-airflow.nrp-nautilus.io
 
 deploy_prod_langgraph:
@@ -224,7 +217,7 @@ deploy_prod_langgraph:
       changes:
         - $LANGGRAPH_TRIGGER_PATHS
   environment:
-    name: prod
+    name: production
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_frontend:
@@ -238,7 +231,7 @@ deploy_prod_frontend:
       changes:
         - $FRONTEND_TRIGGER_PATHS
   environment:
-    name: prod
+    name: production
     url: https://wildfire.nrp-nautilus.io
 
 deploy_prod_supabase:
@@ -251,5 +244,5 @@ deploy_prod_supabase:
       changes:
         - $SUPABASE_TRIGGER_PATHS
   environment:
-    name: prod
+    name: production
     url: https://supabase.nrp-nautilus.io 
