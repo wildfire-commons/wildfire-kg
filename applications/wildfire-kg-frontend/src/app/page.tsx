@@ -1,20 +1,175 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateId } from '@/utils/id';
-import { Message, ChatContext } from '@/types/chat';
+import { Message } from '@/types/chat';
+
+interface ChatContext {
+  kg_results?: any;
+  rag_results?: any;
+  weather_results?: any;
+}
+
+const LANGGRAPH_URL = 'https://langgraph-dev-e0739bb8a8e8568a9c741dd43a8b37c8.us.langgraph.app';
+const API_KEY = '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';
+const GRAPH_NAME = 'wildfire-kg';
+
+interface StreamData {
+  type?: string;
+  values?: {
+    messages?: string;
+    response?: string;
+    kg_results?: any;
+    rag_results?: any;
+    weather_results?: any;
+    error?: string;
+    metadata?: any;
+  };
+  error?: {
+    error: string;
+    message: string;
+  };
+}
+
+interface ThinkingStep {
+  id: string;
+  type: string;
+  content: any;
+  timestamp: Date;
+}
+
+interface ExtendedMessage extends Message {
+  thinkingSteps?: ThinkingStep[];
+}
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ExtendedMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [context, setContext] = useState<ChatContext | null>(null);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+
+  const createThread = async () => {
+    try {
+      const response = await fetch(`${LANGGRAPH_URL}/threads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create thread');
+      }
+
+      const data = await response.json();
+      setThreadId(data.thread_id);
+      return data.thread_id;
+    } catch (error) {
+      console.error('Failed to create thread:', error);
+      return null;
+    }
+  };
+
+  // Create a new thread when the component mounts
+  useEffect(() => {
+    createThread();
+  }, []);
+
+  const toggleThinkingStep = (messageId: string) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
+
+  const handleStreamResponse = async (response: Response) => {
+    const reader = response.body?.getReader();
+    if (!reader) return;
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          if (line.startsWith('event: ')) {
+            const eventType = line.slice(7).trim();
+            const dataLine = lines.find(l => l.startsWith('data:'));
+            if (!dataLine) continue;
+
+            try {
+              const data = JSON.parse(dataLine.slice(5));
+
+              if (eventType === 'values' && data.messages?.[0]?.content) {
+                // Update the final response text
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage && lastMessage.sender === 'assistant') {
+                    lastMessage.text = data.messages[0].content;
+                  }
+                  return newMessages;
+                });
+
+                // Store results in context if available
+                if (data.kg_results || data.rag_results || data.weather_results) {
+                  setContext({
+                    kg_results: data.kg_results,
+                    rag_results: data.rag_results,
+                    weather_results: data.weather_results
+                  });
+                }
+              }
+              // Temporarily skip storing thinking steps
+              // else if (eventType === 'messages/partial') {
+              //   // Store thinking steps logic here
+              // }
+            } catch (e) {
+              console.error('Error parsing stream data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error reading stream:', error);
+    } finally {
+      reader.releaseLock();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userMessage: Message = {
+    // If no thread exists, create one before sending the message
+    if (!threadId) {
+      const newThreadId = await createThread();
+      if (!newThreadId) {
+        setMessages(prev => [...prev, {
+          id: generateId(),
+          text: 'Sorry, I encountered an error creating the conversation. Please try again.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+    }
+
+    const userMessage: ExtendedMessage = {
       id: generateId(),
       text: input,
       sender: 'user',
@@ -22,23 +177,37 @@ export default function ChatPage() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Add a placeholder message for the assistant's response
+    setMessages(prev => [...prev, {
+      id: generateId(),
+      text: '',
+      sender: 'assistant',
+      timestamp: new Date(),
+    }]);
+    
     setInput('');
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/graph/chat`, {
+      const response = await fetch(`${LANGGRAPH_URL}/threads/${threadId}/runs/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': API_KEY
         },
         body: JSON.stringify({
-          message: input,
-          history: messages.map(msg => ({
-            id: msg.id,
-            text: msg.text,
-            sender: msg.sender,
-            timestamp: msg.timestamp.toISOString()
-          })),
+          assistant_id: GRAPH_NAME,
+          input: {
+            user_query: input,
+            history: messages.map(msg => ({
+              id: msg.id,
+              text: msg.text,
+              sender: msg.sender,
+              timestamp: msg.timestamp.toISOString()
+            }))
+          },
+          stream_mode: ['values', 'messages']
         }),
       });
 
@@ -46,29 +215,71 @@ export default function ChatPage() {
         throw new Error('Failed to get response');
       }
 
-      const data = await response.json();
-      
-      setMessages(prev => [...prev, {
-        id: data.message.id,
-        text: data.message.text,
-        sender: 'assistant',
-        timestamp: new Date(data.message.timestamp),
-      }]);
+      await handleStreamResponse(response);
 
-      if (data.context) {
-        setContext(data.context);
-      }
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => [...prev, {
-        id: generateId(),
-        text: 'Sorry, I encountered an error. Please try again.',
-        sender: 'assistant',
-        timestamp: new Date(),
-      }]);
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage && lastMessage.sender === 'assistant') {
+          lastMessage.text = 'Sorry, I encountered an error. Please try again.';
+        }
+        return newMessages;
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderThinkingSteps = (steps: ThinkingStep[]) => {
+    return steps.map(step => (
+      <div key={step.id} className="ml-4 mt-2 text-sm">
+        <div className="text-gray-500 italic">
+          {step.type === 'thinking' && (
+            <div>
+              {step.content.text && <div>{step.content.text}</div>}
+              {step.content.tool_calls && (
+                <div className="mt-1">
+                  <span className="font-medium">Tool Calls:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.tool_calls, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+          {step.type === 'results' && (
+            <div>
+              {step.content.kg_results && (
+                <div className="mt-1">
+                  <span className="font-medium">Knowledge Graph Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.kg_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {step.content.rag_results && (
+                <div className="mt-1">
+                  <span className="font-medium">RAG Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.rag_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {step.content.weather_results && (
+                <div className="mt-1">
+                  <span className="font-medium">Weather Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.weather_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    ));
   };
 
   return (
@@ -93,6 +304,22 @@ export default function ChatPage() {
                 <p className="text-xs mt-2 opacity-70">
                   {message.timestamp.toLocaleTimeString()}
                 </p>
+                {/* Temporarily hide thinking steps
+                {message.thinkingSteps && message.thinkingSteps.length > 0 && (
+                  <div className="mt-2 border-t border-gray-200 pt-2">
+                    <button
+                      onClick={() => toggleThinkingStep(message.id)}
+                      className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                    >
+                      <span className="mr-1">
+                        {expandedSteps.has(message.id) ? '▼' : '▶'}
+                      </span>
+                      Show thinking steps ({message.thinkingSteps.length})
+                    </button>
+                    {expandedSteps.has(message.id) && renderThinkingSteps(message.thinkingSteps)}
+                  </div>
+                )}
+                */}
               </div>
             </div>
           ))}
@@ -111,14 +338,33 @@ export default function ChatPage() {
 
         {context && (
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold mb-2">Context Used:</h3>
-            <ul className="text-sm">
-              {Object.entries(context).map(([key, value]) => (
-                <li key={key} className="mb-1">
-                  <span className="font-medium">{key.replace(/_/g, ' ')}</span>: {value}
-                </li>
-              ))}
-            </ul>
+            <h3 className="font-semibold mb-2">Results:</h3>
+            <div className="text-sm space-y-2">
+              {context.kg_results && (
+                <div>
+                  <h4 className="font-medium">Knowledge Graph Results:</h4>
+                  <pre className="bg-white p-2 rounded mt-1 overflow-x-auto">
+                    {JSON.stringify(context.kg_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {context.rag_results && (
+                <div>
+                  <h4 className="font-medium">RAG Results:</h4>
+                  <pre className="bg-white p-2 rounded mt-1 overflow-x-auto">
+                    {JSON.stringify(context.rag_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {context.weather_results && (
+                <div>
+                  <h4 className="font-medium">Weather Results:</h4>
+                  <pre className="bg-white p-2 rounded mt-1 overflow-x-auto">
+                    {JSON.stringify(context.weather_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
