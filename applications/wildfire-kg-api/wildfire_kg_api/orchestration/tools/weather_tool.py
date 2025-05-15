@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 import os
 import requests
 import json
+from langchain_community.utilities.openweathermap import OpenWeatherMapAPIWrapper
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -38,27 +39,26 @@ def get_weather(location: str) -> str:
     """
     logger.info(f"Getting weather for location: {location}")
 
-    # Implementation
     try:
-        weather_api_key = os.getenv("WEATHER_API_KEY")
-        base_url = "https://api.weatherapi.com/v1"
+        weather_api_key = os.getenv("OPENWEATHERMAP_API_KEY")
 
         if not weather_api_key:
-            logger.warning("No Weather API key provided. Using mock data.")
+            logger.warning("No OpenWeatherMap API key provided. Using mock data.")
             return _format_weather_data(_get_mock_weather_data(location), location)
 
-        # Make API request
-        params = {
-            "key": weather_api_key,
-            "q": location,
-            "aqi": "yes",  # Include air quality data
-        }
-
-        response = requests.get(f"{base_url}/current.json", params=params)
-        response.raise_for_status()
-        weather_data = response.json()
-
-        return _format_weather_data(weather_data, location)
+        # Initialize OpenWeatherMap wrapper
+        weather = OpenWeatherMapAPIWrapper(openweathermap_api_key=weather_api_key)
+        
+        # Get weather data
+        weather_data = weather.run(location)
+        
+        # Parse the weather data
+        try:
+            data = json.loads(weather_data)
+            return _format_weather_data(data, location)
+        except json.JSONDecodeError:
+            # If the data is not in JSON format, return it as is
+            return weather_data
 
     except Exception as e:
         logger.error(f"Error in weather query: {str(e)}", exc_info=True)
@@ -72,50 +72,51 @@ def get_weather(location: str) -> str:
 def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
     """Format weather data into a human-readable string."""
     try:
-        if "current" not in data:
+        if "main" not in data:
             return f"No weather data available for {requested_location}"
 
-        current = data["current"]
-        location_info = data.get("location", {"name": requested_location})
-        location_name = location_info.get("name", requested_location)
-
+        main = data["main"]
+        weather = data.get("weather", [{}])[0]
+        wind = data.get("wind", {})
+        
         # Extract weather elements
-        temp_f = current.get("temp_f", "N/A")
-        temp_c = current.get("temp_c", "N/A")
-        condition = current.get("condition", {}).get("text", "Unknown")
-        humidity = current.get("humidity", "N/A")
-        wind_mph = current.get("wind_mph", "N/A")
-        wind_kph = current.get("wind_kph", "N/A")
-        wind_dir = current.get("wind_dir", "N/A")
-        precip_in = current.get("precip_in", "N/A")
+        temp_c = main.get("temp", "N/A")
+        temp_f = round((temp_c * 9/5) + 32, 1) if isinstance(temp_c, (int, float)) else "N/A"
+        condition = weather.get("description", "Unknown")
+        humidity = main.get("humidity", "N/A")
+        wind_speed_mps = wind.get("speed", "N/A")
+        wind_speed_mph = round(wind_speed_mps * 2.237, 1) if isinstance(wind_speed_mps, (int, float)) else "N/A"
+        wind_dir = wind.get("deg", "N/A")
+        precip_mm = data.get("rain", {}).get("1h", 0)
+        precip_in = round(precip_mm / 25.4, 2) if isinstance(precip_mm, (int, float)) else "N/A"
 
         # Format for wildfire context
         fire_danger = ""
         if (
             isinstance(humidity, (int, float))
             and humidity < 30
-            and isinstance(wind_mph, (int, float))
-            and wind_mph > 15
+            and isinstance(wind_speed_mph, (int, float))
+            and wind_speed_mph > 15
         ):
             fire_danger = "\n⚠️ Note: Low humidity and high winds may create elevated fire danger conditions."
 
         # Build the response
         response = (
-            f"🌡️ Weather for {location_name}:\n"
+            f"🌡️ Weather for {requested_location}:\n"
             f"• Temperature: {temp_f}°F ({temp_c}°C)\n"
             f"• Conditions: {condition}\n"
             f"• Humidity: {humidity}%\n"
-            f"• Wind: {wind_mph} mph ({wind_kph} kph) {wind_dir}\n"
+            f"• Wind: {wind_speed_mph} mph ({wind_speed_mps} m/s) {wind_dir}°\n"
             f"• Precipitation: {precip_in} in\n"
             f"{fire_danger}"
         )
 
         # Add air quality if available
-        air_quality = current.get("air_quality", {})
-        if air_quality and isinstance(air_quality, dict) and len(air_quality) > 0:
+        if "air_quality" in data:
+            aqi = data["air_quality"]
             aqi_elements = []
-
-            for key, value in air_quality.items():
+            
+            for key, value in aqi.items():
                 if key != "us-epa-index" and key != "gb-defra-index":
                     if key == "pm2_5":
                         formatted_key = "PM2.5"
@@ -123,9 +124,9 @@ def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
                         formatted_key = "PM10"
                     else:
                         formatted_key = key.upper()
-
+                    
                     aqi_elements.append(f"{formatted_key}: {value}")
-
+            
             if aqi_elements:
                 response += "\n\n🌬️ Air Quality:\n• " + "\n• ".join(aqi_elements)
 
@@ -139,40 +140,35 @@ def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
 def _get_mock_weather_data(location: str) -> Dict[str, Any]:
     """Return mock weather data for testing or when API is unavailable."""
     return {
-        "location": {
-            "name": location,
-            "region": "Sample Region",
-            "country": "United States",
+        "name": location,
+        "main": {
+            "temp": 25,
+            "feels_like": 25,
+            "temp_min": 23,
+            "temp_max": 27,
+            "pressure": 1012,
+            "humidity": 45
         },
-        "current": {
-            "temp_c": 25,
-            "temp_f": 77,
-            "condition": {
-                "text": "Sunny",
-                "icon": "//cdn.weatherapi.com/weather/64x64/day/113.png",
-            },
-            "wind_mph": 12,
-            "wind_kph": 19.3,
-            "wind_dir": "W",
-            "pressure_mb": 1012,
-            "pressure_in": 29.89,
-            "precip_mm": 0,
-            "precip_in": 0,
-            "humidity": 45,
-            "cloud": 0,
-            "feelslike_c": 25,
-            "feelslike_f": 77,
-            "vis_km": 10,
-            "vis_miles": 6,
-            "uv": 6,
-            "gust_mph": 13.6,
-            "gust_kph": 22,
-            "air_quality": {
-                "co": 250.3,
-                "no2": 12.4,
-                "o3": 97.1,
-                "pm2_5": 12.1,
-                "pm10": 14.3,
-            },
+        "weather": [
+            {
+                "id": 800,
+                "main": "Clear",
+                "description": "clear sky",
+                "icon": "01d"
+            }
+        ],
+        "wind": {
+            "speed": 5.4,
+            "deg": 280
         },
+        "rain": {
+            "1h": 0
+        },
+        "air_quality": {
+            "co": 250.3,
+            "no2": 12.4,
+            "o3": 97.1,
+            "pm2_5": 12.1,
+            "pm10": 14.3
+        }
     }
