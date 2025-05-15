@@ -1,55 +1,29 @@
 PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 CONSTRUCT {
     ?area rdf:type wifire:FireManagementArea ;
-          geo:asWKT ?geometry ;
+          rdfs:label "Fire Management Area" ;
+          rdfs:comment "Represents the geographical area where fire management activities are carried out" ;
+          wifire:geometry ?geometry ;
           wifire:plotCount ?plot_count ;
           wifire:sensorCount ?sensor_count ;
           wifire:hasPlot ?plot ;
           wifire:hasFireIgnitionSensor ?sensor .
 
-    ?plot rdf:type wifire:PlotMetrics ;
-          wifire:hasLocationData ?plot_loc .
-    
-    ?plot_loc rdf:type wifire:LocationData ;
-              wifire:latitude ?plot_lat ;
-              wifire:longitude ?plot_lon .
-    
-    ?sensor rdf:type wifire:FireIgnitionSensor ;
-            wifire:hasLocationData ?sensor_loc .
-    
-    ?sensor_loc rdf:type wifire:LocationData ;
-                wifire:latitude ?sensor_lat ;
-                wifire:longitude ?sensor_lon .
+    ?plot rdf:type wifire:PlotMetrics .
+    ?sensor rdf:type wifire:FireIgnitionSensor .
 }
 WHERE {
-    # Get management areas with counts and geometry
-    GRAPH <http://wifire.ucsd.edu/management_areas1> {
+    GRAPH <http://wifire.ucsd.edu/fire_management_areas_grouped> {
         ?area rdf:type wifire:FireManagementArea ;
-              geo:asWKT ?geometry ;
+              wifire:geometry ?geometry ;
               wifire:plotCount ?plot_count ;
               wifire:sensorCount ?sensor_count .
-              
-        # Get plots in this area (if any)
-        OPTIONAL {
-            ?area wifire:hasPlot ?plot .
-            GRAPH <http://wifire.ucsd.edu/plot_metrics> {
-                ?plot wifire:hasLocationData ?plot_loc .
-                ?plot_loc wifire:latitude ?plot_lat ;
-                         wifire:longitude ?plot_lon .
-            }
-        }
-        
-        # Get sensors in this area (if any)
-        OPTIONAL {
-            ?area wifire:hasFireIgnitionSensor ?sensor .
-            GRAPH <http://wifire.ucsd.edu/sensor_data> {
-                ?sensor wifire:hasLocationData ?sensor_loc .
-                ?sensor_loc wifire:latitude ?sensor_lat ;
-                          wifire:longitude ?sensor_lon .
-            }
-        }
+        OPTIONAL { ?area wifire:hasPlot ?plot . }
+        OPTIONAL { ?area wifire:hasFireIgnitionSensor ?sensor . }
     }
 } 

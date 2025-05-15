@@ -110,6 +110,19 @@ def process_and_load_data():
         df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
         print(f"Loaded {len(df)} plot metrics from S3")
         
+        # Parse latlon string into separate latitude and longitude columns
+        def parse_latlon(latlon_str):
+            try:
+                # Remove brackets and split by comma
+                coords = latlon_str.strip('[]').split(',')
+                # Convert to float and return as tuple (latitude, longitude)
+                return float(coords[0].strip()), float(coords[1].strip())
+            except (ValueError, IndexError, AttributeError):
+                return None, None
+
+        # Apply the parsing function to create new columns
+        df[['Latitude', 'Longitude']] = df['latlon'].apply(parse_latlon).apply(pd.Series)
+        
         def parse_plot_info(plot_id):
             # Parse plot ID into components: base_name, date, sequence
             parts = plot_id.rsplit('_', 2)
@@ -262,12 +275,23 @@ def process_and_load_data():
                     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                     
                     INSERT DATA {{ 
-                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal> {{
+                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {{
                             # Main PlotMetrics instance
                             wifire:plot_{plot_id} rdf:type wifire:PlotMetrics ;
                                 rdfs:label "Plot Metrics" ;
                                 rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" ;
-                                wifire:plotName "{plot_id}"^^xsd:string .
+                                wifire:plotName "{plot_id}"^^xsd:string ;
+                                wifire:plotDate "{plot['date_str']}"^^xsd:date .
+                            
+                            # LocationDataPlot
+                            wifire:location_{plot_id} rdf:type wifire:LocationDataPlot ;
+                                rdfs:label "Location Data Plot" ;
+                                rdfs:comment "Represents location data related to a plot's geographic coordinates" ;
+                                wifire:plotLongitude "{plot['Longitude']}"^^xsd:float ;
+                                wifire:plotLatitude "{plot['Latitude']}"^^xsd:float .
+                            
+                            # Link PlotMetrics to LocationDataPlot
+                            wifire:plot_{plot_id} wifire:hasLocationDataPlot wifire:location_{plot_id} .
                             
                             # Temporal relationships
                             {' '.join(f'wifire:plot_{plot_id} wifire:lastMetrics wifire:plot_{last_plot} .' for last_plot in temporal_relations[plot_id]["last"]) if plot_id in temporal_relations else ''}
