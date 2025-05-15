@@ -68,7 +68,7 @@ handle_secrets() {
     local manifest_path=$1
     local temp_manifest=$(mktemp)
     
-    # Function to get and encode secret value
+    # Function to get secret value from environment or .env file
     get_secret_value() {
         local secret_name=$1
         local value
@@ -82,27 +82,21 @@ handle_secrets() {
         fi
         
         # If still not found, return empty
-        if [ -z "$value" ]; then
-            echo "Error: Empty value for $secret_name in .env or environment variables" >&2 # Updated error message
-            # Optionally, you might want to exit here if a secret is critical
-            # exit 1 
-        fi
-        echo -n "$value" | base64 | tr -d '\n'
+        echo "$value"
     }
     
-    # Process each line of the manifest
+    # Read the manifest and substitute secrets
     while IFS= read -r line; do
         if [[ $line =~ \$\{([A-Z_]+)\} ]]; then
             secret_name="${BASH_REMATCH[1]}"
-            encoded_value=$(get_secret_value "$secret_name")
+            secret_value=$(get_secret_value "$secret_name")
             
-            echo "DEBUG: Processing ${secret_name} -> Raw: '${value}' | Encoded: '${encoded_value}'" >&2
-            
-            if [ -z "$encoded_value" ]; then
+            if [ -z "$secret_value" ]; then
                 echo "Warning: Secret $secret_name not found in environment or .env file"
                 echo "$line" >> "$temp_manifest"
             else
-                # Replace placeholder with encoded value
+                # Base64 encode the secret value
+                encoded_value=$(echo -n "$secret_value" | base64)
                 echo "$line" | sed "s/\${$secret_name}/$encoded_value/" >> "$temp_manifest"
             fi
         else
@@ -138,19 +132,11 @@ deploy_langgraph() {
     local namespace="wifire-kg"
     local registry="gitlab-registry.nrp-nautilus.io"
     local image_name="wildfire-kg/wildfire-kg"
-    local timestamp=$(TZ='America/Los_Angeles' date '+%Y%m%d-%H%M')  # e.g., 20240315-0921
-    local image_tag="langgraph-${env}-${timestamp}"  # e.g., langgraph-dev-20240315-0921
+    local image_tag="langgraph-${env}"
     local full_image_name="${registry}/${image_name}:${image_tag}"
     local api_dir="${PROJECT_ROOT}/applications/wildfire-kg-api"
 
     echo "Deploying LangGraph to ${env} environment..."
-    echo "Image will be tagged as: ${image_tag}"
-
-    # Check if GitLab credentials are set
-    if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
-        echo "Error: GitLab credentials not found. Please set GITLAB_USER and GITLAB_PASSWORD in .env file"
-        exit 1
-    fi
 
     # Check if the API directory exists
     if [ ! -d "$api_dir" ]; then
@@ -161,18 +147,25 @@ deploy_langgraph() {
     # Change to the API directory
     cd "$api_dir"
 
-    # Login to GitLab registry
-    echo "Logging in to GitLab registry..."
-    echo "$GITLAB_PASSWORD" | docker login ${registry} -u $GITLAB_USER --password-stdin
+    # Create langgraph.json if it doesn't exist
+    if [ ! -f "langgraph.json" ]; then
+        echo "Creating langgraph.json configuration..."
+        cat > langgraph.json << EOF
+{
+    "host": "0.0.0.0",
+    "port": 8000,
+    "log_level": "info",
+    "workers": 4,
+    "timeout": 300,
+    "max_requests": 1000,
+    "max_requests_jitter": 50
+}
+EOF
+    fi
 
-    # Build the Docker image for x86_64 platform with no cache
+    # Build the Docker image for x86_64 platform
     echo "Building LangGraph image for x86_64 platform..."
-    docker buildx build \
-      --platform linux/amd64 \
-      --no-cache \
-      --build-arg PYTHON_ENV=production \
-      -t ${full_image_name} \
-      --push .
+    docker buildx build --platform linux/amd64 -t ${full_image_name} --build-arg PYTHON_ENV=production --push .
 
     # Check if the build was successful
     if [ $? -ne 0 ]; then
@@ -184,63 +177,12 @@ deploy_langgraph() {
     # Return to the project root
     cd "${PROJECT_ROOT}"
 
-    # Handle langgraph secrets and environment substitution
-    local langgraph_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/langgraph-secrets.yaml"
-    local langgraph_secrets_manifest=$(handle_secrets "$langgraph_secrets_manifest_path")
-    
-    echo "Generated secrets manifest contents:"
-    cat "$langgraph_secrets_manifest"
-    
-    # Force delete and recreate secrets
-    echo "Deleting existing langgraph-secrets..."
-    kubectl delete secret langgraph-secrets --namespace $NAMESPACE --ignore-not-found
-    sleep 2  # Wait for secret to be fully removed
-    
-    echo "Creating fresh langgraph-secrets..."
-    kubectl apply -f "$langgraph_secrets_manifest"
-    
-    # Verify secret creation
-    if ! kubectl get secret langgraph-secrets --namespace $NAMESPACE > /dev/null 2>&1; then
-        echo "Error: Failed to recreate langgraph-secrets"
-        exit 1
-    fi
-
     # Handle secrets and environment substitution
-    local manifest_path="${PROJECT_ROOT}/iac/manifests/langgraph.yaml"
+    local manifest_path="iac/manifests/langgraph.yaml"
     local temp_manifest=$(handle_secrets "$manifest_path")
     
     # Replace ENV_PLACEHOLDER with the actual environment
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS requires an empty string for -i
-        sed -i '' "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
-        
-        # For production, update the host to remove the environment prefix
-        if [ "$env" = "prod" ]; then
-            sed -i '' 's/langgraph-prod.nrp-nautilus.io/langgraph.nrp-nautilus.io/g' "${temp_manifest}"
-        fi
-    else
-        # Linux version
-        sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
-        
-        # For production, update the host to remove the environment prefix
-        if [ "$env" = "prod" ]; then
-            sed -i 's/langgraph-prod.nrp-nautilus.io/langgraph.nrp-nautilus.io/g' "${temp_manifest}"
-        fi
-    fi
-
-    # Update the image tag in the manifest
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS version
-        sed -i '' "s|:langgraph-${env}|:${image_tag}|" "${temp_manifest}"
-    else
-        # Linux version
-        sed -i "s|:langgraph-${env}|:${image_tag}|" "${temp_manifest}"
-    fi
-
-    # Debug: Print the manifest contents before deploying
-    echo "=== Manifest contents before deployment ==="
-    cat "${temp_manifest}"
-    echo "=== End of manifest contents ==="
+    sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
 
     # Apply the manifest
     if [ "$clean" = true ]; then
@@ -251,15 +193,6 @@ deploy_langgraph() {
 
     echo "Applying LangGraph manifest..."
     kubectl apply -f "${temp_manifest}"
-
-    # Force a rollout restart to ensure new image is pulled
-    echo "Forcing rollout restart to ensure new image is pulled..."
-    kubectl rollout restart deployment/langgraph -n ${namespace}
-
-    # Debug: Check the image being used by the deployment
-    echo "=== Current deployment image ==="
-    kubectl get deployment langgraph -n ${namespace} -o=jsonpath='{.spec.template.spec.containers[0].image}'
-    echo "=== End of current deployment image ==="
 
     # Wait for deployment to be ready
     echo "Waiting for LangGraph deployment to be ready..."
@@ -279,7 +212,6 @@ deploy_langgraph() {
     rm "${temp_manifest}"
 
     echo "LangGraph deployment completed and ready!"
-    echo "Deployed image: ${full_image_name}"
 }
 
 # Function to deploy a component
@@ -352,12 +284,6 @@ deploy_component() {
 # Function to deploy frontend
 deploy_frontend() {
     local env=$1
-    local registry="gitlab-registry.nrp-nautilus.io"
-    local image_name="wildfire-kg/wildfire-kg/frontend"
-    local timestamp=$(TZ='America/Los_Angeles' date '+%Y%m%d-%H%M')  # e.g., 20240315-0921
-    local image_tag="frontend-${env}-${timestamp}"  # e.g., frontend-dev-20240315-0921
-    local full_image_name="${registry}/${image_name}:${image_tag}"
-    local frontend_dir="${PROJECT_ROOT}/applications/wildfire-kg-frontend"
     
     # Check if GitLab credentials are set
     if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
@@ -366,39 +292,9 @@ deploy_frontend() {
     fi
     
     echo "Building and deploying frontend for $env environment..."
-    echo "Image will be tagged as: ${image_tag}"
-    
-    # Check if the frontend directory exists
-    if [ ! -d "$frontend_dir" ]; then
-        echo "Error: Frontend directory not found at $frontend_dir"
-        exit 1
-    fi
     
     # Navigate to the frontend directory
-    cd "$frontend_dir"
-    
-    # Login to GitLab registry
-    echo "Logging in to GitLab registry..."
-    echo "$GITLAB_PASSWORD" | docker login ${registry} -u $GITLAB_USER --password-stdin
-    
-    # Build the Docker image for x86_64 platform with no cache
-    echo "Building frontend image for x86_64 platform..."
-    docker buildx build \
-      --platform linux/amd64 \
-      --no-cache \
-      --build-arg NEXT_PUBLIC_API_URL="https://langgraph-${env}-wifire-kg.nrp-nautilus.io" \
-      -t ${full_image_name} \
-      --push .
-    
-    # Check if the build was successful
-    if [ $? -ne 0 ]; then
-        echo "Error: Frontend image build failed"
-        cd "${PROJECT_ROOT}"
-        exit 1
-    fi
-    
-    # Return to the project root
-    cd "${PROJECT_ROOT}"
+    cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
     
     # Clean up existing deployment if --clean flag is set
     if [ "$CLEAN" = true ]; then
@@ -416,45 +312,14 @@ deploy_frontend() {
     TEMP_MANIFEST=$(mktemp)
     cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
     
-    # Update the image tag in the manifest
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS version
-        sed -i '' "s|:IMAGE_TAG|:${image_tag}|" "$TEMP_MANIFEST"
-    else
-        # Linux version
-        sed -i "s|:IMAGE_TAG|:${image_tag}|" "$TEMP_MANIFEST"
-    fi
-    
     # For production, update the host to remove the environment prefix
     if [ "$env" = "prod" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS version
-            sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
-            sed -i '' 's/langgraph-prod-wifire-kg.nrp-nautilus.io/langgraph-wifire-kg.nrp-nautilus.io/g' "$TEMP_MANIFEST"
-        else
-            # Linux version
-            sed -i 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
-            sed -i 's/langgraph-prod-wifire-kg.nrp-nautilus.io/langgraph-wifire-kg.nrp-nautilus.io/g' "$TEMP_MANIFEST"
-        fi
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
     fi
     
-    # Debug: Print the manifest contents before deploying
-    echo "=== Manifest contents before deployment ==="
-    cat "$TEMP_MANIFEST"
-    echo "=== End of manifest contents ==="
-    
     # Deploy frontend
-    echo "Deploying frontend with image: ${full_image_name}"
+    echo "Deploying frontend..."
     kubectl apply -f "$TEMP_MANIFEST"
-    
-    # Force a rollout restart to ensure new image is pulled
-    echo "Forcing rollout restart to ensure new image is pulled..."
-    kubectl rollout restart deployment/wildfire-kg-frontend-${env} -n $NAMESPACE
-    
-    # Debug: Check the image being used by the deployment
-    echo "=== Current deployment image ==="
-    kubectl get deployment wildfire-kg-frontend-${env} -n $NAMESPACE -o=jsonpath='{.spec.template.spec.containers[0].image}'
-    echo "=== End of current deployment image ==="
     
     # Clean up temporary file
     rm "$TEMP_MANIFEST"
@@ -477,7 +342,6 @@ deploy_frontend() {
     
     echo "Frontend deployment completed successfully!"
     echo "You can access the frontend at: ${url}"
-    echo "Deployed image: ${full_image_name}"
 }
 
 # Function to deploy supabase
@@ -506,7 +370,6 @@ deploy_supabase() {
     fi
     
     # Handle secrets and environment substitution
-    local supabase_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/supabase-secrets.yaml"
     local manifest_path="${PROJECT_ROOT}/iac/manifests/supabase.yaml"
     local temp_manifest=$(handle_secrets "$manifest_path")
     

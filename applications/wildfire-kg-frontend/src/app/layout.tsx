@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Wildfire Knowledge Graph",
+  title: "Wildfire KG test",
   description: "Knowledge Graph interface for Wildfire data",
 };
 

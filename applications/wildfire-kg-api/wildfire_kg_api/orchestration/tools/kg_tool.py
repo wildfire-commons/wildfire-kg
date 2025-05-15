@@ -59,7 +59,7 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
 
         # Connection parameters
         graphdb_url = os.getenv(
-            "GRAPHDB_URL", "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
+            "GRAPHDB_URL", "https://graphdb-dev-wildfire-kg.nrp-nautilus.io/"
         )
         graphdb_repository = os.getenv("GRAPHDB_REPOSITORY", "wildfire-kg")
 

@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { generateId } from '@/utils/id';
 import { Message } from '@/types/chat';
-
-const GRAPH_NAME = 'wildfire-kg';
 
 interface ChatContext {
   kg_results?: any;
@@ -12,10 +10,36 @@ interface ChatContext {
   weather_results?: any;
 }
 
-interface ExtendedMessage extends Message {
-  content?: string;
-  text: string;
+const LANGGRAPH_URL = 'https://langgraph-dev-e0739bb8a8e8568a9c741dd43a8b37c8.us.langgraph.app';
+const API_KEY = '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';
+const GRAPH_NAME = 'wildfire-kg';
+
+interface StreamData {
   type?: string;
+  values?: {
+    messages?: string;
+    response?: string;
+    kg_results?: any;
+    rag_results?: any;
+    weather_results?: any;
+    error?: string;
+    metadata?: any;
+  };
+  error?: {
+    error: string;
+    message: string;
+  };
+}
+
+interface ThinkingStep {
+  id: string;
+  type: string;
+  content: any;
+  timestamp: Date;
+}
+
+interface ExtendedMessage extends Message {
+  thinkingSteps?: ThinkingStep[];
 }
 
 export default function ChatPage() {
@@ -24,67 +48,25 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [context, setContext] = useState<ChatContext | null>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
-  const [showReasoning, setShowReasoning] = useState(false);
-  const [pendingUserMessage, setPendingUserMessage] = useState<ExtendedMessage | null>(null);
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
-  function splitMessages(messages: any[], pendingMsg: any) {
-    // Insert pending user message if present and not already in messages
-    let allMessages = messages;
-    if (pendingMsg && !messages.some(m => m.content === pendingMsg.content && m.sender === 'user')) {
-      allMessages = [pendingMsg, ...messages];
-    }
-    const filtered = allMessages.filter(
-      (msg, idx, arr) =>
-        (msg.type === 'human' || msg.sender === 'user') ||
-        (msg.content && msg.content.trim() !== '') &&
-        // Deduplicate by content and sender
-        arr.findIndex(m => m.content === msg.content && m.sender === msg.sender) === idx
-    );
-    let finalIdx = -1;
-    for (let i = filtered.length - 1; i >= 0; i--) {
-      const msg = filtered[i];
-      if ((msg.type === "ai" || msg.type === "tool" || msg.sender === "assistant") && msg.content && msg.content.trim() !== "") {
-        finalIdx = i;
-        break;
-      }
-    }
-    if (finalIdx === -1) return { reasoning: filtered, final: null };
-    return {
-      reasoning: filtered.slice(0, finalIdx),
-      final: filtered[finalIdx]
-    };
-  }
-
-  const createThread = async (userInput: string) => {
+  const createThread = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads`, {
+      const response = await fetch(`${LANGGRAPH_URL}/threads`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
         },
-        body: JSON.stringify({
-          initial_message: userInput
-        })
+        body: JSON.stringify({})
       });
-      if (!response.ok) throw new Error('Failed to create thread');
+
+      if (!response.ok) {
+        throw new Error('Failed to create thread');
+      }
+
       const data = await response.json();
       setThreadId(data.thread_id);
-      if (data.messages) {
-        setMessages(prev => {
-          // Remove any pending user message with same content
-          return [
-            ...prev.filter((msg) => msg.sender === 'user' && msg.content !== userInput),
-            ...data.messages
-          ];
-        });
-      }
-      if (data.kg_results || data.rag_results || data.weather_results) {
-        setContext({
-          kg_results: data.kg_results,
-          rag_results: data.rag_results,
-          weather_results: data.weather_results
-        });
-      }
       return data.thread_id;
     } catch (error) {
       console.error('Failed to create thread:', error);
@@ -92,138 +74,255 @@ export default function ChatPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-    const userMessage: ExtendedMessage = {
-      id: generateId(),
-      content: input,
-      text: input,
-      sender: 'user',
-      type: 'human',
-      timestamp: new Date(),
-    };
-    setPendingUserMessage(userMessage);
-    setInput('');
-    setLoading(true);
-    try {
-      let backendMessages: any[] = [];
-      if (!threadId) {
-        const newThreadId = await createThread(input);
-        setThreadId(newThreadId);
-        setPendingUserMessage(null);
-        setLoading(false);
-        return;
+  // Create a new thread when the component mounts
+  useEffect(() => {
+    createThread();
+  }, []);
+
+  const toggleThinkingStep = (messageId: string) => {
+    setExpandedSteps(prev => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
       } else {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            assistant_id: GRAPH_NAME,
-            input: {
-              user_query: input,
-              history: messages.map((msg) => ({
-                id: msg.id,
-                text: msg.content || msg.text,
-                sender: msg.sender,
-                timestamp: msg.timestamp?.toISOString?.() || ''
-              }))
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
+
+  const handleStreamResponse = async (response: Response) => {
+    const reader = response.body?.getReader();
+    if (!reader) return;
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          if (line.startsWith('event: ')) {
+            const eventType = line.slice(7).trim();
+            const dataLine = lines.find(l => l.startsWith('data:'));
+            if (!dataLine) continue;
+
+            try {
+              const data = JSON.parse(dataLine.slice(5));
+
+              if (eventType === 'values' && data.messages?.[0]?.content) {
+                // Update the final response text
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage && lastMessage.sender === 'assistant') {
+                    lastMessage.text = data.messages[0].content;
+                  }
+                  return newMessages;
+                });
+
+                // Store results in context if available
+                if (data.kg_results || data.rag_results || data.weather_results) {
+                  setContext({
+                    kg_results: data.kg_results,
+                    rag_results: data.rag_results,
+                    weather_results: data.weather_results
+                  });
+                }
+              }
+              // Temporarily skip storing thinking steps
+              // else if (eventType === 'messages/partial') {
+              //   // Store thinking steps logic here
+              // }
+            } catch (e) {
+              console.error('Error parsing stream data:', e);
             }
-          }),
-        });
-        if (!response.ok) throw new Error('Failed to get response');
-        const data = await response.json();
-        backendMessages = data.messages || [];
-        setMessages((prev) => {
-          // Remove any pending user message with same content
-          return [
-            ...prev.filter((msg) => msg.sender === 'user' && msg.content !== input),
-            ...backendMessages
-          ];
-        });
-        setPendingUserMessage(null);
-        if (data.kg_results || data.rag_results || data.weather_results) {
-          setContext({
-            kg_results: data.kg_results,
-            rag_results: data.rag_results,
-            weather_results: data.weather_results
-          });
+          }
         }
       }
     } catch (error) {
+      console.error('Error reading stream:', error);
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    // If no thread exists, create one before sending the message
+    if (!threadId) {
+      const newThreadId = await createThread();
+      if (!newThreadId) {
+        setMessages(prev => [...prev, {
+          id: generateId(),
+          text: 'Sorry, I encountered an error creating the conversation. Please try again.',
+          sender: 'assistant',
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+    }
+
+    const userMessage: ExtendedMessage = {
+      id: generateId(),
+      text: input,
+      sender: 'user',
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Add a placeholder message for the assistant's response
+    setMessages(prev => [...prev, {
+      id: generateId(),
+      text: '',
+      sender: 'assistant',
+      timestamp: new Date(),
+    }]);
+    
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${LANGGRAPH_URL}/threads/${threadId}/runs/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
+        body: JSON.stringify({
+          assistant_id: GRAPH_NAME,
+          input: {
+            user_query: input,
+            history: messages.map(msg => ({
+              id: msg.id,
+              text: msg.text,
+              sender: msg.sender,
+              timestamp: msg.timestamp.toISOString()
+            }))
+          },
+          stream_mode: ['values', 'messages']
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      await handleStreamResponse(response);
+
+    } catch (error) {
       console.error('Chat error:', error);
-      setMessages((prev) => {
+      setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage && lastMessage.sender === 'assistant') {
-          lastMessage.content = 'Sorry, I encountered an error. Please try again.';
+          lastMessage.text = 'Sorry, I encountered an error. Please try again.';
         }
         return newMessages;
       });
-      setPendingUserMessage(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const { reasoning, final } = splitMessages(messages, pendingUserMessage);
-  // Extract all user messages for chat bubbles, ordered chronologically
-  const userMessages = [
-    ...messages.filter((msg) => msg.sender === 'user' || msg.type === 'human'),
-    ...(pendingUserMessage ? [pendingUserMessage] : [])
-  ]
-    .filter((msg, idx, arr) => arr.findIndex(m => m.content === msg.content && m.sender === msg.sender) === idx)
-    .sort((a, b) => {
-      const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-      return aTime - bTime;
-    });
+  const renderThinkingSteps = (steps: ThinkingStep[]) => {
+    return steps.map(step => (
+      <div key={step.id} className="ml-4 mt-2 text-sm">
+        <div className="text-gray-500 italic">
+          {step.type === 'thinking' && (
+            <div>
+              {step.content.text && <div>{step.content.text}</div>}
+              {step.content.tool_calls && (
+                <div className="mt-1">
+                  <span className="font-medium">Tool Calls:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.tool_calls, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+          {step.type === 'results' && (
+            <div>
+              {step.content.kg_results && (
+                <div className="mt-1">
+                  <span className="font-medium">Knowledge Graph Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.kg_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {step.content.rag_results && (
+                <div className="mt-1">
+                  <span className="font-medium">RAG Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.rag_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {step.content.weather_results && (
+                <div className="mt-1">
+                  <span className="font-medium">Weather Results:</span>
+                  <pre className="bg-gray-50 p-2 mt-1 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(step.content.weather_results, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    ));
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-4">
       <div className="flex flex-col h-[calc(100vh-8rem)]">
         <div className="flex-1 overflow-y-auto mb-4 space-y-4">
-          {/* User chat bubbles */}
-          {userMessages.map((msg) => (
-            <div key={msg.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-lg p-4 bg-blue-600 text-white">
-                <p>{msg.content}</p>
-                <p className="text-xs mt-2 opacity-70">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</p>
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${
+                message.sender === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-4 ${
+                  message.sender === 'user'
+                    ? 'bg-[#03619B] text-white'
+                    : 'bg-gray-100'
+                }`}
+              >
+                <p>{message.text}</p>
+                <p className="text-xs mt-2 opacity-70">
+                  {message.timestamp.toLocaleTimeString()}
+                </p>
+                {/* Temporarily hide thinking steps
+                {message.thinkingSteps && message.thinkingSteps.length > 0 && (
+                  <div className="mt-2 border-t border-gray-200 pt-2">
+                    <button
+                      onClick={() => toggleThinkingStep(message.id)}
+                      className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                    >
+                      <span className="mr-1">
+                        {expandedSteps.has(message.id) ? '▼' : '▶'}
+                      </span>
+                      Show thinking steps ({message.thinkingSteps.length})
+                    </button>
+                    {expandedSteps.has(message.id) && renderThinkingSteps(message.thinkingSteps)}
+                  </div>
+                )}
+                */}
               </div>
             </div>
           ))}
-          {/* Final Answer */}
-          {final && (
-            <div className="bg-green-50 p-4 rounded mb-2">
-              <div>{final.content || <em>[no content]</em>}</div>
-              <p className="text-xs mt-2 opacity-70">{final.timestamp ? new Date(final.timestamp).toLocaleTimeString() : ''}</p>
-            </div>
-          )}
-          {/* Reasoning Steps (expandable) */}
-          {reasoning.length > 0 && (
-            <div className="mb-2">
-              <button
-                className="text-gray-500 underline mb-2"
-                onClick={() => setShowReasoning((v) => !v)}
-              >
-                {showReasoning ? "Hide Reasoning Steps" : "Show Reasoning Steps"}
-              </button>
-              {showReasoning && (
-                <div className="bg-gray-50 p-4 rounded">
-                  <strong className="block mb-2">Reasoning Steps:</strong>
-                  <ul className="list-disc ml-6 text-sm text-gray-600">
-                    {reasoning.map((msg, idx) => (
-                      <li key={msg.id || idx} className="text-gray-500 text-xs">
-                        <span className="font-mono text-xs text-gray-400">{msg.type || msg.sender}</span>: {msg.content || <em>[no content]</em>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
           {loading && (
             <div className="flex justify-start">
               <div className="bg-gray-100 rounded-lg p-4">
@@ -236,6 +335,7 @@ export default function ChatPage() {
             </div>
           )}
         </div>
+
         {context && (
           <div className="mb-4 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-semibold mb-2">Results:</h3>
@@ -267,12 +367,13 @@ export default function ChatPage() {
             </div>
           </div>
         )}
+
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about prescribed burns and wildfires..."
+            placeholder="Ask about wildfire data..."
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#03619B]"
             disabled={loading}
           />

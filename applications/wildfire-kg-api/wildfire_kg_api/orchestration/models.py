@@ -59,6 +59,7 @@ AGENT_COMPATIBLE_MODELS = [
 BEST_MODEL_FALLBACK = {
     "agent": {
         "model": "llama3-sdsc",
+        #"model": "gpt-4o",
         "temperature": 0.0,
     },
     "kg_tool": {
@@ -69,10 +70,10 @@ BEST_MODEL_FALLBACK = {
     #     "model": "llama3",
     #     "temperature": 0.0,
     # },
-    # "weather_tool": {
-    #     "model": "llama3",
-    #     "temperature": 0.0,
-    # },
+    #"weather_tool": {
+    #    "model": "gpt-4o",
+    #    "temperature": 0.0,
+    #},
 }
 
 
