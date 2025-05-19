@@ -42,11 +42,11 @@ DATA_PATH = "../../data/evaluation"
 # CONFIGURATION INPUTS
 # ============================================================================
 # Models that can be used as agents (must support ReAct pattern)
-AGENT_MODELS_TO_TEST = AGENT_COMPATIBLE_MODELS
+# AGENT_MODELS_TO_TEST = AGENT_COMPATIBLE_MODELS
 AGENT_MODELS_TO_TEST = ["llama3-sdsc"]
 
 # Models that can be used for knowledge graph tools (don't need ReAct pattern)
-KG_MODELS_TO_TEST = AVAILABLE_MODELS  # All models can be used for KG tools
+# KG_MODELS_TO_TEST = AVAILABLE_MODELS  # All models can be used for KG tools
 KG_MODELS_TO_TEST = ["DeepSeek-R1-Distill-Qwen-32B"]
 
 # Temperatures to test
@@ -152,10 +152,15 @@ datasets = [
     #     "data_path": f"{DATA_PATH}/kg/vegetation_metrics.jsonl",
     # },
     {
-        "name": "quick-test",
-        "description": "Quick test dataset",
-        "data_path": f"{DATA_PATH}/test/quick_test.jsonl",
+        "name": "basic-web-search",
+        "description": "Basic web search evaluation dataset",
+        "data_path": f"{DATA_PATH}/web_search/basic_web_search.jsonl",
     },
+    # {
+    #     "name": "quick-test",
+    #     "description": "Quick test dataset",
+    #     "data_path": f"{DATA_PATH}/test/quick_test.jsonl",
+    # },
 ]
 
 # %% [markdown]
@@ -653,7 +658,7 @@ async def run_experiments():
                 "agent_temperature_config": agent_temp_config_val,
                 "kg_temperature_config": kg_temp_config_val,
             },
-            num_repetitions=10,
+            num_repetitions=2,
             max_concurrency=4,
         )
         print(
