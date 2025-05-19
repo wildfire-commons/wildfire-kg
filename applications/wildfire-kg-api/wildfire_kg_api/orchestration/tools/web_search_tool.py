@@ -24,6 +24,7 @@ def web_search() -> BaseTool:
     logger.debug("Initializing Tavily search with basic depth and 3 results limit")
     # Create Tavily search instance
     return TavilySearch(
+        name="web_search",  # This is the name the agent will see and use
         api_key=tavily_api_key,
         max_results=3,  # Limit to fewer results for focused responses
         search_depth="basic",  # Use basic depth for faster results

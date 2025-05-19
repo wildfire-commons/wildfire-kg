@@ -21,7 +21,7 @@ from wildfire_kg_api.orchestration.tools import (
     get_weather,
     web_search,
 )
-from wildfire_kg_api.orchestration.prompts import get_prompt
+from wildfire_kg_api.orchestration.prompts import get_prompt, refresh_prompts
 from wildfire_kg_api.orchestration.logger import setup_logger, get_logger
 from wildfire_kg_api.orchestration.models import (
     AVAILABLE_MODELS,
@@ -29,12 +29,14 @@ from wildfire_kg_api.orchestration.models import (
     is_openai_model,
     get_default_temperature,
     is_agent_compatible,
+    get_llm_params_for_model,
 )
 
 # Load environment variables
 load_dotenv()
 
 # Initialize logger
+setup_logger(verbose=True)
 logger = get_logger("agent")
 
 
@@ -104,7 +106,9 @@ def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
             },
         )
     else:
-        logger.info(f"Creating graph with provided config: {config}")
+        logger.info(f"Creating graph with provided config.")
+
+    logger.info(f"Graph config: {config}")
 
     # Get runtime settings from config
     agent_model_name = config["configurable"].get(
@@ -117,52 +121,58 @@ def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
         logger.error(error_msg)
         raise ModelCompatibilityError(error_msg)
 
-    # First check config, then BEST_MODEL_FALLBACK, then model's default temperature
-    agent_temperature = config["configurable"].get(
-        "agent_temperature",
-        BEST_MODEL_FALLBACK["agent"].get(
-            "temperature", get_default_temperature(agent_model_name)
-        ),
-    )
+    # Determine agent_temperature:
+    # 1. From config's "agent_temperature"
+    # 2. From BEST_MODEL_FALLBACK for the agent
+    # 3. Default temperature from the model itself (via get_default_temperature, which can be None)
+    agent_temperature_config = config["configurable"].get("agent_temperature")
+    if agent_temperature_config is None:
+        agent_temperature_config = BEST_MODEL_FALLBACK["agent"].get("temperature")
+    # Note: agent_temperature_config can still be None here if not in BEST_MODEL_FALLBACK
+    # get_llm_params_for_model will handle None temperature_override correctly
+
     verbose = config["configurable"].get("verbose", False)
 
     # Set up logger based on verbose flag
     setup_logger(verbose=verbose)
     logger.info(
-        f"Creating ReAct agent with model: {agent_model_name}, temperature: {agent_temperature}"
+        f"Attempting to create ReAct agent with model: {agent_model_name}, requested temperature: {agent_temperature_config}"
     )
 
-    # Initialize the LLM with config
-    llm_params = {
-        "temperature": agent_temperature,
-        "callbacks": config.get("callbacks", []),
-        "tags": config.get("tags", []),
-        "metadata": config.get("metadata", {}),
-        "verbose": verbose,  # Pass verbose flag to LLM
-    }
+    # Initialize the LLM with config using the new helper
+    llm_params = get_llm_params_for_model(
+        model_name=agent_model_name,
+        temperature_override=agent_temperature_config,
+        callbacks=config.get("callbacks", []),
+        tags=config.get("tags", []),
+        metadata=config.get("metadata", {}),
+        verbose=verbose,  # Pass verbose flag to LLM if it supports it (ChatOpenAI does)
+    )
 
-    # Choose between OpenAI and LiteLLM models
-    if is_openai_model(agent_model_name):
-        logger.info(f"Using OpenAI model: {agent_model_name}")
-        llm_params["model"] = agent_model_name
-        # For OpenAI models, use the real OpenAI API key and base URL
-        llm_params["api_key"] = os.getenv("OPENAI_API_KEY")
-    else:
-        logger.info(f"Using LiteLLM model: {agent_model_name}")
-        llm_params["model"] = agent_model_name
-        llm_params["openai_api_base"] = os.getenv("LITELLM_BASE_URL")
-        llm_params["api_key"] = os.getenv("LITELLM_API_KEY")
-
+    logger.info(f"Final LLM params for agent: {llm_params}")
     llm = ChatOpenAI(**llm_params)
 
     # Get all tools
     tools = get_all_tools()
 
-    # Get the prompt template
-    agent_prompt = get_prompt("agents.agent_prompt").template
+    # Initialize and get the prompt template
+    try:
+        # Force refresh of prompts to ensure they're loaded
+        refresh_prompts()
+        agent_prompt = get_prompt("agents.agent_prompt").template
+        if agent_prompt is None:
+            error_msg = "Failed to load agent prompt template. Please check that the prompt file exists and is correctly formatted."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
-    # Create and return the ReAct agent
-    return create_react_agent(llm, tools, prompt=agent_prompt)
+        logger.debug("Successfully loaded agent prompt template")
+
+        # Create and return the ReAct agent
+        return create_react_agent(llm, tools, prompt=agent_prompt)
+    except Exception as e:
+        error_msg = f"Error initializing agent prompts: {str(e)}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
 
 
 def process_message(

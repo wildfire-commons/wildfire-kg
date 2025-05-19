@@ -16,6 +16,7 @@ from wildfire_kg_api.orchestration.models import (
     BEST_MODEL_FALLBACK,
     is_openai_model,
     get_default_temperature,
+    get_llm_params_for_model,
 )
 
 # Initialize logger
@@ -41,17 +42,22 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
 
     try:
         # Get model settings from config or use defaults
-        model_name = config["configurable"].get(
+        kg_model_name = config["configurable"].get(
             "kg_model_name", BEST_MODEL_FALLBACK["kg_tool"]["model"]
         )
-        # First check config, then BEST_MODEL_FALLBACK, then model's default temperature
-        temperature = config["configurable"].get(
-            "kg_temperature",
-            BEST_MODEL_FALLBACK["kg_tool"].get(
-                "temperature", get_default_temperature(model_name)
-            ),
-        )
-        verbose = config["configurable"].get("verbose", False)
+
+        # Determine temperature for KG tool:
+        # 1. From config's "kg_temperature"
+        # 2. From BEST_MODEL_FALLBACK for the kg_tool
+        # 3. Default from the model itself (via get_default_temperature)
+        kg_temperature_config = config["configurable"].get("kg_temperature")
+        if kg_temperature_config is None:
+            kg_temperature_config = BEST_MODEL_FALLBACK["kg_tool"].get("temperature")
+        # kg_temperature_config can be None. get_llm_params_for_model will handle this.
+
+        verbose = config["configurable"].get(
+            "verbose", False
+        )  # verbose for QA chain, not directly for LLM here
 
         # Connection parameters
         graphdb_url = os.getenv(
@@ -83,34 +89,24 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
         sparql_fix_prompt = get_prompt("tools.kg.sparql_fix_prompt")
         qa_prompt = get_prompt("tools.kg.qa_prompt")
 
-        # Set up LLM parameters based on model provider
-        llm_params = {
-            "temperature": temperature
-            or BEST_MODEL_FALLBACK["kg_tool"].get(
-                "temperature", get_default_temperature(model_name)
-            ),
-            "verbose": verbose,
-        }
-
-        # Choose between OpenAI and LiteLLM models
-        if is_openai_model(model_name):
-            logger.info(f"KG tool using OpenAI model: {model_name}")
-            llm_params["model"] = model_name
-            # For OpenAI models, use the real OpenAI API key
-            llm_params["api_key"] = os.getenv("OPENAI_API_KEY")
-        else:
-            logger.info(f"KG tool using LiteLLM model: {model_name}")
-            llm_params["model"] = model_name
-            llm_params["openai_api_base"] = os.getenv("LITELLM_BASE_URL")
-            llm_params["api_key"] = os.getenv("LITELLM_API_KEY")
+        # Set up LLM parameters using the helper function
+        logger.info(
+            f"KG tool using model: {kg_model_name}, requested temperature: {kg_temperature_config}"
+        )
+        llm_params = get_llm_params_for_model(
+            model_name=kg_model_name,
+            temperature_override=kg_temperature_config,
+            # No direct callbacks, tags, metadata for this specific LLM instance in the chain yet
+        )
+        logger.info(f"Final LLM params for KG tool QA chain: {llm_params}")
 
         # Initialize the QA chain with all available prompts
         qa_chain = OntotextGraphDBQAChain.from_llm(
             ChatOpenAI(**llm_params),
             graph=graph,
+            verbose=verbose,  # Pass verbose to the chain itself
             return_intermediate_steps=True,
             chain_type="stuff",
-            max_tokens_limit=1000,
             allow_dangerous_requests=True,
             sparql_generation_prompt=sparql_generation_prompt,
             sparql_fix_prompt=sparql_fix_prompt,
@@ -131,7 +127,7 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
 
         # Create a nicely formatted response
         formatted_response = _format_kg_response(
-            answer, query, intermediate_steps, model_name, temperature
+            answer, query, intermediate_steps, kg_model_name, kg_temperature_config
         )
         return formatted_response
 
@@ -186,28 +182,24 @@ def _generate_follow_up_questions(
 ) -> str:
     """Generate follow-up questions based on the query, answer, and context."""
     try:
-        # Set up LLM parameters based on model provider
-        llm_params = {
-            "temperature": temperature
-            or BEST_MODEL_FALLBACK["kg_tool"].get(
-                "temperature", get_default_temperature(model_name)
-            ),
-        }
+        # Determine model and temperature for follow-up questions LLM
+        # Default to the same model as the KG tool or fallback
+        llm_model_name = model_name or BEST_MODEL_FALLBACK["kg_tool"]["model"]
 
-        # Choose between OpenAI and LiteLLM models
-        if model_name and is_openai_model(model_name):
-            logger.info(f"Follow-up questions using OpenAI model: {model_name}")
-            llm_params["model"] = model_name
-            llm_params["api_key"] = os.getenv("OPENAI_API_KEY")
-        else:
-            # Default to the same model as the KG tool or fallback
-            model_to_use = model_name or BEST_MODEL_FALLBACK["kg_tool"]["model"]
-            logger.info(f"Follow-up questions using LiteLLM model: {model_to_use}")
-            llm_params["model"] = model_to_use
-            llm_params["openai_api_base"] = os.getenv("LITELLM_BASE_URL")
-            llm_params["api_key"] = os.getenv("LITELLM_API_KEY")
+        # For temperature, prioritize the passed `temperature` param (which might be from original KG config),
+        # then the model's default. This `temperature` param in _generate_follow_up_questions
+        # effectively acts as temperature_override.
 
-        # Use the same model as the KG tool for consistency
+        logger.info(
+            f"Follow-up questions using model: {llm_model_name}, requested temperature: {temperature}"
+        )
+        llm_params = get_llm_params_for_model(
+            model_name=llm_model_name,
+            temperature_override=temperature,  # The `temperature` argument acts as override
+        )
+        logger.info(f"Final LLM params for follow-up questions: {llm_params}")
+
+        # Use the LLM for consistency
         llm = ChatOpenAI(**llm_params)
 
         # Construct a prompt to generate follow-up questions

@@ -4,12 +4,13 @@ Prompt registry - a central place for accessing prompts.
 
 from typing import Dict, Any, Optional
 from pathlib import Path
-import logging
 import yaml
 
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
+from wildfire_kg_api.orchestration.logger import get_logger
 
-logger = logging.getLogger(__name__)
+# Initialize logger
+logger = get_logger("prompts")
 
 
 class PromptRegistry:
@@ -32,8 +33,9 @@ class PromptRegistry:
     def _initialize(self):
         """Initialize the registry by loading prompts from files."""
         self._prompts: Dict[str, PromptTemplate] = {}
-        # Get the absolute path to the prompts directory using pathlib
-        self._prompts_dir = Path(__file__).resolve().parent
+
+        # Get the absolute path to the prompts directory - this will work whether installed or in development
+        self._prompts_dir = Path(__file__).parent.resolve()
         logger.info(
             f"Initializing prompt registry with prompts directory: {self._prompts_dir}"
         )
@@ -42,23 +44,41 @@ class PromptRegistry:
     def _create_prompt_from_yaml(self, file_path: str) -> PromptTemplate:
         """Create a prompt template from a YAML file."""
         try:
+            logger.debug(f"Loading prompt from file: {file_path}")
             # Load YAML
             with open(file_path, "r") as file:
                 yaml_data = yaml.safe_load(file)
 
+            if not yaml_data:
+                logger.warning(f"Empty or invalid YAML file: {file_path}")
+                return None
+
             template_data = yaml_data.get("template", {})
+            if not template_data:
+                logger.warning(f"No template data found in {file_path}")
+                return None
+
             template_type = template_data.get("type")
 
             # Create appropriate prompt type
-            if template_type == "chat":
+            if template_type == "text":
+                template_str = template_data.get("template", "")
+                if not template_str:
+                    logger.warning(f"Empty template string in {file_path}")
+                    return None
+                return PromptTemplate.from_template(template_str)
+            elif template_type == "chat":
                 messages = template_data.get("messages", [])
+                if not messages:
+                    logger.warning(f"No messages found in chat template: {file_path}")
+                    return None
                 return ChatPromptTemplate.from_messages(
                     [(msg["role"], msg["content"]) for msg in messages]
                 )
-            elif template_type == "text":
-                template_str = template_data.get("template", "")
-                return PromptTemplate.from_template(template_str)
             else:
+                logger.warning(
+                    f"Unsupported template type: {template_type} in {file_path}"
+                )
                 raise ValueError(f"Unsupported template type: {template_type}")
         except Exception as e:
             logger.error(f"Error creating prompt from {file_path}: {e}")
@@ -69,11 +89,19 @@ class PromptRegistry:
         self._prompts = {}
         prompt_dir = self._prompts_dir
 
+        yaml_files = list(prompt_dir.glob("**/*.yaml"))
+
+        if not yaml_files:
+            logger.warning(f"No YAML files found in {prompt_dir} or subdirectories")
+            logger.warning(f"Directory contents: {list(prompt_dir.iterdir())}")
+            return
+
         # Find all YAML files in the prompts directory and subdirectories
-        for file_path in prompt_dir.glob("**/*.yaml"):
+        for file_path in yaml_files:
             try:
                 # Skip hidden files and directories
                 if any(part.startswith(".") for part in file_path.parts):
+                    logger.debug(f"Skipping hidden file/directory: {file_path}")
                     continue
 
                 # Get the relative path from prompts directory
@@ -97,13 +125,23 @@ class PromptRegistry:
                 prompt = self._create_prompt_from_yaml(str(file_path))
                 if prompt:
                     self._prompts[prompt_name] = prompt
-                    logger.info(f"Loaded prompt: {prompt_name} from {file_path}")
-            except Exception as e:
-                logger.error(f"Error loading prompt from {file_path}: {e}")
+                    logger.debug(
+                        f"Successfully loaded prompt: {prompt_name} from {file_path}"
+                    )
+                else:
+                    logger.warning(f"Failed to load prompt from {file_path}")
 
-        logger.info(
-            f"Loaded {len(self._prompts)} prompts: {list(self._prompts.keys())}"
-        )
+            except Exception as e:
+                logger.error(
+                    f"Error loading prompt from {file_path}: {e}", exc_info=True
+                )
+
+        if not self._prompts:
+            logger.warning("No prompts were loaded during refresh!")
+        else:
+            logger.info(
+                f"Successfully loaded {len(self._prompts)} prompts: {list(self._prompts.keys())}"
+            )
 
     def get(self, name: str) -> Optional[PromptTemplate]:
         """
@@ -115,7 +153,12 @@ class PromptRegistry:
         Returns:
             The prompt template or None if not found
         """
-        return self._prompts.get(name)
+        prompt = self._prompts.get(name)
+        if prompt is None:
+            logger.warning(
+                f"Prompt '{name}' not found in registry. Available prompts: {list(self._prompts.keys())}"
+            )  # Enhanced logging
+        return prompt
 
     def list(self, category: Optional[str] = None) -> Dict[str, PromptTemplate]:
         """
@@ -142,6 +185,7 @@ class PromptRegistry:
             prompt: The prompt object
         """
         self._prompts[name] = prompt
+        logger.debug(f"Added prompt '{name}' to registry")
 
 
 # Create the singleton instance

@@ -25,7 +25,7 @@ template:
     3. After getting the tool's response, analyze if it answers the question
     4. If the response answers the question, use it to provide your final answer
     5. If the response doesn't fully answer the question, think about what additional information you need
-    6. Only use another tool if you need different information - don't repeat the same query
+    6. Only use another tool if you need different information - don't repeat the same query with the same tool
 
     Response format:
     - When you get the information needed from tools, respond directly with the answer
