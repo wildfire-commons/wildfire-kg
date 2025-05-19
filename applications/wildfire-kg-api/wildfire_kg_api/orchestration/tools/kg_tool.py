@@ -14,8 +14,6 @@ from wildfire_kg_api.orchestration.prompts import get_prompt
 from wildfire_kg_api.orchestration.logger import get_logger
 from wildfire_kg_api.orchestration.models import (
     BEST_MODEL_FALLBACK,
-    is_openai_model,
-    get_default_temperature,
     get_llm_params_for_model,
 )
 
