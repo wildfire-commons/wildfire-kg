@@ -1,0 +1,77 @@
+template:
+  type: text
+  template: |
+    # NOTE: All curly braces in SPARQL/code examples below are written as double braces ({{ and }}) to avoid variable parsing by the template engine.
+    # When using these examples, replace double braces with single braces to get valid SPARQL syntax.
+    
+    Based on the query type "{query_type}", provide context and example for generating SPARQL queries.
+    
+    Query Type: {query_type}
+    Confidence: {confidence}
+    Reasoning: {reasoning}
+    
+    slope_question:
+      context: "Slope percentage (LF_SLPD) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the slope percentage for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?slopePercentage
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_SLPD ?slopePercentage .
+        }}
+    
+    fuel_model_question:
+      context: "Fuel models (LF_FBFM13, LF_FBFM40) are properties of FireBehaviorMetrics. To access them, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the fuel model 13 for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?fuelModel
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_FBFM13 ?fuelModel .
+        }}
+    
+    elevation_question:
+      context: "Elevation (LF_EVEL) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the elevation for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?elevation
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_EVEL ?elevation .
+        }}
+    
+    aspect_question:
+      context: "Aspect (LF_ASP) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the aspect for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?aspect
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_ASP ?aspect .
+        }}
+    
+    tree_shrub_question:
+      context: "Tree and shrub metrics are properties of TreeShrubMetrics. To access them, you need to use hasTreeShrubMetrics to get from the plot to the metrics."
+      example_query: "How many trees are in plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?treeCount
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasTreeShrubMetrics ?treeShrubMetrics .
+            ?treeShrubMetrics wifire:TreesN ?treeCount .
+        }}
+    
+    vegetation_question:
+      context: "Vegetation metrics are properties of VegetationMetrics. To access them, you need to use hasVegetationMetrics to get from the plot to the metrics."
+      example_query: "What is the leaf area index for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?lai
+        WHERE {{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasVegetationMetrics ?vegetationMetrics .
+            ?vegetationMetrics wifire:LAI ?lai .
+        }} 

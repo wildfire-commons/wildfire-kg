@@ -9,6 +9,8 @@ import os
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain_community.chains.graph_qa.ontotext_graphdb import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
+import json
+from langchain.chains import LLMChain, SequentialChain
 
 from wildfire_kg_api.orchestration.prompts import get_prompt
 
@@ -59,9 +61,49 @@ def query_knowledge_graph(query: str) -> str:
         )
 
         # Get prompt templates from the registry
+        query_classification_prompt = get_prompt("tools.kg.query_classification_prompt")
+        query_context_prompt = get_prompt("tools.kg.query_context_prompt")
         sparql_generation_prompt = get_prompt("tools.kg.sparql_generation_prompt")
         sparql_fix_prompt = get_prompt("tools.kg.sparql_fix_prompt")
         qa_prompt = get_prompt("tools.kg.qa_prompt")
+
+        # LLM for classification/context
+        classifier_llm = ChatOpenAI(
+            temperature=0,
+            model="gpt-3.5-turbo",
+            max_tokens=50,
+            response_format={ "type": "json_object" }
+        )
+        context_llm = ChatOpenAI(
+            temperature=0,
+            model="gpt-3.5-turbo",
+            max_tokens=200
+        )
+
+        # Chain for classification
+        classification_chain = LLMChain(
+            llm=classifier_llm,
+            prompt=query_classification_prompt,
+            output_key="classification_json"
+        )
+
+        # Chain for context (takes classification output)
+        context_chain = LLMChain(
+            llm=context_llm,
+            prompt=query_context_prompt,
+            output_key="context_result"
+        )
+
+        classification_result = classification_chain({"query": query})
+        classification = json.loads(classification_result["classification_json"])
+        context_result = context_chain({
+            "query_type": classification["query_type"],
+            "confidence": classification["confidence"],
+            "reasoning": classification["reasoning"]
+        })
+
+        # Enhance the query with context
+        enhanced_query = f"{query}\n\nContext: {context_result['context_result']}" if context_result['context_result'] else query
 
         # Initialize the QA chain with all available prompts
         qa_chain = OntotextGraphDBQAChain.from_llm(
@@ -84,15 +126,21 @@ def query_knowledge_graph(query: str) -> str:
         )
 
         # Execute the query using the QA chain
-        result = qa_chain.invoke({qa_chain.input_key: query})
+        result = qa_chain.invoke({qa_chain.input_key: enhanced_query})
         answer = result[qa_chain.output_key]
         intermediate_steps = result.get("intermediate_steps", {})
 
         # Get the generated SPARQL query for logging
         sparql_query = intermediate_steps.get("query", "")
-        logger.info(f"Generated SPARQL query: {sparql_query[:200]}...")
+        
+        # Add SPARQL query to the run's metadata for LangSmith
+        if hasattr(qa_chain, "run_manager") and qa_chain.run_manager:
+            qa_chain.run_manager.on_text(
+                f"\nGenerated SPARQL Query:\n```sparql\n{sparql_query}\n```",
+                metadata={"sparql_query": sparql_query}
+            )
 
-        # Create a nicely formatted response
+        # Create a nicely formatted response (without the SPARQL query)
         formatted_response = _format_kg_response(answer, query, intermediate_steps)
         return formatted_response
 
