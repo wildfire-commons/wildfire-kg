@@ -60,38 +60,43 @@ CONSTRUCT {
          wifire:wind_windSpeedCmS ?wind_speed .
 }
 WHERE {
-    GRAPH <http://wifire.ucsd.edu/sensor_readings> {
+    GRAPH <http://wifire.ucsd.edu/sensor_readings_location> {
         ?sensor rdf:type wifire:FireIgnitionSensor .
-        ?sensor wifire:hasSensorMetadata ?metadata .
-        ?sensor wifire:hasLocationDataSensor ?location .
-        ?sensor wifire:hasSensorTypeData ?type .
-        ?sensor wifire:hasEnvironmentalData ?env .
-        ?sensor wifire:hasParticleData ?particle .
-        ?sensor wifire:hasWindData ?wind .
+        OPTIONAL { ?sensor wifire:hasSensorMetadata ?metadata . }
+        OPTIONAL { ?sensor wifire:hasLocationDataSensor ?location . }
+        OPTIONAL { ?sensor wifire:hasSensorTypeData ?type . }
+        OPTIONAL { ?sensor wifire:hasEnvironmentalData ?env . }
+        OPTIONAL { ?sensor wifire:hasParticleData ?particle . }
+        OPTIONAL { ?sensor wifire:hasWindData ?wind . }
         
-        ?metadata wifire:device_alias ?alias ;
-                 wifire:time ?time ;
-                 wifire:db_id ?id ;
-                 wifire:model_type ?model ;
-                 wifire:db_urn ?db_urn ;
-                 wifire:sensor_type_id ?type_id ;
-                 wifire:provider ?provider .
-                 
-        ?location wifire:longitudeSensor ?lon ;
-                 wifire:latitudeSensor ?lat .
-                 
-        ?type wifire:type ?sensor_type .
-        
-        ?env wifire:temperatureMillidegreeC ?temp ;
-            wifire:barometricPa ?pressure ;
-            wifire:humidityRh ?humidity ;
-            wifire:CO2Ppm ?co2 ;
-            wifire:mos_gasResistance ?gas .
-            
-        ?particle wifire:pmsensor_pm10Standard ?pm10 ;
-                 wifire:pmsensor_pm25Standard ?pm25 .
-                 
-        ?wind wifire:wind_windDirectionDegrees ?wind_dir ;
-             wifire:wind_windSpeedCmS ?wind_speed .
+        OPTIONAL {
+            ?metadata wifire:device_alias ?alias ;
+                     wifire:time ?time ;
+                     wifire:db_id ?id .
+            OPTIONAL { ?metadata wifire:model_type ?model . }
+            OPTIONAL { ?metadata wifire:db_urn ?db_urn . }
+            OPTIONAL { ?metadata wifire:sensor_type_id ?type_id . }
+            OPTIONAL { ?metadata wifire:provider ?provider . }
+        }
+        OPTIONAL {
+            ?location wifire:longitudeSensor ?lon ;
+                     wifire:latitudeSensor ?lat .
+        }
+        OPTIONAL { ?type wifire:type ?sensor_type . }
+        OPTIONAL {
+            ?env wifire:temperatureMillidegreeC ?temp ;
+                 wifire:barometricPa ?pressure ;
+                 wifire:humidityRh ?humidity .
+            OPTIONAL { ?env wifire:CO2Ppm ?co2 . }
+            OPTIONAL { ?env wifire:mos_gasResistance ?gas . }
+        }
+        OPTIONAL {
+            ?particle wifire:pmsensor_pm10Standard ?pm10 .
+            OPTIONAL { ?particle wifire:pmsensor_pm25Standard ?pm25 . }
+        }
+        OPTIONAL {
+            ?wind wifire:wind_windDirectionDegrees ?wind_dir .
+            OPTIONAL { ?wind wifire:wind_windSpeedCmS ?wind_speed . }
+        }
     }
 } 
