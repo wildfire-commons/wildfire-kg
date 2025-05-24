@@ -24,7 +24,7 @@ done
 
 # Valid component names
 VALID_ENVIRONMENTS=("dev" "prod")
-VALID_COMPONENTS=("graphdb" "airflow" "langgraph")
+VALID_COMPONENTS=("graphdb" "airflow" "langgraph" "frontend" "supabase")
 
 # Function to validate component name
 validate_component() {
@@ -63,6 +63,56 @@ NAMESPACE="wifire-kg"
 #     NAMESPACE="wifire-kg-prod" # Prod namespace
 # fi
 
+# Function to handle secrets and environment variables
+handle_secrets() {
+    local manifest_path=$1
+    local temp_manifest=$(mktemp)
+    
+    # Function to get secret value from environment or .env file
+    get_secret_value() {
+        local secret_name=$1
+        local value
+        
+        # First try to get from environment variable
+        value="${!secret_name}"
+        
+        # If not found and .env file exists, try to get from .env
+        if [ -z "$value" ] && [ -f "${PROJECT_ROOT}/.env" ]; then
+            value=$(grep "^${secret_name}=" "${PROJECT_ROOT}/.env" | cut -d'=' -f2-)
+        fi
+        
+        # If still not found, return empty
+        echo "$value"
+    }
+    
+    # Read the manifest and substitute secrets
+    while IFS= read -r line; do
+        if [[ $line =~ \$\{([A-Z_]+)\} ]]; then
+            secret_name="${BASH_REMATCH[1]}"
+            secret_value=$(get_secret_value "$secret_name")
+            
+            if [ -z "$secret_value" ]; then
+                echo "Warning: Secret $secret_name not found in environment or .env file"
+                echo "$line" >> "$temp_manifest"
+            else
+                # Base64 encode the secret value
+                encoded_value=$(echo -n "$secret_value" | base64)
+                echo "$line" | sed "s/\${$secret_name}/$encoded_value/" >> "$temp_manifest"
+            fi
+        else
+            echo "$line" >> "$temp_manifest"
+        fi
+    done < "$manifest_path"
+    
+    echo "$temp_manifest"
+}
+
+# Load environment variables from .env file
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    echo "Loading environment variables from .env file..."
+    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
+fi
+
 # Function to add helm repo if it doesn't exist
 add_helm_repo() {
     local repo_name=$1
@@ -78,71 +128,90 @@ add_helm_repo() {
 # Function to deploy LangGraph
 deploy_langgraph() {
     local env=$1
-    
-    echo "Building and deploying LangGraph for $env environment..."
-    
-    # Navigate to the LangGraph API directory
-    cd "${PROJECT_ROOT}/applications/wildfire-kg-api"
-    
-    # Create a virtual environment if it doesn't exist
-    if [[ ! -d "venv" ]]; then
-        echo "Creating virtual environment..."
-        python -m venv venv
+    local clean=$2
+    local namespace="wifire-kg"
+    local registry="gitlab-registry.nrp-nautilus.io"
+    local image_name="wildfire-kg/wildfire-kg"
+    local image_tag="langgraph-${env}"
+    local full_image_name="${registry}/${image_name}:${image_tag}"
+    local api_dir="${PROJECT_ROOT}/applications/wildfire-kg-api"
+
+    echo "Deploying LangGraph to ${env} environment..."
+
+    # Check if the API directory exists
+    if [ ! -d "$api_dir" ]; then
+        echo "Error: LangGraph API directory not found at $api_dir"
+        exit 1
     fi
-    
-    # Activate the virtual environment
-    source venv/bin/activate
-    
-    # Install development dependencies
-    echo "Installing development dependencies..."
-    pip install -e ".[dev]"
-    
-    # Build the LangGraph application
-    echo "Building LangGraph application..."
-    langgraph build
-    
-    # Create a ConfigMap with the langgraph.json content
-    echo "Creating ConfigMap for LangGraph configuration..."
-    kubectl create configmap langgraph-config \
-        --namespace $NAMESPACE \
-        --from-file=langgraph.json \
-        --dry-run=client -o yaml | kubectl apply -f -
-    
-    # Deactivate the virtual environment
-    deactivate
-    
+
+    # Change to the API directory
+    cd "$api_dir"
+
+    # Create langgraph.json if it doesn't exist
+    if [ ! -f "langgraph.json" ]; then
+        echo "Creating langgraph.json configuration..."
+        cat > langgraph.json << EOF
+{
+    "host": "0.0.0.0",
+    "port": 8000,
+    "log_level": "info",
+    "workers": 4,
+    "timeout": 300,
+    "max_requests": 1000,
+    "max_requests_jitter": 50
+}
+EOF
+    fi
+
+    # Build the Docker image for x86_64 platform
+    echo "Building LangGraph image for x86_64 platform..."
+    docker buildx build --platform linux/amd64 -t ${full_image_name} --build-arg PYTHON_ENV=production --push .
+
+    # Check if the build was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: LangGraph image build failed"
+        cd "${PROJECT_ROOT}"
+        exit 1
+    fi
+
     # Return to the project root
     cd "${PROJECT_ROOT}"
+
+    # Handle secrets and environment substitution
+    local manifest_path="iac/manifests/langgraph.yaml"
+    local temp_manifest=$(handle_secrets "$manifest_path")
     
-    # Clean up existing deployment if --clean flag is set
-    if [ "$CLEAN" = true ]; then
+    # Replace ENV_PLACEHOLDER with the actual environment
+    sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
+
+    # Apply the manifest
+    if [ "$clean" = true ]; then
         echo "Cleaning up existing LangGraph deployment..."
-        kubectl delete deployment langgraph --namespace $NAMESPACE --ignore-not-found
-        kubectl delete service langgraph --namespace $NAMESPACE --ignore-not-found
-        kubectl delete ingress langgraph-ingress --namespace $NAMESPACE --ignore-not-found
-        
-        # Wait for resources to be cleaned up
-        echo "Waiting for resources to be cleaned up..."
+        kubectl delete -f "${temp_manifest}" --ignore-not-found=true
         sleep 5
     fi
-    
-    # Create a temporary file with environment-specific values
-    TEMP_MANIFEST=$(mktemp)
-    cat "${PROJECT_ROOT}/iac/manifests/langgraph.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
-    
-    # Deploy LangGraph
-    echo "Deploying LangGraph server..."
-    kubectl apply -f "$TEMP_MANIFEST"
-    
-    # Clean up temporary file
-    rm "$TEMP_MANIFEST"
-    
+
+    echo "Applying LangGraph manifest..."
+    kubectl apply -f "${temp_manifest}"
+
     # Wait for deployment to be ready
     echo "Waiting for LangGraph deployment to be ready..."
-    kubectl wait --for=condition=Available=True deployment/langgraph -n $NAMESPACE --timeout=300s
-    
-    echo "LangGraph deployment completed successfully!"
-    echo "You can access the LangGraph server at: https://langgraph-${env}-wifire-kg.nrp-nautilus.io"
+    kubectl rollout status deployment/langgraph -n ${namespace} --timeout=300s
+
+    if [ $? -ne 0 ]; then
+        echo "Error: LangGraph deployment failed to become ready"
+        echo "Checking pod status..."
+        kubectl get pods -n ${namespace} -l app=langgraph
+        echo "Checking pod logs..."
+        kubectl logs -n ${namespace} -l app=langgraph --tail=50
+        cd "${PROJECT_ROOT}"
+        exit 1
+    fi
+
+    # Clean up temporary file
+    rm "${temp_manifest}"
+
+    echo "LangGraph deployment completed and ready!"
 }
 
 # Function to deploy a component
@@ -212,6 +281,150 @@ deploy_component() {
         --values "${PROJECT_ROOT}/iac/helm/values/${ENV}/${component}.${ENV}.values.yaml"
 }
 
+# Function to deploy frontend
+deploy_frontend() {
+    local env=$1
+    
+    # Check if GitLab credentials are set
+    if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
+        echo "Error: GitLab credentials not found. Please set GITLAB_USER and GITLAB_PASSWORD in .env file"
+        exit 1
+    fi
+    
+    echo "Building and deploying frontend for $env environment..."
+    
+    # Navigate to the frontend directory
+    cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
+    
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login gitlab-registry.nrp-nautilus.io -u $GITLAB_USER --password-stdin
+    
+    # Build the frontend Docker image with proper registry path
+    echo "Building frontend Docker image..."
+    docker build --platform linux/amd64 -t gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest .
+    
+    # Push the image to GitLab registry
+    echo "Pushing frontend Docker image..."
+    docker push gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:latest
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing frontend deployment..."
+        kubectl delete deployment wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Create a temporary file with environment-specific values
+    TEMP_MANIFEST=$(mktemp)
+    cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
+    
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    fi
+    
+    # Deploy frontend
+    echo "Deploying frontend..."
+    kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Clean up temporary file
+    rm "$TEMP_MANIFEST"
+    
+    # Wait for deployment to be ready
+    echo "Waiting for frontend deployment to be ready..."
+    kubectl wait --for=condition=available deployment/wildfire-kg-frontend-${env} --namespace $NAMESPACE --timeout=300s
+    
+    # Check frontend ingress status
+    echo "Checking frontend ingress status..."
+    kubectl get ingress wildfire-kg-frontend-${env} --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://wildfire.nrp-nautilus.io"
+    else
+        url="https://wildfire-${env}.nrp-nautilus.io"
+    fi
+    
+    echo "Frontend deployment completed successfully!"
+    echo "You can access the frontend at: ${url}"
+}
+
+# Function to deploy supabase
+deploy_supabase() {
+    local env=$1
+    
+    echo "Deploying Supabase for $env environment..."
+    
+    # Clean up existing deployment if --clean flag is set
+    if [ "$CLEAN" = true ]; then
+        echo "Cleaning up existing Supabase deployment..."
+        kubectl delete deployment supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete deployment supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-db --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-auth --namespace $NAMESPACE --ignore-not-found
+        kubectl delete service supabase-storage --namespace $NAMESPACE --ignore-not-found
+        kubectl delete ingress supabase-ingress --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-db-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete pvc supabase-storage-pvc --namespace $NAMESPACE --ignore-not-found
+        kubectl delete secret supabase-secrets --namespace $NAMESPACE --ignore-not-found
+        
+        # Wait for resources to be cleaned up
+        echo "Waiting for resources to be cleaned up..."
+        sleep 5
+    fi
+    
+    # Handle secrets and environment substitution
+    local manifest_path="${PROJECT_ROOT}/iac/manifests/supabase.yaml"
+    local temp_manifest=$(handle_secrets "$manifest_path")
+    
+    # Replace environment placeholders
+    sed -i "s/ENV_PLACEHOLDER/${env}/g" "$temp_manifest"
+    
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        sed -i 's/supabase-prod.nrp-nautilus.io/supabase.nrp-nautilus.io/g' "$temp_manifest"
+        sed -i 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$temp_manifest"
+    fi
+    
+    # Deploy Supabase
+    echo "Deploying Supabase..."
+    kubectl apply -f "$temp_manifest"
+    
+    # Wait for deployments to be ready
+    echo "Waiting for Supabase deployments to be ready..."
+    kubectl wait --for=condition=available deployment/supabase-db --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-auth --namespace $NAMESPACE --timeout=300s
+    kubectl wait --for=condition=available deployment/supabase-storage --namespace $NAMESPACE --timeout=300s
+    
+    # Check ingress status
+    echo "Checking Supabase ingress status..."
+    kubectl get ingress supabase-ingress --namespace $NAMESPACE
+    
+    # Set the correct URL based on environment
+    local url
+    if [ "$env" = "prod" ]; then
+        url="https://supabase.nrp-nautilus.io"
+    else
+        url="https://supabase-${env}.nrp-nautilus.io"
+    fi
+    
+    # Clean up temporary file
+    rm "$temp_manifest"
+    
+    echo "Supabase deployment completed successfully!"
+    echo "You can access Supabase at: ${url}"
+    echo "Auth endpoint: ${url}/auth"
+    echo "Storage endpoint: ${url}/storage"
+}
+
 case $COMPONENT in
     "airflow")
         deploy_component "airflow"
@@ -220,7 +433,13 @@ case $COMPONENT in
         deploy_component "graphdb"
         ;;
     "langgraph")
-        deploy_langgraph "$ENV"
+        deploy_langgraph "$ENV" "$CLEAN"
+        ;;
+    "frontend")
+        deploy_frontend "$ENV"
+        ;;
+    "supabase")
+        deploy_supabase "$ENV"
         ;;
     *)
         echo "Invalid component. Valid components: ${VALID_COMPONENTS[*]}"

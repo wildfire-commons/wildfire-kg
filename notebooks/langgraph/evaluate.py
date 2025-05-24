@@ -151,10 +151,15 @@ datasets = [
     #     "description": "Knowledge graph vegetation metrics evaluation dataset",
     #     "data_path": f"{DATA_PATH}/kg/vegetation_metrics.jsonl",
     # },
+    # {
+    #     "name": "basic-web-search",
+    #     "description": "Basic web search evaluation dataset",
+    #     "data_path": f"{DATA_PATH}/web_search/basic_web_search.jsonl",
+    # },
     {
-        "name": "basic-web-search",
-        "description": "Basic web search evaluation dataset",
-        "data_path": f"{DATA_PATH}/web_search/basic_web_search.jsonl",
+        "name": "weather-metrics",
+        "description": "Weather metrics evaluation dataset",
+        "data_path": f"{DATA_PATH}/kg/weather_metrics.jsonl",
     },
     # {
     #     "name": "quick-test",

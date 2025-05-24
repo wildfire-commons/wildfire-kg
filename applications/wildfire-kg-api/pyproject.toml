@@ -27,7 +27,7 @@ dependencies = [
     "langchain-tavily==0.1.6",
     
     # LangGraph
-    "langgraph==0.3.2",
+    "langgraph==0.3.27",
     "langsmith==0.3.11",
     
     # Utilities

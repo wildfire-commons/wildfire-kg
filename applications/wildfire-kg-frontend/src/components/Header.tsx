@@ -10,6 +10,7 @@ const navigation = [
   { name: 'Graph', href: '/' },
   { name: 'Upload', href: '/upload' },
   { name: 'Storage', href: '/storage' },
+  { name: 'About', href: '/about' },
 ]
 
 export default function Header() {

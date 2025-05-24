@@ -69,9 +69,9 @@ You can trace graph executions, inspect state at each node, and test your graph 
 
 The LangGraph agent is currently evaluated using the LangSmith SDK and a variety of datasets defined in [evaluation/](data/evaluation/). 
 
-The notebook [notebooks/langgraph/evaluate.ipynb](evaluation/evaluate.ipynb) provides an example of how to run an experiment that evaluates the agent's performance on the datasets. For detailed results the experiment can be viewed in the LangSmith UI. 
+The notebook [notebooks/langgraph/evaluate.ipynb](evaluation/evaluate.ipynb) provides an example of running an experiment that evaluates the agent's performance on the datasets. The experiment can be viewed in the LangSmith UI for detailed results. 
 > [!NOTE]
-> You must have wildfire-kg-api package installed to run the evaluation notebook.
+> You must have the wildfire-kg-api package installed to run the evaluation notebook. Typically, running `source setup.sh dev` and `source setup.sh` should do the trick. 
 
 ### API Endpoints
 
@@ -90,7 +90,7 @@ The API provides several endpoints:
 
 ## Deployment
 
-At the moment, the LangGraph server is deployed using the LangGraph platform but may be deployed with a custom container image in the future.
+At the moment, the LangGraph server is deployed using the LangGraph platform, but may be deployed with a custom container image in the future.
 
 ## Project Structure
 
