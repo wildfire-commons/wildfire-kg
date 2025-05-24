@@ -34,7 +34,7 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
         config: Optional RunnableConfig containing model settings
 
     Returns:
-        A string response with information from the knowledge graph
+        A string response with information from the knowledge graph and follow-up suggestions
     """
     logger.info(f"Querying knowledge graph with: {query} and config: {config}")
 

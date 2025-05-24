@@ -12,7 +12,6 @@ license = {text = "MIT"}
 authors = [
     {name = "Blake Crowther", email = "blakecrowther@gmail.com"}
 ]
-
 dependencies = [
     # FastAPI and server
     "fastapi==0.115.11",
