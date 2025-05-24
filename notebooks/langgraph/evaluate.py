@@ -38,6 +38,37 @@ client = Client()
 # Data paths
 DATA_PATH = "../../data/evaluation"
 
+# %% [markdown]
+# ## Experiment Configuration
+#
+# The evaluation framework is designed to test different combinations of openai and litellm models and their parameters. Here's how the configurations work:
+#
+# 1. **Agent Models**: These are the models used for the main agent that handles user queries and tool selection. Currently set to test with `llama3-sdsc`.
+#    - Available agent models must support the ReAct pattern for tool usage
+#    - Full list of compatible models available in `AGENT_COMPATIBLE_MODELS`
+#    - Models must be capable of structured reasoning and tool invocation
+#
+# 2. **Knowledge Graph Models**: These models are used specifically for knowledge graph operations. Also set to use `llama3-sdsc`.
+#    - All available models in `AVAILABLE_MODELS` can be used for KG operations
+#    - Models must be capable of SPARQL query generation and understanding
+#
+# 3. **Temperature Settings**: Controls the randomness/creativity of model outputs. Currently testing with a temperature of 0.1.
+#
+# The framework will automatically generate all valid combinations of these settings. For example, with the current configuration:
+# - Agent Model: llama3-sdsc
+# - KG Model: llama3-sdsc
+# - Temperature: 0.1
+#
+# This results in one experiment configuration that tests this specific combination. The framework is designed to be easily extended to test more combinations by modifying the configuration lists above.
+#
+# To test different model combinations, you can uncomment and modify the following configuration lines:
+# ```python
+# AGENT_MODELS_TO_TEST = AGENT_COMPATIBLE_MODELS  # Test all compatible agent models
+# KG_MODELS_TO_TEST = AVAILABLE_MODELS  # Test all available KG models
+# TEMPERATURES_TO_TEST = [0.0, 0.1, 0.2]  # Test multiple temperature settings
+# ```
+
+# %%
 # ============================================================================
 # CONFIGURATION INPUTS
 # ============================================================================
@@ -47,12 +78,11 @@ AGENT_MODELS_TO_TEST = ["llama3-sdsc"]
 
 # Models that can be used for knowledge graph tools (don't need ReAct pattern)
 # KG_MODELS_TO_TEST = AVAILABLE_MODELS  # All models can be used for KG tools
-KG_MODELS_TO_TEST = ["DeepSeek-R1-Distill-Qwen-32B"]
+KG_MODELS_TO_TEST = ["llama3-sdsc"]
 
 # Temperatures to test
 # TEMPERATURES_TO_TEST = [0.0, 0.1, 0.2]
-TEMPERATURES_TO_TEST = [0.2]
-
+TEMPERATURES_TO_TEST = [0.1]
 
 # ============================================================================
 # GENERATE ACTIVE EXPERIMENT CONFIGURATIONS
@@ -131,6 +161,29 @@ elif not active_experiment_configs:
 # - A description
 # - A path to the data file
 # - Expected tools and tags
+#
+# The framework supports multiple types of evaluation datasets:
+# 1. **Knowledge Graph Datasets**:
+#    - Tree/Shrub metrics evaluation
+#    - Fire behavior metrics evaluation
+#    - Vegetation metrics evaluation
+# 2. **Tool-specific Datasets**:
+#    - Web search evaluation
+#    - Weather metrics evaluation
+# 3. **Quick Test Dataset**:
+#    - Currently active for rapid testing
+#
+# Each dataset should be in JSONL format with the following structure:
+# ```json
+# {
+#   "user_query": "The question to evaluate",
+#   "expected_response_contains": ["Expected response elements"],
+#   "tags": ["relevant", "tags"],
+#   "expected_tools": ["tools", "to", "use"]
+# }
+# ```
+#
+# To enable additional datasets, uncomment the relevant entries in the `datasets` list below.
 
 # %%
 
@@ -139,33 +192,33 @@ datasets = [
     # {
     #     "name": "tree-shrub-metrics",
     #     "description": "Knowledge graph tree shrub metrics evaluation dataset",
-    #     "data_path": f"{DATA_PATH}/kg/tree_shrub_metrics.jsonl",
+    #     "data_path": f"{DATA_PATH}/kg_tool/tree_shrub_metrics.jsonl",
     # },
     # {
     #     "name": "fire-behavior-metrics",
     #     "description": "Knowledge graph fire behavior metrics evaluation dataset",
-    #     "data_path": f"{DATA_PATH}/kg/fire_behavior_metrics.jsonl",
+    #     "data_path": f"{DATA_PATH}/kg_tool/fire_behavior_metrics.jsonl",
     # },
     # {
     #     "name": "vegetation-metrics",
     #     "description": "Knowledge graph vegetation metrics evaluation dataset",
-    #     "data_path": f"{DATA_PATH}/kg/vegetation_metrics.jsonl",
+    #     "data_path": f"{DATA_PATH}/kg_tool/vegetation_metrics.jsonl",
     # },
     # {
     #     "name": "basic-web-search",
     #     "description": "Basic web search evaluation dataset",
-    #     "data_path": f"{DATA_PATH}/web_search/basic_web_search.jsonl",
+    #     "data_path": f"{DATA_PATH}/web_search_tool/basic_web_search.jsonl",
+    # },
+    # {
+    #     "name": "weather-metrics",
+    #     "description": "Weather metrics evaluation dataset",
+    #     "data_path": f"{DATA_PATH}/weather_tool/weather_metrics.jsonl",
     # },
     {
-        "name": "weather-metrics",
-        "description": "Weather metrics evaluation dataset",
-        "data_path": f"{DATA_PATH}/kg/weather_metrics.jsonl",
+        "name": "quick-test",
+        "description": "Quick test dataset",
+        "data_path": f"{DATA_PATH}/test/quick_test.jsonl",
     },
-    # {
-    #     "name": "quick-test",
-    #     "description": "Quick test dataset",
-    #     "data_path": f"{DATA_PATH}/test/quick_test.jsonl",
-    # },
 ]
 
 # %% [markdown]
@@ -173,10 +226,31 @@ datasets = [
 #
 # We'll use the following components for evaluation:
 #
-# 1. **Data Loading**: Load test cases from JSONL files containing questions and expected responses
-# 2. **LangSmith Integration**: Track runs and evaluate responses with LangSmith
-# 3. **Evaluators**: Custom evaluators to check response accuracy and tool usage
-# 4. **Agent Execution**: Run the wildfire knowledge graph agent on each test case
+# 1. **Data Loading**:
+#    - Load test cases from JSONL files containing questions and expected responses
+#    - Each test case includes user queries, expected responses, and tool usage expectations
+#    - Data is converted into LangSmith examples for tracking and analysis
+#
+# 2. **LangSmith Integration**:
+#    - Track runs and evaluate responses with LangSmith
+#    - Create datasets with unique identifiers for each evaluation run
+#    - Store experiment results and metadata for analysis
+#
+# 3. **Evaluators**:
+#    - Response Content Evaluator: Uses GPT-3.5-turbo to assess if responses contain expected information
+#    - Tool Usage Evaluator: Checks if the agent used the correct tools during execution
+#    - Both evaluators provide scores (0.0-1.0) and detailed feedback
+#
+# 4. **Agent Execution**:
+#    - Run the wildfire knowledge graph agent on each test case
+#    - Support for async execution with configurable concurrency
+#    - Automatic retries and error handling
+#
+# The evaluation process is designed to be:
+# - Reproducible: Each run is tracked with unique identifiers
+# - Configurable: Easy to modify test cases and evaluation parameters
+# - Scalable: Can handle multiple model configurations and datasets
+# - Detailed: Provides comprehensive feedback on both response quality and tool usage
 
 
 # %%
@@ -536,6 +610,7 @@ def evaluate_tool_usage(run: Run, example: Example) -> Dict[str, Any]:
 # Now we'll load the test data, create LangSmith datasets, and run the evaluation on our agent.
 
 
+# %%
 # Run evaluation for all datasets
 async def run_experiments():
     if not active_experiment_configs:
