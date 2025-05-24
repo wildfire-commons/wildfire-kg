@@ -20,7 +20,10 @@ CONSTRUCT {
              rdfs:label "Location Data Plot" ;
              rdfs:comment "Represents location data related to a plot's geographic coordinates" ;
              wifire:plotLongitude ?longitude ;
-             wifire:plotLatitude ?latitude .
+             wifire:plotLatitude ?latitude ;
+             wifire:plotCounty ?county ;
+             wifire:plotState ?state ;
+             wifire:plotCountry ?country .
     
     # VegetationMetrics properties
     ?veg rdf:type wifire:VegetationMetrics ;
@@ -74,7 +77,7 @@ CONSTRUCT {
           wifire:MeanSD ?meansd .
 }
 WHERE {
-    GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {
+    GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geographic> {
         # Main PlotMetrics instance
         ?plot rdf:type wifire:PlotMetrics ;
               wifire:plotName ?plotName ;
@@ -83,7 +86,10 @@ WHERE {
         # LocationDataPlot
         ?plot wifire:hasLocationDataPlot ?location .
         ?location wifire:plotLongitude ?longitude ;
-                 wifire:plotLatitude ?latitude .
+                 wifire:plotLatitude ?latitude ;
+                 wifire:plotCounty ?county .
+        OPTIONAL { ?location wifire:plotState ?state . }
+        OPTIONAL { ?location wifire:plotCountry ?country . }
         
         # VegetationMetrics
         ?plot wifire:hasVegetationMetrics ?veg .
