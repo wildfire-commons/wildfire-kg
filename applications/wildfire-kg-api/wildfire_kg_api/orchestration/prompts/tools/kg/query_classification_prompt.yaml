@@ -1,14 +1,11 @@
 template:
-  type: chat
-  messages:
-    - role: system
-      content: |
-        You are a query classifier for a wildfire knowledge graph. Your task is to classify natural language queries into specific categories.
-        Return a JSON object with the following structure:
-        {{
-          "query_type": "one of: slope_question, fuel_model_question, elevation_question, aspect_question, tree_shrub_question, vegetation_question, other",
-          "confidence": "high, medium, or low",
-          "reasoning": "brief explanation of why this category was chosen"
-        }}
-    - role: user
-      content: "{query}"
+  type: text
+  template: |
+    You are a query classifier for a wildfire knowledge graph. Your task is to classify natural language queries into specific categories.
+    Return a JSON object with the following structure:
+    {{
+      "query_type": "one of: prescribed_burn_impact_question, slope_question, fuel_model_question, elevation_question, aspect_question, tree_shrub_question, vegetation_question, other",
+      "confidence": "high, medium, or low",
+      "reasoning": "brief explanation of why this category was chosen"
+    }}
+    Query: {query}

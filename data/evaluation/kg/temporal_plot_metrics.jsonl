@@ -1,1 +1,2 @@
 {"user_query":"What is next plot metrics for plot CASBC_0012_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["CASBC_0012_20241117_1"],"tags":["kg_only","vegetation_metrics","temporal_vegetation_metrics"]}
+{"user_query":"What was the impact of the last prescribed burn at CASBC_0012?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["CASBC_0012_20241117_1"],"tags":["kg_only","vegetation_metrics","temporal_vegetation_metrics"]}

@@ -71,7 +71,7 @@ def query_knowledge_graph(query: str) -> str:
         classifier_llm = ChatOpenAI(
             temperature=0,
             model="gpt-3.5-turbo",
-            max_tokens=50,
+            max_tokens=200,
             response_format={ "type": "json_object" }
         )
         context_llm = ChatOpenAI(
@@ -111,7 +111,6 @@ def query_knowledge_graph(query: str) -> str:
                 temperature=0,
                 api_key=openai_api_key,
                 model="gpt-3.5-turbo",
-                max_tokens=1000,
             ),
             graph=graph,
             verbose=True,
