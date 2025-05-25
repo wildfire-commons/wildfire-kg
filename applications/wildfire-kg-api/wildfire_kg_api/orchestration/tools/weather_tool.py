@@ -3,16 +3,16 @@ Weather tool using LangChain's tool decorator.
 """
 
 from typing import Dict, Any
-import logging
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 import os
 import requests
 import json
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from wildfire_kg_api.orchestration.logger import get_logger
+
+# Initialize logger
+logger = get_logger("tools.weather")
 
 
 class WeatherInput(BaseModel):
@@ -54,9 +54,11 @@ def get_weather(location: str) -> str:
             "aqi": "yes",  # Include air quality data
         }
 
+        logger.debug(f"Making weather API request to {base_url}/current.json")
         response = requests.get(f"{base_url}/current.json", params=params)
         response.raise_for_status()
         weather_data = response.json()
+        logger.debug("Weather API request successful")
 
         return _format_weather_data(weather_data, location)
 

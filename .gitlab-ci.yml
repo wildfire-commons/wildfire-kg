@@ -98,11 +98,13 @@ assemble-frontend:
 # Deploy stage template
 .deploy_template: &deploy_template
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: alpine:latest
   before_script:
-    - mkdir -p $HOME/.kube
-    - echo "$KUBE_CONFIG" | base64 -d > $HOME/.kube/config
-    - chmod 600 $HOME/.kube/config
+    - apk add --no-cache curl bash openssl
+    # Install kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
     # Install helm
     - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
     - chmod 700 get_helm.sh
@@ -122,7 +124,7 @@ deploy_dev_graphdb:
       changes:
         - $GRAPHDB_TRIGGER_PATHS
   environment:
-    name: development
+    name: dev
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_airflow:
@@ -135,7 +137,7 @@ deploy_dev_airflow:
       changes:
         - $AIRFLOW_TRIGGER_PATHS
   environment:
-    name: development
+    name: dev
     url: https://wifire-kg-airflow.nrp-nautilus.io
 
 deploy_dev_langgraph:
@@ -149,7 +151,7 @@ deploy_dev_langgraph:
       changes:
         - $LANGGRAPH_TRIGGER_PATHS
   environment:
-    name: development
+    name: dev
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_frontend:
@@ -163,7 +165,7 @@ deploy_dev_frontend:
       changes:
         - $FRONTEND_TRIGGER_PATHS
   environment:
-    name: development
+    name: dev
     url: https://wildfire-dev.nrp-nautilus.io
 
 deploy_dev_supabase:
@@ -176,7 +178,7 @@ deploy_dev_supabase:
       changes:
         - $SUPABASE_TRIGGER_PATHS
   environment:
-    name: development
+    name: dev
     url: https://supabase-dev.nrp-nautilus.io
 
 # Production deployments
