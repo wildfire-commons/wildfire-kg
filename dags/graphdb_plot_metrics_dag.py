@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import time
 from dotenv import load_dotenv
+import requests
 
 # Load .env file
 load_dotenv()
@@ -13,7 +14,6 @@ load_dotenv()
 def process_and_load_data():
     # Move imports inside
     import pandas as pd
-    import requests
     import urllib3
     import boto3
     from botocore.config import Config
@@ -109,6 +109,19 @@ def process_and_load_data():
         # Read CSV directly from S3 response
         df = pd.read_csv(io.BytesIO(s3_response['Body'].read()))
         print(f"Loaded {len(df)} plot metrics from S3")
+        
+        # Parse latlon string into separate latitude and longitude columns
+        def parse_latlon(latlon_str):
+            try:
+                # Remove brackets and split by comma
+                coords = latlon_str.strip('[]').split(',')
+                # Convert to float and return as tuple (latitude, longitude)
+                return float(coords[0].strip()), float(coords[1].strip())
+            except (ValueError, IndexError, AttributeError):
+                return None, None
+
+        # Apply the parsing function to create new columns
+        df[['Latitude', 'Longitude']] = df['latlon'].apply(parse_latlon).apply(pd.Series)
         
         def parse_plot_info(plot_id):
             # Parse plot ID into components: base_name, date, sequence
@@ -235,6 +248,8 @@ def process_and_load_data():
         BATCH_SIZE = 50  # Process 50 plots at a time
         total_batches = (len(valid_plots) + BATCH_SIZE - 1) // BATCH_SIZE
         
+        geocode_cache = {}
+        
         for batch_idx in range(total_batches):
             start_idx = batch_idx * BATCH_SIZE
             end_idx = min((batch_idx + 1) * BATCH_SIZE, len(valid_plots))
@@ -255,6 +270,10 @@ def process_and_load_data():
                         if temporal_info:
                             print(f"Temporal relations: {', '.join(temporal_info)}")
 
+                    lat = plot['Latitude']
+                    lon = plot['Longitude']
+                    city, state, country = reverse_geocode(lat, lon, geocode_cache)
+
                     update_query = f"""
                     PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
                     PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -262,12 +281,26 @@ def process_and_load_data():
                     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                     
                     INSERT DATA {{ 
-                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal> {{
+                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {{
                             # Main PlotMetrics instance
                             wifire:plot_{plot_id} rdf:type wifire:PlotMetrics ;
                                 rdfs:label "Plot Metrics" ;
                                 rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" ;
-                                wifire:plotName "{plot_id}"^^xsd:string .
+                                wifire:plotName "{plot_id}"^^xsd:string ;
+                                wifire:plotDate "{plot['date_str']}"^^xsd:date .
+                            
+                            # LocationDataPlot
+                            wifire:location_{plot_id} rdf:type wifire:LocationDataPlot ;
+                                rdfs:label "Location Data Plot" ;
+                                rdfs:comment "Represents location data related to a plot's geographic coordinates" ;
+                                wifire:plotLongitude "{lon}"^^xsd:float ;
+                                wifire:plotLatitude "{lat}"^^xsd:float ;
+                                wifire:plotCity "{city}"^^xsd:string ;
+                                wifire:plotState "{state}"^^xsd:string ;
+                                wifire:plotCountry "{country}"^^xsd:string .
+                            
+                            # Link PlotMetrics to LocationDataPlot
+                            wifire:plot_{plot_id} wifire:hasLocationDataPlot wifire:location_{plot_id} .
                             
                             # Temporal relationships
                             {' '.join(f'wifire:plot_{plot_id} wifire:lastMetrics wifire:plot_{last_plot} .' for last_plot in temporal_relations[plot_id]["last"]) if plot_id in temporal_relations else ''}
@@ -441,6 +474,40 @@ def upload_with_retries(plot_id, data, max_retries=5):
                 print(f"Final retry failed for {plot_id}: {str(e)}")
                 return False
             time.sleep(2 ** attempt)  # Exponential backoff
+
+def reverse_geocode(lat, lon, cache=None):
+    """Get city, state, country from latitude and longitude using Nominatim."""
+    if cache is not None:
+        key = (round(lat, 5), round(lon, 5))
+        if key in cache:
+            return cache[key]
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "format": "json",
+            "zoom": 10,
+            "addressdetails": 1
+        }
+        headers = {"User-Agent": "wildfire-kg/1.0 (your@email.com)"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            address = data.get("address", {})
+            city = address.get("city") or address.get("town") or address.get("village") or address.get("hamlet") or address.get("municipality") or ""
+            state = address.get("state", "")
+            country = address.get("country", "")
+            result = (city, state, country)
+            if cache is not None:
+                cache[key] = result
+            return result
+        else:
+            print(f"Reverse geocoding failed for {lat},{lon}: {resp.status_code}")
+            return ("", "", "")
+    except Exception as e:
+        print(f"Reverse geocoding error for {lat},{lon}: {str(e)}")
+        return ("", "", "")
 
 with DAG(
     'graphdb_plot_metrics_import',
