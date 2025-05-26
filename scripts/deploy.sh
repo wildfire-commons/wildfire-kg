@@ -68,7 +68,7 @@ handle_secrets() {
     local manifest_path=$1
     local temp_manifest=$(mktemp)
     
-    # Function to get secret value from environment or .env file
+    # Function to get and encode secret value
     get_secret_value() {
         local secret_name=$1
         local value
@@ -78,25 +78,31 @@ handle_secrets() {
         
         # If not found and .env file exists, try to get from .env
         if [ -z "$value" ] && [ -f "${PROJECT_ROOT}/.env" ]; then
-            value=$(grep "^${secret_name}=" "${PROJECT_ROOT}/.env" | cut -d'=' -f2-)
+            # Use awk to handle values with special characters
+            value=$(awk -F= -v key="^${secret_name}=" '$0 ~ key {print $2}' "${PROJECT_ROOT}/.env" | xargs)
         fi
         
         # If still not found, return empty
-        echo "$value"
+        if [ -z "$value" ]; then
+            echo "Error: Empty value for $secret_name in .env" >&2
+            exit 1
+        fi
+        echo -n "$value" | base64 | tr -d '\n'
     }
     
-    # Read the manifest and substitute secrets
+    # Process each line of the manifest
     while IFS= read -r line; do
         if [[ $line =~ \$\{([A-Z_]+)\} ]]; then
             secret_name="${BASH_REMATCH[1]}"
-            secret_value=$(get_secret_value "$secret_name")
+            encoded_value=$(get_secret_value "$secret_name")
             
-            if [ -z "$secret_value" ]; then
+            echo "DEBUG: Processing ${secret_name} -> Raw: '${value}' | Encoded: '${encoded_value}'" >&2
+            
+            if [ -z "$encoded_value" ]; then
                 echo "Warning: Secret $secret_name not found in environment or .env file"
                 echo "$line" >> "$temp_manifest"
             else
-                # Base64 encode the secret value
-                encoded_value=$(echo -n "$secret_value" | base64)
+                # Replace placeholder with encoded value
                 echo "$line" | sed "s/\${$secret_name}/$encoded_value/" >> "$temp_manifest"
             fi
         else
@@ -138,6 +144,12 @@ deploy_langgraph() {
 
     echo "Deploying LangGraph to ${env} environment..."
 
+    # Check if GitLab credentials are set
+    if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
+        echo "Error: GitLab credentials not found. Please set GITLAB_USER and GITLAB_PASSWORD in .env file"
+        exit 1
+    fi
+
     # Check if the API directory exists
     if [ ! -d "$api_dir" ]; then
         echo "Error: LangGraph API directory not found at $api_dir"
@@ -147,21 +159,9 @@ deploy_langgraph() {
     # Change to the API directory
     cd "$api_dir"
 
-    # Create langgraph.json if it doesn't exist
-    if [ ! -f "langgraph.json" ]; then
-        echo "Creating langgraph.json configuration..."
-        cat > langgraph.json << EOF
-{
-    "host": "0.0.0.0",
-    "port": 8000,
-    "log_level": "info",
-    "workers": 4,
-    "timeout": 300,
-    "max_requests": 1000,
-    "max_requests_jitter": 50
-}
-EOF
-    fi
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login ${registry} -u $GITLAB_USER --password-stdin
 
     # Build the Docker image for x86_64 platform
     echo "Building LangGraph image for x86_64 platform..."
@@ -177,12 +177,49 @@ EOF
     # Return to the project root
     cd "${PROJECT_ROOT}"
 
+    # Handle langgraph secrets and environment substitution
+    local langgraph_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/langgraph-secrets.yaml"
+    local langgraph_secrets_manifest=$(handle_secrets "$langgraph_secrets_manifest_path")
+    
+    echo "Generated secrets manifest contents:"
+    cat "$langgraph_secrets_manifest"
+    
+    # Force delete and recreate secrets
+    echo "Deleting existing langgraph-secrets..."
+    kubectl delete secret langgraph-secrets --namespace $NAMESPACE --ignore-not-found
+    sleep 2  # Wait for secret to be fully removed
+    
+    echo "Creating fresh langgraph-secrets..."
+    kubectl apply -f "$langgraph_secrets_manifest"
+    
+    # Verify secret creation
+    if ! kubectl get secret langgraph-secrets --namespace $NAMESPACE > /dev/null 2>&1; then
+        echo "Error: Failed to recreate langgraph-secrets"
+        exit 1
+    fi
+
     # Handle secrets and environment substitution
-    local manifest_path="iac/manifests/langgraph.yaml"
+    local manifest_path="${PROJECT_ROOT}/iac/manifests/langgraph.yaml"
     local temp_manifest=$(handle_secrets "$manifest_path")
     
     # Replace ENV_PLACEHOLDER with the actual environment
-    sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS requires an empty string for -i
+        sed -i '' "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
+        
+        # For production, update the host to remove the environment prefix
+        if [ "$env" = "prod" ]; then
+            sed -i '' 's/langgraph-prod.nrp-nautilus.io/langgraph.nrp-nautilus.io/g' "${temp_manifest}"
+        fi
+    else
+        # Linux version
+        sed -i "s/ENV_PLACEHOLDER/${env}/g" "${temp_manifest}"
+        
+        # For production, update the host to remove the environment prefix
+        if [ "$env" = "prod" ]; then
+            sed -i 's/langgraph-prod.nrp-nautilus.io/langgraph.nrp-nautilus.io/g' "${temp_manifest}"
+        fi
+    fi
 
     # Apply the manifest
     if [ "$clean" = true ]; then
@@ -308,6 +345,17 @@ deploy_frontend() {
         sleep 5
     fi
     
+    # Handle frontend secrets and environment substitution
+    # local frontend_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/frontend-secrets.yaml"
+    # local frontend_secrets_manifest=$(handle_secrets "$frontend_secrets_manifest_path")
+    # kubectl apply -f "$frontend_secrets_manifest"
+    # rm "$frontend_secrets_manifest"
+    # # Optionally verify frontend-secrets exists
+    # if ! kubectl get secret frontend-secrets --namespace $NAMESPACE > /dev/null 2>&1; then
+    #     echo "Error: frontend-secrets secret was not created successfully in namespace $NAMESPACE. Aborting frontend deployment."
+    #     exit 1
+    # fi
+    
     # Create a temporary file with environment-specific values
     TEMP_MANIFEST=$(mktemp)
     cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
@@ -370,6 +418,7 @@ deploy_supabase() {
     fi
     
     # Handle secrets and environment substitution
+    local supabase_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/supabase-secrets.yaml"
     local manifest_path="${PROJECT_ROOT}/iac/manifests/supabase.yaml"
     local temp_manifest=$(handle_secrets "$manifest_path")
     

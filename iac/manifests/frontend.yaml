@@ -29,31 +29,6 @@ spec:
         env:
           - name: NEXT_PUBLIC_API_URL
             value: "https://langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io"
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_ACCESS_KEY_ID
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_SECRET_ACCESS_KEY
-          - name: AWS_DEFAULT_REGION
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_DEFAULT_REGION
-          - name: AWS_S3_ENDPOINT_URL
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_S3_ENDPOINT_URL
-          - name: AWS_S3_BUCKET_NAME
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_S3_BUCKET_NAME
         readinessProbe:
           httpGet:
             path: /

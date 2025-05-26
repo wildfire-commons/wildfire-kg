@@ -1,30 +1,4 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: langgraph-secrets
-type: Opaque
-data:
-  OPENAI_API_KEY: b3BlbmFpLWFwaS1rZXk=  # "openai-api-key" in base64
-  POSTGRES_PASSWORD: cG9zdGdyZXM=  # "postgres" in base64
-  LANGSMITH_API_KEY: bGFuZ3NtaXRoLWFwaS1rZXk=  # "langsmith-api-key" in base64
-  AWS_ACCESS_KEY_ID: YWRtaW4=  # "admin" in base64
-  AWS_SECRET_ACCESS_KEY: YWRtaW4=  # "admin" in base64
-  AWS_S3_ENDPOINT_URL: YWRtaW4=  # "admin" in base64
-  AWS_S3_BUCKET_NAME: YWRtaW4=  # "admin" in base64
-  GRAPHDB_URL: YWRtaW4=  # "admin" in base64
-  GRAPHDB_REPOSITORY: YWRtaW4=  # "admin" in base64
-  GRAPHDB_USERNAME: YWRtaW4=  # "admin" in base64
-  GRAPHDB_PASSWORD: YWRtaW4=  # "admin" in base64
-  TAVILY_API_KEY: YWRtaW4=  # "admin" in base64
-  DEBUG: YWRtaW4=  # "admin" in base64
-  LOG_LEVEL: YWRtaW4=  # "admin" in base64
-  LANGCHAIN_API_KEY: YWRtaW4=  # "admin" in base64
-  LANGCHAIN_TRACING_V2: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_ASSISTANT_ID: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_STUDIO_URL: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_STUDIO_UI_URL: YWRtaW4=  # "admin" in base64
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: langgraph-config
@@ -245,11 +219,6 @@ spec:
             secretKeyRef:
               name: langgraph-secrets
               key: OPENAI_API_KEY
-        - name: LANGSMITH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGSMITH_API_KEY
         - name: REDIS_URI
           value: "redis://langgraph-redis:6379/0"
         - name: DATABASE_URI
@@ -272,15 +241,14 @@ spec:
               name: langgraph-secrets
               key: AWS_SECRET_ACCESS_KEY
         - name: AWS_S3_ENDPOINT_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: AWS_S3_ENDPOINT_URL
+          value: "https://s3-west.nrp-nautilus.io"
         - name: AWS_S3_BUCKET_NAME
+          value: "wildfire-kg"
+        - name: AWS_DEFAULT_REGION
           valueFrom:
             secretKeyRef:
               name: langgraph-secrets
-              key: AWS_S3_BUCKET_NAME
+              key: AWS_DEFAULT_REGION
         - name: GRAPHDB_URL
           valueFrom:
             secretKeyRef:
@@ -322,35 +290,12 @@ spec:
               name: langgraph-secrets
               key: LANGCHAIN_API_KEY
         - name: LANGCHAIN_TRACING_V2
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGCHAIN_TRACING_V2
-        - name: LANGGRAPH_ASSISTANT_ID
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_ASSISTANT_ID
-        - name: LANGGRAPH_STUDIO_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_STUDIO_URL
-        - name: LANGGRAPH_STUDIO_UI_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_STUDIO_UI_URL
+          value: "true"
         command: ["/bin/sh", "-c"]
         args:
           - |
-            echo "Waiting for dependencies..."
-            until nc -z langgraph-postgres 5432 && nc -z langgraph-redis 6379; do
-              echo "Waiting for dependencies..."
-              sleep 2
-            done
-            echo "Starting LangGraph server..."
-            cd /app && uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 4
+            echo "Starting FastAPI server..."
+            uvicorn wildfire_kg_api.app:app --host 0.0.0.0 --port 8000 --workers 4
         volumeMounts:
         - name: langgraph-data
           mountPath: /data
