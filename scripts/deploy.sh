@@ -78,14 +78,14 @@ handle_secrets() {
         
         # If not found and .env file exists, try to get from .env
         if [ -z "$value" ] && [ -f "${PROJECT_ROOT}/.env" ]; then
-            # Use awk to handle values with special characters
-            value=$(awk -F= -v key="^${secret_name}=" '$0 ~ key {print $2}' "${PROJECT_ROOT}/.env" | xargs)
+            value=$(grep "^${secret_name}=" "${PROJECT_ROOT}/.env" | cut -d'=' -f2-)
         fi
         
         # If still not found, return empty
         if [ -z "$value" ]; then
-            echo "Error: Empty value for $secret_name in .env" >&2
-            exit 1
+            echo "Error: Empty value for $secret_name in .env or environment variables" >&2 # Updated error message
+            # Optionally, you might want to exit here if a secret is critical
+            # exit 1 
         fi
         echo -n "$value" | base64 | tr -d '\n'
     }
@@ -321,6 +321,12 @@ deploy_component() {
 # Function to deploy frontend
 deploy_frontend() {
     local env=$1
+    local registry="gitlab-registry.nrp-nautilus.io"
+    local image_name="wildfire-kg/wildfire-kg/frontend"
+    local timestamp=$(TZ='America/Los_Angeles' date '+%Y%m%d-%H%M')  # e.g., 20240315-0921
+    local image_tag="frontend-${env}-${timestamp}"  # e.g., frontend-dev-20240315-0921
+    local full_image_name="${registry}/${image_name}:${image_tag}"
+    local frontend_dir="${PROJECT_ROOT}/applications/wildfire-kg-frontend"
     
     # Check if GitLab credentials are set
     if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
@@ -329,9 +335,39 @@ deploy_frontend() {
     fi
     
     echo "Building and deploying frontend for $env environment..."
+    echo "Image will be tagged as: ${image_tag}"
+    
+    # Check if the frontend directory exists
+    if [ ! -d "$frontend_dir" ]; then
+        echo "Error: Frontend directory not found at $frontend_dir"
+        exit 1
+    fi
     
     # Navigate to the frontend directory
-    cd "${PROJECT_ROOT}/applications/wildfire-kg-frontend"
+    cd "$frontend_dir"
+    
+    # Login to GitLab registry
+    echo "Logging in to GitLab registry..."
+    echo "$GITLAB_PASSWORD" | docker login ${registry} -u $GITLAB_USER --password-stdin
+    
+    # Build the Docker image for x86_64 platform with no cache
+    echo "Building frontend image for x86_64 platform..."
+    docker buildx build \
+      --platform linux/amd64 \
+      --no-cache \
+      --build-arg NEXT_PUBLIC_API_URL="https://langgraph-${env}-wifire-kg.nrp-nautilus.io" \
+      -t ${full_image_name} \
+      --push .
+    
+    # Check if the build was successful
+    if [ $? -ne 0 ]; then
+        echo "Error: Frontend image build failed"
+        cd "${PROJECT_ROOT}"
+        exit 1
+    fi
+    
+    # Return to the project root
+    cd "${PROJECT_ROOT}"
     
     # Clean up existing deployment if --clean flag is set
     if [ "$CLEAN" = true ]; then
@@ -345,29 +381,49 @@ deploy_frontend() {
         sleep 5
     fi
     
-    # Handle frontend secrets and environment substitution
-    # local frontend_secrets_manifest_path="${PROJECT_ROOT}/iac/manifests/frontend-secrets.yaml"
-    # local frontend_secrets_manifest=$(handle_secrets "$frontend_secrets_manifest_path")
-    # kubectl apply -f "$frontend_secrets_manifest"
-    # rm "$frontend_secrets_manifest"
-    # # Optionally verify frontend-secrets exists
-    # if ! kubectl get secret frontend-secrets --namespace $NAMESPACE > /dev/null 2>&1; then
-    #     echo "Error: frontend-secrets secret was not created successfully in namespace $NAMESPACE. Aborting frontend deployment."
-    #     exit 1
-    # fi
-    
     # Create a temporary file with environment-specific values
     TEMP_MANIFEST=$(mktemp)
     cat "${PROJECT_ROOT}/iac/manifests/frontend.yaml" | sed "s/ENV_PLACEHOLDER/${env}/g" > "$TEMP_MANIFEST"
     
-    # For production, update the host to remove the environment prefix
-    if [ "$env" = "prod" ]; then
-        sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+    # Update the image tag in the manifest
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS version
+        sed -i '' "s|:IMAGE_TAG|:${image_tag}|" "$TEMP_MANIFEST"
+    else
+        # Linux version
+        sed -i "s|:IMAGE_TAG|:${image_tag}|" "$TEMP_MANIFEST"
     fi
     
+    # For production, update the host to remove the environment prefix
+    if [ "$env" = "prod" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS version
+            sed -i '' 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+            sed -i '' 's/langgraph-prod-wifire-kg.nrp-nautilus.io/langgraph-wifire-kg.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+        else
+            # Linux version
+            sed -i 's/wildfire-prod.nrp-nautilus.io/wildfire.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+            sed -i 's/langgraph-prod-wifire-kg.nrp-nautilus.io/langgraph-wifire-kg.nrp-nautilus.io/g' "$TEMP_MANIFEST"
+        fi
+    fi
+    
+    # Debug: Print the manifest contents before deploying
+    echo "=== Manifest contents before deployment ==="
+    cat "$TEMP_MANIFEST"
+    echo "=== End of manifest contents ==="
+    
     # Deploy frontend
-    echo "Deploying frontend..."
+    echo "Deploying frontend with image: ${full_image_name}"
     kubectl apply -f "$TEMP_MANIFEST"
+    
+    # Force a rollout restart to ensure new image is pulled
+    echo "Forcing rollout restart to ensure new image is pulled..."
+    kubectl rollout restart deployment/wildfire-kg-frontend-${env} -n $NAMESPACE
+    
+    # Debug: Check the image being used by the deployment
+    echo "=== Current deployment image ==="
+    kubectl get deployment wildfire-kg-frontend-${env} -n $NAMESPACE -o=jsonpath='{.spec.template.spec.containers[0].image}'
+    echo "=== End of current deployment image ==="
     
     # Clean up temporary file
     rm "$TEMP_MANIFEST"
@@ -390,6 +446,7 @@ deploy_frontend() {
     
     echo "Frontend deployment completed successfully!"
     echo "You can access the frontend at: ${url}"
+    echo "Deployed image: ${full_image_name}"
 }
 
 # Function to deploy supabase

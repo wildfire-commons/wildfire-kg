@@ -10,8 +10,6 @@ interface ChatContext {
   weather_results?: any;
 }
 
-const LANGGRAPH_URL = 'https://langgraph-dev-e0739bb8a8e8568a9c741dd43a8b37c8.us.langgraph.app';
-const API_KEY = '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';
 const GRAPH_NAME = 'wildfire-kg';
 
 interface StreamData {
@@ -52,11 +50,10 @@ export default function ChatPage() {
 
   const createThread = async () => {
     try {
-      const response = await fetch(`${LANGGRAPH_URL}/threads`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({})
       });
@@ -134,10 +131,6 @@ export default function ChatPage() {
                   });
                 }
               }
-              // Temporarily skip storing thinking steps
-              // else if (eventType === 'messages/partial') {
-              //   // Store thinking steps logic here
-              // }
             } catch (e) {
               console.error('Error parsing stream data:', e);
             }
@@ -190,11 +183,10 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${LANGGRAPH_URL}/threads/${threadId}/runs/stream`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs/stream`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           assistant_id: GRAPH_NAME,
@@ -304,22 +296,6 @@ export default function ChatPage() {
                 <p className="text-xs mt-2 opacity-70">
                   {message.timestamp.toLocaleTimeString()}
                 </p>
-                {/* Temporarily hide thinking steps
-                {message.thinkingSteps && message.thinkingSteps.length > 0 && (
-                  <div className="mt-2 border-t border-gray-200 pt-2">
-                    <button
-                      onClick={() => toggleThinkingStep(message.id)}
-                      className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                    >
-                      <span className="mr-1">
-                        {expandedSteps.has(message.id) ? '▼' : '▶'}
-                      </span>
-                      Show thinking steps ({message.thinkingSteps.length})
-                    </button>
-                    {expandedSteps.has(message.id) && renderThinkingSteps(message.thinkingSteps)}
-                  </div>
-                )}
-                */}
               </div>
             </div>
           ))}
@@ -373,7 +349,7 @@ export default function ChatPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about wildfire data..."
+            placeholder="Ask about prescribed burns and wildfires..."
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#03619B]"
             disabled={loading}
           />
