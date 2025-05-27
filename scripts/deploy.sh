@@ -138,11 +138,13 @@ deploy_langgraph() {
     local namespace="wifire-kg"
     local registry="gitlab-registry.nrp-nautilus.io"
     local image_name="wildfire-kg/wildfire-kg"
-    local image_tag="langgraph-${env}"
+    local timestamp=$(TZ='America/Los_Angeles' date '+%Y%m%d-%H%M')  # e.g., 20240315-0921
+    local image_tag="langgraph-${env}-${timestamp}"  # e.g., langgraph-dev-20240315-0921
     local full_image_name="${registry}/${image_name}:${image_tag}"
     local api_dir="${PROJECT_ROOT}/applications/wildfire-kg-api"
 
     echo "Deploying LangGraph to ${env} environment..."
+    echo "Image will be tagged as: ${image_tag}"
 
     # Check if GitLab credentials are set
     if [ -z "$GITLAB_USER" ] || [ -z "$GITLAB_PASSWORD" ]; then
@@ -163,9 +165,14 @@ deploy_langgraph() {
     echo "Logging in to GitLab registry..."
     echo "$GITLAB_PASSWORD" | docker login ${registry} -u $GITLAB_USER --password-stdin
 
-    # Build the Docker image for x86_64 platform
+    # Build the Docker image for x86_64 platform with no cache
     echo "Building LangGraph image for x86_64 platform..."
-    docker buildx build --platform linux/amd64 -t ${full_image_name} --build-arg PYTHON_ENV=production --push .
+    docker buildx build \
+      --platform linux/amd64 \
+      --no-cache \
+      --build-arg PYTHON_ENV=production \
+      -t ${full_image_name} \
+      --push .
 
     # Check if the build was successful
     if [ $? -ne 0 ]; then
@@ -221,6 +228,20 @@ deploy_langgraph() {
         fi
     fi
 
+    # Update the image tag in the manifest
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS version
+        sed -i '' "s|:langgraph-${env}|:${image_tag}|" "${temp_manifest}"
+    else
+        # Linux version
+        sed -i "s|:langgraph-${env}|:${image_tag}|" "${temp_manifest}"
+    fi
+
+    # Debug: Print the manifest contents before deploying
+    echo "=== Manifest contents before deployment ==="
+    cat "${temp_manifest}"
+    echo "=== End of manifest contents ==="
+
     # Apply the manifest
     if [ "$clean" = true ]; then
         echo "Cleaning up existing LangGraph deployment..."
@@ -230,6 +251,15 @@ deploy_langgraph() {
 
     echo "Applying LangGraph manifest..."
     kubectl apply -f "${temp_manifest}"
+
+    # Force a rollout restart to ensure new image is pulled
+    echo "Forcing rollout restart to ensure new image is pulled..."
+    kubectl rollout restart deployment/langgraph -n ${namespace}
+
+    # Debug: Check the image being used by the deployment
+    echo "=== Current deployment image ==="
+    kubectl get deployment langgraph -n ${namespace} -o=jsonpath='{.spec.template.spec.containers[0].image}'
+    echo "=== End of current deployment image ==="
 
     # Wait for deployment to be ready
     echo "Waiting for LangGraph deployment to be ready..."
@@ -249,6 +279,7 @@ deploy_langgraph() {
     rm "${temp_manifest}"
 
     echo "LangGraph deployment completed and ready!"
+    echo "Deployed image: ${full_image_name}"
 }
 
 # Function to deploy a component

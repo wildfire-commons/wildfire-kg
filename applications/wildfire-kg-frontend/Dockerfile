@@ -9,7 +9,20 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+# Build the application
 RUN npm run build
+
+# Development stage
+FROM node:18-alpine AS development
+WORKDIR /app
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+
+ENV NODE_ENV development
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
 
 # Production stage
 FROM node:18-alpine AS runner

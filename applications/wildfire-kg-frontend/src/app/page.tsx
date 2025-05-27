@@ -183,7 +183,7 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs/stream`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -198,8 +198,7 @@ export default function ChatPage() {
               sender: msg.sender,
               timestamp: msg.timestamp.toISOString()
             }))
-          },
-          stream_mode: ['values', 'messages']
+          }
         }),
       });
 
@@ -207,7 +206,26 @@ export default function ChatPage() {
         throw new Error('Failed to get response');
       }
 
-      await handleStreamResponse(response);
+      const data = await response.json();
+      
+      // Update the assistant's message with the response
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage && lastMessage.sender === 'assistant') {
+          lastMessage.text = data.messages[0]?.content || 'Sorry, I encountered an error. Please try again.';
+        }
+        return newMessages;
+      });
+
+      // Update context if results are available
+      if (data.kg_results || data.rag_results || data.weather_results) {
+        setContext({
+          kg_results: data.kg_results,
+          rag_results: data.rag_results,
+          weather_results: data.weather_results
+        });
+      }
 
     } catch (error) {
       console.error('Chat error:', error);
