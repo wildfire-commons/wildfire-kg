@@ -48,14 +48,16 @@ export default function ChatPage() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
 
-  const createThread = async () => {
+  const createThread = async (userInput: string) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          initial_message: userInput
+        })
       });
 
       if (!response.ok) {
@@ -64,6 +66,29 @@ export default function ChatPage() {
 
       const data = await response.json();
       setThreadId(data.thread_id);
+      
+      // Add the initial messages to the chat
+      if (data.messages) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: generateId(),
+            text: data.messages[0]?.content || '',
+            sender: 'assistant',
+            timestamp: new Date(),
+          }
+        ]);
+      }
+
+      // Set context if results are available
+      if (data.kg_results || data.rag_results || data.weather_results) {
+        setContext({
+          kg_results: data.kg_results,
+          rag_results: data.rag_results,
+          weather_results: data.weather_results
+        });
+      }
+
       return data.thread_id;
     } catch (error) {
       console.error('Failed to create thread:', error);
@@ -73,7 +98,7 @@ export default function ChatPage() {
 
   // Create a new thread when the component mounts
   useEffect(() => {
-    createThread();
+    // No initial message - wait for user input
   }, []);
 
   const toggleThinkingStep = (messageId: string) => {
@@ -148,20 +173,6 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // If no thread exists, create one before sending the message
-    if (!threadId) {
-      const newThreadId = await createThread();
-      if (!newThreadId) {
-        setMessages(prev => [...prev, {
-          id: generateId(),
-          text: 'Sorry, I encountered an error creating the conversation. Please try again.',
-          sender: 'assistant',
-          timestamp: new Date(),
-        }]);
-        return;
-      }
-    }
-
     const userMessage: ExtendedMessage = {
       id: generateId(),
       text: input,
@@ -183,50 +194,65 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          assistant_id: GRAPH_NAME,
-          input: {
-            user_query: input,
-            history: messages.map(msg => ({
-              id: msg.id,
-              text: msg.text,
-              sender: msg.sender,
-              timestamp: msg.timestamp.toISOString()
-            }))
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-      
-      // Update the assistant's message with the response
-      setMessages(prev => {
-        const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
-        if (lastMessage && lastMessage.sender === 'assistant') {
-          lastMessage.text = data.messages[0]?.content || 'Sorry, I encountered an error. Please try again.';
+      // If no thread exists, create one with the user's message
+      if (!threadId) {
+        const newThreadId = await createThread(input);
+        if (!newThreadId) {
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            if (lastMessage && lastMessage.sender === 'assistant') {
+              lastMessage.text = 'Sorry, I encountered an error. Please try again.';
+            }
+            return newMessages;
+          });
         }
-        return newMessages;
-      });
-
-      // Update context if results are available
-      if (data.kg_results || data.rag_results || data.weather_results) {
-        setContext({
-          kg_results: data.kg_results,
-          rag_results: data.rag_results,
-          weather_results: data.weather_results
+      } else {
+        // For subsequent messages, use the run endpoint
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            assistant_id: GRAPH_NAME,
+            input: {
+              user_query: input,
+              history: messages.map(msg => ({
+                id: msg.id,
+                text: msg.text,
+                sender: msg.sender,
+                timestamp: msg.timestamp.toISOString()
+              }))
+            }
+          }),
         });
-      }
 
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+
+        const data = await response.json();
+        
+        // Update the assistant's message with the response
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage && lastMessage.sender === 'assistant') {
+            lastMessage.text = data.messages[0]?.content || 'Sorry, I encountered an error. Please try again.';
+          }
+          return newMessages;
+        });
+
+        // Update context if results are available
+        if (data.kg_results || data.rag_results || data.weather_results) {
+          setContext({
+            kg_results: data.kg_results,
+            rag_results: data.rag_results,
+            weather_results: data.weather_results
+          });
+        }
+      }
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => {

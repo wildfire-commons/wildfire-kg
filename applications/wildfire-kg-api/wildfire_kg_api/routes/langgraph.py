@@ -16,11 +16,15 @@ router = APIRouter(
 
 class ThreadCreateRequest(BaseModel):
     """Request model for creating a new thread."""
-    pass
+    initial_message: str
 
 class ThreadCreateResponse(BaseModel):
     """Response model for thread creation."""
     thread_id: str
+    messages: List[Dict[str, Any]]
+    kg_results: Optional[Dict[str, Any]] = None
+    rag_results: Optional[Dict[str, Any]] = None
+    weather_results: Optional[Dict[str, Any]] = None
 
 class RunRequest(BaseModel):
     """Request model for running a thread."""
@@ -36,11 +40,35 @@ class RunResponse(BaseModel):
 
 @router.post("/threads", response_model=ThreadCreateResponse)
 async def create_thread(request: ThreadCreateRequest):
-    """Create a new conversation thread."""
+    """Create a new conversation thread and run initial message."""
     try:
         # Generate a unique thread ID
         thread_id = str(uuid.uuid4())
-        return ThreadCreateResponse(thread_id=thread_id)
+        
+        # Create the agent graph
+        agent_graph = create_wildfire_react_agent()
+        
+        # Initialize state with the initial message
+        state = State(messages=[])
+        state.user_query = request.initial_message
+        
+        # Add the initial user message
+        state.messages.append({
+            "role": "user",
+            "content": request.initial_message
+        })
+        
+        # Run the graph
+        result = await agent_graph.ainvoke({"messages": state.messages})
+        
+        # Return both thread ID and initial response
+        return ThreadCreateResponse(
+            thread_id=thread_id,
+            messages=result.get("messages", []),
+            kg_results=result.get("kg_results"),
+            rag_results=result.get("rag_results"),
+            weather_results=result.get("weather_results")
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
