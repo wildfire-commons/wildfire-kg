@@ -361,27 +361,14 @@ def _get_mock_weather_data(location: str) -> Dict[str, Any]:
     }
 
 def extract_date_from_query(query):
-    # Try to extract a date after the last 'on', 'for', or 'at'
-    match = re.search(r'(?:on|for|at)\s+([A-Za-z0-9, ]*\d{4})', query, re.IGNORECASE)
+    # Try to extract a date after 'on', 'for', or 'at', capturing full date
+    match = re.search(r'(?:on|for|at)[^a-zA-Z0-9]+([A-Za-z]+\s+\d{1,2},\s*\d{4})', query, re.IGNORECASE)
     if match:
         date_str = match.group(1).strip()
-        # Remove any trailing location info (e.g., "San Diego, CA on May 23, 2025")
-        date_only = re.sub(r'^[A-Za-z\s,]*', '', date_str)
-        parsed = dateparser.parse(date_only)
-        logger.info(f"Extracted date from explicit pattern: {date_only} -> {parsed}")
+        parsed = dateparser.parse(date_str)
+        logger.info(f"Extracted date from explicit pattern: {date_str} -> {parsed}")
         if parsed:
             return parsed
-
-    # Fallback: use dateparser's search_dates to find any date in the string
-    try:
-        from dateparser.search import search_dates
-        found = search_dates(query)
-        if found:
-            # Pick the last date found (usually the most relevant)
-            logger.info(f"Extracted date using search_dates: {found[-1][1]}")
-            return found[-1][1]
-    except Exception as e:
-        logger.warning(f"dateparser.search_dates failed: {e}")
 
     # If "current" in query, return today
     if "current" in query.lower():
@@ -400,6 +387,16 @@ def extract_date_from_query(query):
         tomorrow = datetime.utcnow() + timedelta(days=1)
         logger.info(f"Query is for forecast weather, using tomorrow: {tomorrow}")
         return tomorrow
+
+    # Fallback: use dateparser's search_dates to find any date in the string
+    try:
+        from dateparser.search import search_dates
+        found = search_dates(query)
+        if found:
+            logger.info(f"Extracted date using search_dates: {found[-1][1]}")
+            return found[-1][1]
+    except Exception as e:
+        logger.warning(f"dateparser.search_dates failed: {e}")
 
     # Final fallback: try to parse any date in the string
     parsed = dateparser.parse(query, settings={'PREFER_DATES_FROM': 'future'})
