@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 import uuid
 from wildfire_kg_api.orchestration.agent import create_wildfire_react_agent
 from wildfire_kg_api.orchestration.state import State
+from langchain_core.messages import BaseMessage
 
 router = APIRouter(
     tags=["LangGraph"],
@@ -22,9 +23,9 @@ class ThreadCreateResponse(BaseModel):
     """Response model for thread creation."""
     thread_id: str
     messages: List[Dict[str, Any]]
-    kg_results: Optional[Dict[str, Any]] = None
-    rag_results: Optional[Dict[str, Any]] = None
-    weather_results: Optional[Dict[str, Any]] = None
+    # kg_results: Optional[Dict[str, Any]] = None
+    # rag_results: Optional[Dict[str, Any]] = None
+    # weather_results: Optional[Dict[str, Any]] = None
 
 class RunRequest(BaseModel):
     """Request model for running a thread."""
@@ -37,6 +38,14 @@ class RunResponse(BaseModel):
     kg_results: Optional[Dict[str, Any]] = None
     rag_results: Optional[Dict[str, Any]] = None
     weather_results: Optional[Dict[str, Any]] = None
+
+def serialize_message(msg):
+    if isinstance(msg, dict):
+        return msg
+    if hasattr(msg, 'to_dict'):
+        return msg.to_dict()
+    # Fallback: basic serialization
+    return {k: v for k, v in msg.__dict__.items() if not k.startswith('_')}
 
 @router.post("/threads", response_model=ThreadCreateResponse)
 async def create_thread(request: ThreadCreateRequest):
@@ -61,13 +70,14 @@ async def create_thread(request: ThreadCreateRequest):
         # Run the graph
         result = await agent_graph.ainvoke({"messages": state.messages})
         
+        # Serialize messages for Pydantic
+        messages = result.get("messages", [])
+        messages = [serialize_message(m) for m in messages]
+        
         # Return both thread ID and initial response
         return ThreadCreateResponse(
             thread_id=thread_id,
-            messages=result.get("messages", []),
-            kg_results=result.get("kg_results"),
-            rag_results=result.get("rag_results"),
-            weather_results=result.get("weather_results")
+            messages=messages,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -94,9 +104,13 @@ async def run_thread(thread_id: str, request: RunRequest):
         # Run the graph
         result = await agent_graph.ainvoke({"messages": state.messages})
         
+        # Serialize messages for Pydantic
+        messages = result.get("messages", [])
+        messages = [serialize_message(m) for m in messages]
+        
         # Extract results
         response = RunResponse(
-            messages=result.get("messages", []),
+            messages=messages,
             kg_results=result.get("kg_results"),
             rag_results=result.get("rag_results"),
             weather_results=result.get("weather_results")
