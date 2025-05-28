@@ -169,13 +169,17 @@ export default function ChatPage() {
   };
 
   const { reasoning, final } = splitMessages(messages, pendingUserMessage);
-  // Extract all user messages for chat bubbles
+  // Extract all user messages for chat bubbles, ordered chronologically
   const userMessages = [
-    ...(pendingUserMessage ? [pendingUserMessage] : []),
-    ...messages
+    ...messages.filter((msg) => msg.sender === 'user' || msg.type === 'human'),
+    ...(pendingUserMessage ? [pendingUserMessage] : [])
   ]
-    .filter((msg) => msg.sender === 'user' || msg.type === 'human')
-    .filter((msg, idx, arr) => arr.findIndex(m => m.content === msg.content && m.sender === msg.sender) === idx);
+    .filter((msg, idx, arr) => arr.findIndex(m => m.content === msg.content && m.sender === msg.sender) === idx)
+    .sort((a, b) => {
+      const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return aTime - bTime;
+    });
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -193,8 +197,8 @@ export default function ChatPage() {
           {/* Final Answer */}
           {final && (
             <div className="bg-green-50 p-4 rounded mb-2">
-              <strong>Final Answer:</strong>
               <div>{final.content || <em>[no content]</em>}</div>
+              <p className="text-xs mt-2 opacity-70">{final.timestamp ? new Date(final.timestamp).toLocaleTimeString() : ''}</p>
             </div>
           )}
           {/* Reasoning Steps (expandable) */}
