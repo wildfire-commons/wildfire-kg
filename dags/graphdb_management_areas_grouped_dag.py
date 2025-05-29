@@ -28,8 +28,8 @@ def process_and_create_grouped_areas():
     aws_s3_bucket_name = Variable.get("AWS_S3_BUCKET_NAME")
 
     # GraphDB connection details
-    GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
-    REPOSITORY = "wildfire-kg"
+    GRAPHDB_URL = "https://graphdb-wildfire-kg.nrp-nautilus.io"
+    REPOSITORY = "wildfire-kg-prod"
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
 
@@ -44,7 +44,7 @@ def process_and_create_grouped_areas():
     session.mount('http://', adapter)
     session.mount('https://', adapter)
 
-    REQUEST_TIMEOUT = 30
+    REQUEST_TIMEOUT = 120
     MAX_RETRIES = 3
     GRID_SIZE = 200.0  # meters (can be adjusted)
     SENSOR_RADIUS = 200.0  # meters (search radius for sensors near plot)
@@ -56,7 +56,7 @@ def process_and_create_grouped_areas():
         
         SELECT ?plot ?plot_id ?lat ?lon
         WHERE {
-            GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {
+            GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geographic> {
                 ?plot rdf:type wifire:PlotMetrics ;
                       wifire:hasLocationDataPlot ?loc .
                 BIND(REPLACE(STR(?plot), "^.*plot_", "") AS ?plot_id)
@@ -124,8 +124,11 @@ def process_and_create_grouped_areas():
         }
         """
         headers = {'Accept': 'application/sparql-results+json'}
+        print("Starting sensor data fetch...")
+        
         for attempt in range(MAX_RETRIES):
             try:
+                print(f"Attempt {attempt + 1} to fetch sensor data...")
                 response = session.get(
                     SPARQL_ENDPOINT, 
                     params={'query': query}, 
@@ -133,7 +136,9 @@ def process_and_create_grouped_areas():
                     verify=False,
                     timeout=REQUEST_TIMEOUT
                 )
+                print(f"Response status code: {response.status_code}")
                 if response.status_code == 200:
+                    print("Successfully received response from GraphDB")
                     break
                 print(f"Attempt {attempt + 1} failed with status {response.status_code}")
                 if attempt < MAX_RETRIES - 1:
@@ -147,23 +152,51 @@ def process_and_create_grouped_areas():
             except requests.exceptions.RequestException as e:
                 print(f"Error fetching sensor data: {e}")
                 return []
-        results = response.json()['results']['bindings']
+        
+        try:
+            results = response.json()['results']['bindings']
+            print(f"Retrieved {len(results)} sensor records from GraphDB")
+        except Exception as e:
+            print(f"Error parsing response: {e}")
+            print(f"Response content: {response.text[:500]}...")  # Print first 500 chars of response
+            return []
+            
         transformer = Transformer.from_crs("EPSG:4326", "EPSG:32610", always_xy=True)
         sensor_data = []
+        processed_count = 0
+        error_count = 0
+        
+        print("\nProcessing sensor coordinates...")
         for result in results:
-            lon = float(result['lon']['value'])
-            lat = float(result['lat']['value'])
-            x, y = transformer.transform(lon, lat)
-            sensor_uri = result['sensor']['value']
-            sensor_id = result.get('sensor_id', {}).get('value')
-            if not sensor_id:
-                sensor_id = sensor_uri.split('sensor_')[-1]
-            sensor_data.append({
-                'sensor_uri': sensor_uri,
-                'sensor_id': sensor_id,
-                'x': x,
-                'y': y
-            })
+            try:
+                lon = float(result['lon']['value'])
+                lat = float(result['lat']['value'])
+                x, y = transformer.transform(lon, lat)
+                sensor_uri = result['sensor']['value']
+                sensor_id = result.get('sensor_id', {}).get('value')
+                if not sensor_id:
+                    sensor_id = sensor_uri.split('sensor_')[-1]
+                sensor_data.append({
+                    'sensor_uri': sensor_uri,
+                    'sensor_id': sensor_id,
+                    'x': x,
+                    'y': y
+                })
+                processed_count += 1
+                
+                if processed_count % 1000 == 0:
+                    print(f"Processed {processed_count} sensors...")
+                    
+            except Exception as e:
+                error_count += 1
+                if error_count <= 5:  # Only print first 5 errors to avoid flooding logs
+                    print(f"Error processing sensor {result.get('sensor', {}).get('value', 'unknown')}: {str(e)}")
+        
+        print(f"\nSensor processing complete:")
+        print(f"- Total sensors retrieved: {len(results)}")
+        print(f"- Successfully processed: {processed_count}")
+        print(f"- Errors encountered: {error_count}")
+        
         return sensor_data
 
     def create_management_areas_grouped(plot_data, sensor_data):

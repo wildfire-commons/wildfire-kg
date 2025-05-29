@@ -54,8 +54,8 @@ def process_and_load_data():
     )
 
     # local GraphDB connection details
-    GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
-    REPOSITORY = "wildfire-kg"
+    GRAPHDB_URL = "https://graphdb-wildfire-kg.nrp-nautilus.io"
+    REPOSITORY = "wildfire-kg-prod"
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
 

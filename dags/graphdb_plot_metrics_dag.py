@@ -53,8 +53,8 @@ def process_and_load_data():
     )
 
     # local GraphDB connection details
-    GRAPHDB_URL = "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
-    REPOSITORY = "wildfire-kg"
+    GRAPHDB_URL = "https://graphdb-wildfire-kg.nrp-nautilus.io"
+    REPOSITORY = "wildfire-kg-prod"
     SPARQL_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}"
     UPDATE_ENDPOINT = f"{GRAPHDB_URL}/repositories/{REPOSITORY}/statements"
 
@@ -272,7 +272,7 @@ def process_and_load_data():
 
                     lat = plot['Latitude']
                     lon = plot['Longitude']
-                    city, state, country = reverse_geocode(lat, lon, geocode_cache)
+                    county, state, country = reverse_geocode(lat, lon, geocode_cache)
 
                     update_query = f"""
                     PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
@@ -281,7 +281,7 @@ def process_and_load_data():
                     PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                     
                     INSERT DATA {{ 
-                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {{
+                        GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geographic> {{
                             # Main PlotMetrics instance
                             wifire:plot_{plot_id} rdf:type wifire:PlotMetrics ;
                                 rdfs:label "Plot Metrics" ;
@@ -295,7 +295,7 @@ def process_and_load_data():
                                 rdfs:comment "Represents location data related to a plot's geographic coordinates" ;
                                 wifire:plotLongitude "{lon}"^^xsd:float ;
                                 wifire:plotLatitude "{lat}"^^xsd:float ;
-                                wifire:plotCity "{city}"^^xsd:string ;
+                                wifire:plotCounty "{county}"^^xsd:string ;
                                 wifire:plotState "{state}"^^xsd:string ;
                                 wifire:plotCountry "{country}"^^xsd:string .
                             
@@ -476,10 +476,12 @@ def upload_with_retries(plot_id, data, max_retries=5):
             time.sleep(2 ** attempt)  # Exponential backoff
 
 def reverse_geocode(lat, lon, cache=None):
-    """Get city, state, country from latitude and longitude using Nominatim."""
+    """Get county, state, country from latitude and longitude using Nominatim. Logs full address and extracted fields."""
     if cache is not None:
         key = (round(lat, 5), round(lon, 5))
         if key in cache:
+            county, state, country = cache[key]
+            print(f"[CACHE] Geocode for ({lat}, {lon}): county='{county}', state='{state}', country='{country}'")
             return cache[key]
     try:
         url = f"https://nominatim.openstreetmap.org/reverse"
@@ -495,10 +497,14 @@ def reverse_geocode(lat, lon, cache=None):
         if resp.status_code == 200:
             data = resp.json()
             address = data.get("address", {})
-            city = address.get("city") or address.get("town") or address.get("village") or address.get("hamlet") or address.get("municipality") or ""
+            print(f"[GEOCODE] Address for ({lat}, {lon}): {address}")
+            county = address.get("county", "")
             state = address.get("state", "")
             country = address.get("country", "")
-            result = (city, state, country)
+            print(f"[GEOCODE] Extracted: county='{county}', state='{state}', country='{country}' for ({lat}, {lon})")
+            if not county:
+                print(f"[WARNING] County is empty for ({lat}, {lon}) with address: {address}")
+            result = (county, state, country)
             if cache is not None:
                 cache[key] = result
             return result

@@ -50,7 +50,7 @@ def process_and_create_grouped_areas():
         
         SELECT ?plot ?plot_id ?lat ?lon
         WHERE {
-            GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geograph> {
+            GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geographic> {
                 ?plot rdf:type wifire:PlotMetrics ;
                       wifire:hasLocationDataPlot ?loc .
                 BIND(REPLACE(STR(?plot), "^.*plot_", "") AS ?plot_id)
