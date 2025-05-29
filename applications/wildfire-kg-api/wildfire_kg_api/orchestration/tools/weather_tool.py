@@ -128,7 +128,7 @@ def get_weather(query: str) -> str:
 
     This tool provides:
     - A detailed weather summary (temperature, humidity, wind, precipitation, etc.)
-    - A wildfire risk assessment based on the weather conditions (e.g., dryness, wind, humidity, temperature, precipitation)
+    - A wildfire risk assessment and recommendations based on the weather conditions, leveraging the LLM's own knowledge of how weather affects wildfire risk (e.g., dryness, wind, humidity, temperature, precipitation). The LLM should reason about risk and safety using the weather data, even if specific thresholds are not provided.
 
     INSTRUCTIONS FOR THE AGENT:
     1. **Extract the location** (city, state, country) from the query.
@@ -138,12 +138,13 @@ def get_weather(query: str) -> str:
         - If the date is in the past (within the last 5 days), use the **historical weather** endpoint.
         - If the date is in the future (within the next 5 days), use the **forecast weather** endpoint.
     4. **Call the appropriate endpoint** with the resolved location and date.
-    5. **Return a detailed weather summary** and a wildfire risk assessment.
+    5. **Return a detailed weather summary.**
+    6. **Based on the weather summary, use your own knowledge to provide a wildfire risk assessment and actionable recommendations.**
 
     Example queries and endpoint selection:
     - "current weather in San Diego, CA" → current weather endpoint
-    - "historical weather for San Diego, CA on May 23, 2025" → historical weather endpoint
-    - "forecast weather for San Diego, CA on May 27, 2025" → forecast weather endpoint
+    - "historical weather for San Diego, CA from last month" → historical weather endpoint
+    - "forecast weather for San Diego, CA in a week" → forecast weather endpoint
 
     Output Outline:
     1. Weather Summary
@@ -155,7 +156,7 @@ def get_weather(query: str) -> str:
         - Precipitation (inches)
         - Conditions (e.g., clear, overcast, rain)
     2. Wildfire Risk Assessment
-        - Explanation of how the weather affects wildfire risk (e.g., "High winds and low humidity increase fire danger.")
+        - Use your own knowledge to explain how the weather affects wildfire risk (e.g., "High winds and low humidity increase fire danger.")
         - Highlight any factors that increase or decrease risk
     3. Recommendations (if applicable)
         - E.g., "Exercise caution with open flames. Avoid outdoor burning."
@@ -190,7 +191,7 @@ def get_weather(query: str) -> str:
     Output should include:
     - Date and location
     - Temperature, humidity, wind, precipitation, and conditions
-    - Wildfire risk assessment and recommendations
+    - Wildfire risk assessment and recommendations (using your own knowledge)
 
     Parameters:
         query: The full user query including location and date
