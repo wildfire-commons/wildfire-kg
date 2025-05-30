@@ -2,25 +2,29 @@
 Knowledge Graph tool for ReAct pattern using LangChain's tool decorator.
 """
 
-from typing import Dict, Any
-import logging
-from langchain_core.tools import tool
+from typing import Dict, Any, Optional
 import os
+from langchain_core.tools import tool
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain_community.chains.graph_qa.ontotext_graphdb import OntotextGraphDBQAChain
 from langchain_openai import ChatOpenAI
 import json
 from langchain.chains import LLMChain, SequentialChain
+from langchain_core.runnables.config import RunnableConfig
 
 from wildfire_kg_api.orchestration.prompts import get_prompt
+from wildfire_kg_api.orchestration.logger import get_logger
+from wildfire_kg_api.orchestration.models import (
+    BEST_MODEL_FALLBACK,
+    get_llm_params_for_model,
+)
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Initialize logger
+logger = get_logger("tools.kg")
 
 
 @tool
-def query_knowledge_graph(query: str) -> str:
+def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
     """
     Query the wildfire knowledge graph with natural language questions.
     This tool converts natural language queries into SPARQL queries and executes them against the GraphDB database.
@@ -29,13 +33,32 @@ def query_knowledge_graph(query: str) -> str:
 
     Parameters:
         query: A natural language question about wildfires and related topics
+        config: Optional RunnableConfig containing model settings
 
     Returns:
-        A string response with information from the knowledge graph
+        A string response with information from the knowledge graph and follow-up suggestions
     """
-    logger.info(f"Querying knowledge graph with: {query}")
+    logger.info(f"Querying knowledge graph with: {query} and config: {config}")
 
     try:
+        # Get model settings from config or use defaults
+        kg_model_name = config["configurable"].get(
+            "kg_model_name", BEST_MODEL_FALLBACK["kg_tool"]["model"]
+        )
+
+        # Determine temperature for KG tool:
+        # 1. From config's "kg_temperature"
+        # 2. From BEST_MODEL_FALLBACK for the kg_tool
+        # 3. Default from the model itself (via get_default_temperature)
+        kg_temperature_config = config["configurable"].get("kg_temperature")
+        if kg_temperature_config is None:
+            kg_temperature_config = BEST_MODEL_FALLBACK["kg_tool"].get("temperature")
+        # kg_temperature_config can be None. get_llm_params_for_model will handle this.
+
+        verbose = config["configurable"].get(
+            "verbose", False
+        )  # verbose for QA chain, not directly for LLM here
+
         # Connection parameters
         graphdb_url = os.getenv(
             "GRAPHDB_URL", "https://graphdb-dev-wildfire-kg.nrp-nautilus.io/"
@@ -45,10 +68,10 @@ def query_knowledge_graph(query: str) -> str:
         # TODO: Ensure graphdb prevents unauthenticated access
         graphdb_username = os.getenv("GRAPHDB_USERNAME")
         graphdb_password = os.getenv("GRAPHDB_PASSWORD")
-        openai_api_key = os.getenv("OPENAI_API_KEY")
 
         # Initialize GraphDB connection
         query_endpoint = f"{graphdb_url}/repositories/{graphdb_repository}"
+        logger.debug(f"Using GraphDB endpoint: {query_endpoint}")
 
         # Path to the local ontology file
         ontology_file_path = "../../knowledge-representation/wildfire_kg_ontology.owl"
@@ -59,6 +82,7 @@ def query_knowledge_graph(query: str) -> str:
             local_file=ontology_file_path,
             local_file_format="turtle",  # Explicitly specify the format as Turtle
         )
+        logger.debug("GraphDB connection initialized successfully")
 
         # Get prompt templates from the registry
         query_classification_prompt = get_prompt("tools.kg.query_classification_prompt")
@@ -72,71 +96,79 @@ def query_knowledge_graph(query: str) -> str:
             temperature=0,
             model="gpt-3.5-turbo",
             max_tokens=200,
-            response_format={ "type": "json_object" }
+            response_format={"type": "json_object"},
         )
-        context_llm = ChatOpenAI(
-            temperature=0,
-            model="gpt-3.5-turbo",
-            max_tokens=200
-        )
+        context_llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo", max_tokens=200)
 
         # Chain for classification
         classification_chain = LLMChain(
             llm=classifier_llm,
             prompt=query_classification_prompt,
-            output_key="classification_json"
+            output_key="classification_json",
         )
 
         # Chain for context (takes classification output)
         context_chain = LLMChain(
-            llm=context_llm,
-            prompt=query_context_prompt,
-            output_key="context_result"
+            llm=context_llm, prompt=query_context_prompt, output_key="context_result"
         )
 
         classification_result = classification_chain({"query": query})
         classification = json.loads(classification_result["classification_json"])
-        context_result = context_chain({
-            "query_type": classification["query_type"],
-            "confidence": classification["confidence"],
-            "reasoning": classification["reasoning"]
-        })
+        context_result = context_chain(
+            {
+                "query_type": classification["query_type"],
+                "confidence": classification["confidence"],
+                "reasoning": classification["reasoning"],
+            }
+        )
 
         # Enhance the query with context
-        enhanced_query = f"{query}\n\nContext: {context_result['context_result']}" if context_result['context_result'] else query
+        enhanced_query = (
+            f"{query}\n\nContext: {context_result['context_result']}"
+            if context_result["context_result"]
+            else query
+        )
+
+        # Set up LLM parameters using the helper function
+        logger.info(
+            f"KG tool using model: {kg_model_name}, requested temperature: {kg_temperature_config}"
+        )
+        llm_params = get_llm_params_for_model(
+            model_name=kg_model_name,
+            temperature_override=kg_temperature_config,
+            # No direct callbacks, tags, metadata for this specific LLM instance in the chain yet
+        )
+        logger.info(f"Final LLM params for KG tool QA chain: {llm_params}")
 
         # Initialize the QA chain with all available prompts
         qa_chain = OntotextGraphDBQAChain.from_llm(
-            ChatOpenAI(
-                temperature=0,
-                api_key=openai_api_key,
-                model="gpt-3.5-turbo",
-            ),
+            ChatOpenAI(**llm_params),
             graph=graph,
-            verbose=True,
+            verbose=verbose,  # Pass verbose to the chain itself
             return_intermediate_steps=True,
             chain_type="stuff",
-            max_tokens_limit=1000,
             allow_dangerous_requests=True,
             sparql_generation_prompt=sparql_generation_prompt,
             sparql_fix_prompt=sparql_fix_prompt,
             qa_prompt=qa_prompt,
             max_fix_retries=3,
         )
+        logger.debug("QA chain initialized successfully")
 
         # Execute the query using the QA chain
+        logger.debug("Executing query through QA chain...")
         result = qa_chain.invoke({qa_chain.input_key: enhanced_query})
         answer = result[qa_chain.output_key]
         intermediate_steps = result.get("intermediate_steps", {})
 
         # Get the generated SPARQL query for logging
         sparql_query = intermediate_steps.get("query", "")
-        
+
         # Add SPARQL query to the run's metadata for LangSmith
         if hasattr(qa_chain, "run_manager") and qa_chain.run_manager:
             qa_chain.run_manager.on_text(
                 f"\nGenerated SPARQL Query:\n```sparql\n{sparql_query}\n```",
-                metadata={"sparql_query": sparql_query}
+                metadata={"sparql_query": sparql_query},
             )
 
         # Create a nicely formatted response (without the SPARQL query)
@@ -149,7 +181,11 @@ def query_knowledge_graph(query: str) -> str:
 
 
 def _format_kg_response(
-    answer: str, query: str, intermediate_steps: Dict[str, Any]
+    answer: str,
+    query: str,
+    intermediate_steps: Dict[str, Any],
+    model_name: str = None,
+    temperature: float = 0.0,
 ) -> str:
     """Format the knowledge graph response in a user-friendly manner."""
     try:
@@ -164,6 +200,13 @@ def _format_kg_response(
         # Create a response with appropriate formatting
         response = f"{answer}"
 
+        # Generate follow-up questions based on the query, answer, and context
+        follow_up_questions = _generate_follow_up_questions(
+            query, answer, context, model_name, temperature
+        )
+        if follow_up_questions:
+            response += f"\n\nYou might also be interested in:\n{follow_up_questions}"
+
         # Add a footer with source information if we have context
         if has_context:
             response += "\n\n(This information comes from the wildfire knowledge graph database.)"
@@ -172,3 +215,63 @@ def _format_kg_response(
     except Exception as e:
         logger.error(f"Error formatting KG response: {str(e)}", exc_info=True)
         return answer  # Fall back to just returning the raw answer
+
+
+def _generate_follow_up_questions(
+    query: str,
+    answer: str,
+    context: str,
+    model_name: str = None,
+    temperature: float = 0.0,
+) -> str:
+    """Generate follow-up questions based on the query, answer, and context."""
+    try:
+        # Determine model and temperature for follow-up questions LLM
+        # Default to the same model as the KG tool or fallback
+        llm_model_name = model_name or BEST_MODEL_FALLBACK["kg_tool"]["model"]
+
+        # For temperature, prioritize the passed `temperature` param (which might be from original KG config),
+        # then the model's default. This `temperature` param in _generate_follow_up_questions
+        # effectively acts as temperature_override.
+
+        logger.info(
+            f"Follow-up questions using model: {llm_model_name}, requested temperature: {temperature}"
+        )
+        llm_params = get_llm_params_for_model(
+            model_name=llm_model_name,
+            temperature_override=temperature,  # The `temperature` argument acts as override
+        )
+        logger.info(f"Final LLM params for follow-up questions: {llm_params}")
+
+        # Use the LLM for consistency
+        llm = ChatOpenAI(**llm_params)
+
+        # Construct a prompt to generate follow-up questions
+        prompt = f"""
+        Based on the following query and answer about fire, vegetation, or fuel data, suggest 1-2 simple follow-up questions that would be relevant and interesting.
+        
+        The follow-up questions should relate to:
+        1. Other metrics or measurements related to the current query
+        2. Comparisons with other similar plots or regions
+        3. Temporal aspects (changes over time, different seasons)
+        4. Causal relationships or correlations
+        
+        Original Query: {query}
+        Answer: {answer}
+        Additional Context: {context}
+        
+        Generate only the questions, no explanations or introductions.
+        """
+
+        # Get the follow-up questions from the LLM
+        response = llm.invoke(prompt)
+        follow_up_text = response.content.strip()
+
+        # Clean up the response to ensure it's just the questions
+        follow_up_text = follow_up_text.replace("1. ", "• ")
+        follow_up_text = follow_up_text.replace("2. ", "• ")
+
+        return follow_up_text
+    except Exception as e:
+        logger.error(f"Error generating follow-up questions: {str(e)}", exc_info=True)
+        return ""  # Return empty string if there's an error

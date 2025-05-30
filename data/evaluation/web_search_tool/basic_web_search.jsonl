@@ -1,0 +1,2 @@
+{"user_query":"What fire occurred in Santa Barbara County in 2017?","expected_tools":["web_search"],"expected_response_contains":["Thomas Fire"],"tags":["web_search"]}
+{"user_query":"What are burn bosses?","expected_tools":["web_search"],"expected_response_contains":["Certified professional responsible for planning, implementing, and supervising prescribed burns"],"tags":["web_search"]}

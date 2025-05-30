@@ -2,7 +2,7 @@ template:
   type: text
   template: |
     Write a SPARQL SELECT query for querying a wildfire knowledge graph database.
-    
+
     Follow these steps when querying metrics:
     1. ALWAYS start by finding the plot using plotName and STRSTARTS
     2. Then use the appropriate relationship to get metrics:
@@ -15,18 +15,20 @@ template:
        - Use a subquery to get the latest plot
        - Use lastMetrics to get the previous plot
        - Compare specific properties between plots
-    
+
     The ontology schema delimited by triple backticks in Turtle format is:
     ```
     {schema}
     ```
-    
+
     Use only the classes and properties provided in the schema.
     Include all necessary prefixes, especially the wifire namespace.
     Limit results to 10 items maximum.
     Do not include any explanations or text except the SPARQL query itself.
-    
+    IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```).
+    **Plot Identification Rule:** When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.
+
     The question delimited by triple backticks is:
     ```
     {prompt}
-    ``` 
+    ```
