@@ -3,40 +3,24 @@ Weather tool using LangChain's tool decorator.
 """
 
 import os
-import logging
 import requests
 from datetime import datetime, timedelta
-from typing import Dict, Any, Tuple, Optional
-from dotenv import load_dotenv
+from typing import Dict, Any, Optional
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 import json
 import re
 import dateparser
 import urllib.parse
-import sys
+from wildfire_kg_api.orchestration.logger import get_logger
 
-# Configure logging to write to stdout
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stdout
-)
-logger = logging.getLogger(__name__)
-
-# Force the logger to output to stdout
-for handler in logger.handlers:
-    handler.setStream(sys.stdout)
-
-file_handler = logging.FileHandler('weather_tool_debug.log')
-file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+logger = get_logger("tools.weather")
 
 API_KEY = os.getenv("WEATHER_API_KEY")
 if not API_KEY:
-    logger.warning("WEATHER_API_KEY environment variable is not set! Historical and current weather API calls will fail.")
+    logger.warning(
+        "WEATHER_API_KEY environment variable is not set! Historical and current weather API calls will fail."
+    )
 PRO_BASE_URL = "https://pro.openweathermap.org/data/2.5/weather"
 HIST_BASE_URL = "https://history.openweathermap.org/data/2.5/history/city"
 FORECAST_BASE_URL = "https://pro.openweathermap.org/data/2.5/forecast"
@@ -44,16 +28,58 @@ GEOCODE_URL = "http://api.openweathermap.org/geo/1.0/direct"
 
 # US state abbreviation to full name mapping
 US_STATE_ABBR = {
-    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California', 'CO': 'Colorado',
-    'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
-    'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana',
-    'ME': 'Maine', 'MD': 'Maryland', 'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
-    'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
-    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
-    'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina', 'SD': 'South Dakota',
-    'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington',
-    'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+    "AL": "Alabama",
+    "AK": "Alaska",
+    "AZ": "Arizona",
+    "AR": "Arkansas",
+    "CA": "California",
+    "CO": "Colorado",
+    "CT": "Connecticut",
+    "DE": "Delaware",
+    "FL": "Florida",
+    "GA": "Georgia",
+    "HI": "Hawaii",
+    "ID": "Idaho",
+    "IL": "Illinois",
+    "IN": "Indiana",
+    "IA": "Iowa",
+    "KS": "Kansas",
+    "KY": "Kentucky",
+    "LA": "Louisiana",
+    "ME": "Maine",
+    "MD": "Maryland",
+    "MA": "Massachusetts",
+    "MI": "Michigan",
+    "MN": "Minnesota",
+    "MS": "Mississippi",
+    "MO": "Missouri",
+    "MT": "Montana",
+    "NE": "Nebraska",
+    "NV": "Nevada",
+    "NH": "New Hampshire",
+    "NJ": "New Jersey",
+    "NM": "New Mexico",
+    "NY": "New York",
+    "NC": "North Carolina",
+    "ND": "North Dakota",
+    "OH": "Ohio",
+    "OK": "Oklahoma",
+    "OR": "Oregon",
+    "PA": "Pennsylvania",
+    "RI": "Rhode Island",
+    "SC": "South Carolina",
+    "SD": "South Dakota",
+    "TN": "Tennessee",
+    "TX": "Texas",
+    "UT": "Utah",
+    "VT": "Vermont",
+    "VA": "Virginia",
+    "WA": "Washington",
+    "WV": "West Virginia",
+    "WI": "Wisconsin",
+    "WY": "Wyoming",
 }
+
 
 class WeatherInput(BaseModel):
     """Input for the weather query tool."""
@@ -80,11 +106,7 @@ def geocode_location(location: str) -> Optional[dict]:
         attempts.append(location.strip() + ", USA")
     logger.info(f"Geocoding attempts: {attempts}")
     for attempt in attempts:
-        params = {
-            "q": attempt,
-            "limit": 1,
-            "appid": API_KEY
-        }
+        params = {"q": attempt, "limit": 1, "appid": API_KEY}
         logger.info(f"Geocoding location: {attempt}")
         resp = requests.get(GEOCODE_URL, params=params)
         if resp.status_code == 200:
@@ -95,19 +117,27 @@ def geocode_location(location: str) -> Optional[dict]:
             else:
                 logger.warning(f"No geocoding result for {attempt}")
         else:
-            logger.warning(f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}")
+            logger.warning(
+                f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}"
+            )
     return None
 
-def _log_api_call(base_url: str, params: Dict[str, Any], response: requests.Response) -> None:
+
+def _log_api_call(
+    base_url: str, params: Dict[str, Any], response: requests.Response
+) -> None:
     """Log API call details and response."""
     print(f"\n{'='*50}\nAPI Call Details:", flush=True)
     print(f"Endpoint: {base_url}", flush=True)
     print(f"Parameters: {json.dumps(params, indent=2)}", flush=True)
     print(f"Status Code: {response.status_code}", flush=True)
     try:
-        print(f"Response: {json.dumps(response.json(), indent=2)}\n{'='*50}\n", flush=True)
+        print(
+            f"Response: {json.dumps(response.json(), indent=2)}\n{'='*50}\n", flush=True
+        )
     except:
         print(f"Response: {response.text}\n{'='*50}\n", flush=True)
+
 
 def _call_weather_api(endpoint, params, query_type, city_label):
     logger.info(f"Calling {query_type} endpoint: {endpoint} with params: {params}")
@@ -118,8 +148,11 @@ def _call_weather_api(endpoint, params, query_type, city_label):
         logger.info(f"API response for {city_label}: {json.dumps(data)[:200]}...")
         return data
     else:
-        logger.warning(f"API error for {city_label}: {response.status_code} - {response.text}")
+        logger.warning(
+            f"API error for {city_label}: {response.status_code} - {response.text}"
+        )
         return None
+
 
 @tool
 def get_weather(query: str) -> str:
@@ -205,25 +238,26 @@ def get_weather(query: str) -> str:
         is_historical = date and date.date() < today
         is_forecast = date and date.date() > today
         is_current = not date or date.date() == today
-        
+
         logger.info(f"Query Analysis:")
         logger.info(f"- Date: {date}")
         logger.info(f"- Location: {location}")
-        logger.info(f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}")
+        logger.info(
+            f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}"
+        )
 
         # Geocode location ONCE
         geo = geocode_location(location)
         if not geo:
-            return f"Could not resolve location '{location}'. Please check the city name."
-        lat, lon = geo['lat'], geo['lon']
-        city_label = geo.get('name', location)
-        city_id = geo.get('id')  # Not always present
+            return (
+                f"Could not resolve location '{location}'. Please check the city name."
+            )
+        lat, lon = geo["lat"], geo["lon"]
+        city_label = geo.get("name", location)
+        city_id = geo.get("id")  # Not always present
 
         # Use city_id if available, else lat/lon
-        params = {
-            "appid": API_KEY,
-            "units": "metric"
-        }
+        params = {"appid": API_KEY, "units": "metric"}
         if city_id:
             params["id"] = city_id
         else:
@@ -267,14 +301,24 @@ def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
         weather = data.get("weather", [{}])[0]
         wind = data.get("wind", {})
         temp_c = main.get("temp", "N/A")
-        temp_f = round((temp_c * 9/5) + 32, 1) if isinstance(temp_c, (int, float)) else "N/A"
+        temp_f = (
+            round((temp_c * 9 / 5) + 32, 1)
+            if isinstance(temp_c, (int, float))
+            else "N/A"
+        )
         condition = weather.get("description", "Unknown")
         humidity = main.get("humidity", "N/A")
         wind_speed_mps = wind.get("speed", "N/A")
-        wind_speed_mph = round(wind_speed_mps * 2.237, 1) if isinstance(wind_speed_mps, (int, float)) else "N/A"
+        wind_speed_mph = (
+            round(wind_speed_mps * 2.237, 1)
+            if isinstance(wind_speed_mps, (int, float))
+            else "N/A"
+        )
         wind_dir = wind.get("deg", "N/A")
         precip_mm = data.get("rain", {}).get("1h", 0)
-        precip_in = round(precip_mm / 25.4, 2) if isinstance(precip_mm, (int, float)) else "N/A"
+        precip_in = (
+            round(precip_mm / 25.4, 2) if isinstance(precip_mm, (int, float)) else "N/A"
+        )
         fire_danger = ""
         if (
             isinstance(humidity, (int, float))
@@ -300,9 +344,15 @@ def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
 
 def _format_historical_weather_data(data, city, date):
     entries = data.get("list", [])
-    requested_date_str = date.strftime('%Y-%m-%d')
-    filtered = [e for e in entries if datetime.utcfromtimestamp(e["dt"]).strftime('%Y-%m-%d') == requested_date_str]
-    logger.info(f"Averaging {len(filtered)} historical entries for {city} on {requested_date_str}")
+    requested_date_str = date.strftime("%Y-%m-%d")
+    filtered = [
+        e
+        for e in entries
+        if datetime.utcfromtimestamp(e["dt"]).strftime("%Y-%m-%d") == requested_date_str
+    ]
+    logger.info(
+        f"Averaging {len(filtered)} historical entries for {city} on {requested_date_str}"
+    )
     if not filtered:
         return f"No historical weather data available for {city} on {date.date()}."
     temps = [e["main"]["temp"] for e in filtered]
@@ -311,7 +361,7 @@ def _format_historical_weather_data(data, city, date):
     avg_temp = sum(temps) / len(temps)
     avg_humidity = sum(humidities) / len(humidities)
     avg_wind = sum(winds) / len(winds)
-    avg_temp_f = (avg_temp * 9/5) + 32
+    avg_temp_f = (avg_temp * 9 / 5) + 32
     return (
         f"📅 Historical Weather for {city} ({date.strftime('%B %d, %Y')}):\n"
         f"- Avg Temperature: {avg_temp_f:.1f}°F ({avg_temp:.1f}°C)\n"
@@ -361,9 +411,14 @@ def _get_mock_weather_data(location: str) -> Dict[str, Any]:
         },
     }
 
+
 def extract_date_from_query(query):
     # Try to extract a date after 'on', 'for', or 'at', capturing full date
-    match = re.search(r'(?:on|for|at)[^a-zA-Z0-9]+([A-Za-z]+\s+\d{1,2},\s*\d{4})', query, re.IGNORECASE)
+    match = re.search(
+        r"(?:on|for|at)[^a-zA-Z0-9]+([A-Za-z]+\s+\d{1,2},\s*\d{4})",
+        query,
+        re.IGNORECASE,
+    )
     if match:
         date_str = match.group(1).strip()
         parsed = dateparser.parse(date_str)
@@ -392,6 +447,7 @@ def extract_date_from_query(query):
     # Fallback: use dateparser's search_dates to find any date in the string
     try:
         from dateparser.search import search_dates
+
         found = search_dates(query)
         if found:
             logger.info(f"Extracted date using search_dates: {found[-1][1]}")
@@ -400,13 +456,16 @@ def extract_date_from_query(query):
         logger.warning(f"dateparser.search_dates failed: {e}")
 
     # Final fallback: try to parse any date in the string
-    parsed = dateparser.parse(query, settings={'PREFER_DATES_FROM': 'future'})
+    parsed = dateparser.parse(query, settings={"PREFER_DATES_FROM": "future"})
     logger.info(f"Fallback extracted date: {parsed}")
     return parsed
 
+
 def extract_location_from_query(query):
     # Try to extract city/state/country after 'in', 'for', or 'at'
-    match = re.search(r"(?:in|for|at)\s+([A-Za-z\s]+(?:,\s*[A-Za-z]{2,})*)", query, re.IGNORECASE)
+    match = re.search(
+        r"(?:in|for|at)\s+([A-Za-z\s]+(?:,\s*[A-Za-z]{2,})*)", query, re.IGNORECASE
+    )
     if match:
         return match.group(1).strip()
     # Fallback: try to find a city name in the query
@@ -415,11 +474,16 @@ def extract_location_from_query(query):
         return match.group(0).strip()
     return query.strip()
 
+
 def _format_forecast_weather_data(data, city, date):
     entries = data.get("list", [])
-    requested_date_str = date.strftime('%Y-%m-%d')
-    filtered = [e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)]
-    logger.info(f"Averaging {len(filtered)} forecast entries for {city} on {requested_date_str}")
+    requested_date_str = date.strftime("%Y-%m-%d")
+    filtered = [
+        e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)
+    ]
+    logger.info(
+        f"Averaging {len(filtered)} forecast entries for {city} on {requested_date_str}"
+    )
     if not filtered:
         return f"No forecast weather data available for {city} on {date.date()}."
     temps = [e["main"]["temp"] for e in filtered]
@@ -428,7 +492,7 @@ def _format_forecast_weather_data(data, city, date):
     avg_temp = sum(temps) / len(temps)
     avg_humidity = sum(humidities) / len(humidities)
     avg_wind = sum(winds) / len(winds)
-    avg_temp_f = (avg_temp * 9/5) + 32
+    avg_temp_f = (avg_temp * 9 / 5) + 32
     return (
         f"🔮 Forecast Weather for {city} ({date.strftime('%B %d, %Y')}):\n"
         f"- Avg Temperature: {avg_temp_f:.1f}°F ({avg_temp:.1f}°C)\n"
@@ -436,11 +500,12 @@ def _format_forecast_weather_data(data, city, date):
         f"- Avg Wind: {avg_wind:.2f} m/s\n"
     )
 
+
 def _get_city_id(city: str) -> Optional[str]:
     # Try to resolve city name to city ID using /weather endpoint
     city_variants = [city.strip()]
-    if ',' in city:
-        city_variants.append(city.split(',')[0].strip())
+    if "," in city:
+        city_variants.append(city.split(",")[0].strip())
     if not city.lower().endswith(",us"):
         city_variants.append(f"{city.strip()},US")
     if not city.lower().endswith(",usa"):
@@ -457,7 +522,10 @@ def _get_city_id(city: str) -> Optional[str]:
                 return city_id
     return None
 
-def _try_api_with_city_id(base_url, city, params, date=None, is_forecast=False, is_historical=False):
+
+def _try_api_with_city_id(
+    base_url, city, params, date=None, is_forecast=False, is_historical=False
+):
     city_id = _get_city_id(city)
     if city_id:
         params["id"] = city_id
@@ -468,7 +536,9 @@ def _try_api_with_city_id(base_url, city, params, date=None, is_forecast=False, 
         logger.info(f"API response status: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            logger.info(f"API response for city ID {city_id}: {json.dumps(data)[:200]}...")
+            logger.info(
+                f"API response for city ID {city_id}: {json.dumps(data)[:200]}..."
+            )
             if is_forecast:
                 return _format_forecast_weather_data(data, city, date), None
             elif is_historical:
@@ -476,7 +546,9 @@ def _try_api_with_city_id(base_url, city, params, date=None, is_forecast=False, 
             else:
                 return _format_weather_data(data, city), None
         else:
-            logger.warning(f"API error for city ID {city_id}: {response.status_code} - {response.text}")
+            logger.warning(
+                f"API error for city ID {city_id}: {response.status_code} - {response.text}"
+            )
     # Fallback to q if city ID not found
     params["q"] = city
     params.pop("id", None)
@@ -494,5 +566,7 @@ def _try_api_with_city_id(base_url, city, params, date=None, is_forecast=False, 
         else:
             return _format_weather_data(data, city), None
     else:
-        logger.warning(f"API error for city name {city}: {response.status_code} - {response.text}")
+        logger.warning(
+            f"API error for city name {city}: {response.status_code} - {response.text}"
+        )
     return None, f"Weather data not found for {city} (tried city ID and name)"
