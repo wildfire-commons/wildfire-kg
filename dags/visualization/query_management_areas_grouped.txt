@@ -15,7 +15,7 @@ CONSTRUCT {
           wifire:hasFireIgnitionSensor ?sensor .
 }
 WHERE {
-    GRAPH <http://wifire.ucsd.edu/fire_management_areas_grouped> {
+    GRAPH <http://wifire.ucsd.edu/fire_management_areas_radius> {
         ?area rdf:type wifire:FireManagementArea .
         OPTIONAL { ?area rdfs:label ?label . }
         OPTIONAL { ?area rdfs:comment ?comment . }
