@@ -1,1 +1,1 @@
-{"user_query":"What's the weather like in Santa Barbara right now?","expected_tools":["get_weather"],"expected_response_contains":["Santa Barbara","Temperature","Humidity","Wind"],"tags":["weather","santa barbara"]}
+{"user_query":"What is the slope percentage of CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["10"],"tags":["kg_only","slope","fire_metrics"]}
