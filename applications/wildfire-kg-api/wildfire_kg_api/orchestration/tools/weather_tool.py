@@ -123,13 +123,29 @@ def geocode_location(location: str) -> Optional[dict]:
     return None
 
 
+def _sanitize_params_for_logging(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a sanitized copy of params for logging that masks sensitive information."""
+    sanitized = params.copy()
+    if "appid" in sanitized:
+        # Mask the API key for logging - show first 4 and last 4 characters with asterisks in between
+        api_key = sanitized["appid"]
+        if len(api_key) > 8:
+            sanitized["appid"] = (
+                f"{api_key[:4]}{'*' * (len(api_key) - 8)}{api_key[-4:]}"
+            )
+        else:
+            sanitized["appid"] = "*" * len(api_key)
+    return sanitized
+
+
 def _log_api_call(
     base_url: str, params: Dict[str, Any], response: requests.Response
 ) -> None:
     """Log API call details and response."""
+    sanitized_params = _sanitize_params_for_logging(params)
     print(f"\n{'='*50}\nAPI Call Details:", flush=True)
     print(f"Endpoint: {base_url}", flush=True)
-    print(f"Parameters: {json.dumps(params, indent=2)}", flush=True)
+    print(f"Parameters: {json.dumps(sanitized_params, indent=2)}", flush=True)
     print(f"Status Code: {response.status_code}", flush=True)
     try:
         print(
@@ -140,7 +156,11 @@ def _log_api_call(
 
 
 def _call_weather_api(endpoint, params, query_type, city_label):
-    logger.info(f"Calling {query_type} endpoint: {endpoint} with params: {params}")
+    """Call weather API with logging."""
+    sanitized_params = _sanitize_params_for_logging(params)
+    logger.info(
+        f"Calling {query_type} endpoint: {endpoint} with params: {sanitized_params}"
+    )
     response = requests.get(endpoint, params=params)
     _log_api_call(endpoint, params, response)
     if response.status_code == 200:
