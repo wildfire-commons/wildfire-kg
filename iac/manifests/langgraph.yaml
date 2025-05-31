@@ -1,33 +1,10 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: langgraph-secrets
-type: Opaque
-data:
-  OPENAI_API_KEY: b3BlbmFpLWFwaS1rZXk=  # "openai-api-key" in base64
-  POSTGRES_PASSWORD: cG9zdGdyZXM=  # "postgres" in base64
-  LANGSMITH_API_KEY: bGFuZ3NtaXRoLWFwaS1rZXk=  # "langsmith-api-key" in base64
-  AWS_ACCESS_KEY_ID: YWRtaW4=  # "admin" in base64
-  AWS_SECRET_ACCESS_KEY: YWRtaW4=  # "admin" in base64
-  AWS_S3_ENDPOINT_URL: YWRtaW4=  # "admin" in base64
-  AWS_S3_BUCKET_NAME: YWRtaW4=  # "admin" in base64
-  GRAPHDB_URL: YWRtaW4=  # "admin" in base64
-  GRAPHDB_REPOSITORY: YWRtaW4=  # "admin" in base64
-  GRAPHDB_USERNAME: YWRtaW4=  # "admin" in base64
-  GRAPHDB_PASSWORD: YWRtaW4=  # "admin" in base64
-  TAVILY_API_KEY: YWRtaW4=  # "admin" in base64
-  DEBUG: YWRtaW4=  # "admin" in base64
-  LOG_LEVEL: YWRtaW4=  # "admin" in base64
-  LANGCHAIN_API_KEY: YWRtaW4=  # "admin" in base64
-  LANGCHAIN_TRACING_V2: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_ASSISTANT_ID: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_STUDIO_URL: YWRtaW4=  # "admin" in base64
-  LANGGRAPH_STUDIO_UI_URL: YWRtaW4=  # "admin" in base64
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: langgraph-config
+  name: langgraph-config-ENV_PLACEHOLDER
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
 data:
   langgraph.json: |
     {
@@ -40,188 +17,26 @@ data:
       "max_requests_jitter": 50
     }
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: langgraph-postgres-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: langgraph-postgres
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: langgraph-postgres
-  template:
-    metadata:
-      labels:
-        app: langgraph-postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:16
-          env:
-            - name: POSTGRES_USER
-              value: "postgres"
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: langgraph-secrets
-                  key: POSTGRES_PASSWORD
-            - name: POSTGRES_DB
-              value: "postgres"
-          ports:
-            - containerPort: 5432
-          resources:
-            requests:
-              cpu: "200m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "1Gi"
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-          startupProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - postgres
-                - -d
-                - postgres
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 10
-          readinessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - postgres
-                - -d
-                - postgres
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            exec:
-              command:
-                - pg_isready
-                - -U
-                - postgres
-                - -d
-                - postgres
-            initialDelaySeconds: 30
-            periodSeconds: 10
-      volumes:
-        - name: postgres-data
-          persistentVolumeClaim:
-            claimName: langgraph-postgres-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: langgraph-postgres
-spec:
-  type: ClusterIP
-  selector:
-    app: langgraph-postgres
-  ports:
-    - protocol: TCP
-      port: 5432
-      targetPort: 5432
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: langgraph-redis
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: langgraph-redis
-  template:
-    metadata:
-      labels:
-        app: langgraph-redis
-    spec:
-      containers:
-        - name: redis
-          image: redis:7
-          ports:
-            - containerPort: 6379
-          resources:
-            requests:
-              cpu: "100m"
-              memory: "256Mi"
-            limits:
-              cpu: "200m"
-              memory: "512Mi"
-          startupProbe:
-            exec:
-              command:
-                - redis-cli
-                - ping
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 10
-          readinessProbe:
-            exec:
-              command:
-                - redis-cli
-                - ping
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            exec:
-              command:
-                - redis-cli
-                - ping
-            initialDelaySeconds: 30
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: langgraph-redis
-spec:
-  type: ClusterIP
-  selector:
-    app: langgraph-redis
-  ports:
-    - protocol: TCP
-      port: 6379
-      targetPort: 6379
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: langgraph
+  name: langgraph-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: langgraph
+      environment: ENV_PLACEHOLDER
   template:
     metadata:
       labels:
         app: langgraph
+        environment: ENV_PLACEHOLDER
     spec:
-      initContainers:
-        - name: wait-for-deps
-          image: busybox
-          command: ['sh', '-c', 'until nc -z langgraph-postgres 5432 && nc -z langgraph-redis 6379; do echo waiting for dependencies; sleep 2; done']
       containers:
       - name: langgraph
         image: gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:langgraph-ENV_PLACEHOLDER
@@ -245,20 +60,6 @@ spec:
             secretKeyRef:
               name: langgraph-secrets
               key: OPENAI_API_KEY
-        - name: LANGSMITH_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGSMITH_API_KEY
-        - name: REDIS_URI
-          value: "redis://langgraph-redis:6379/0"
-        - name: DATABASE_URI
-          value: "postgres://postgres:$(POSTGRES_PASSWORD)@langgraph-postgres:5432/postgres?sslmode=disable"
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: POSTGRES_PASSWORD
         - name: LANGGRAPH_CONFIG_PATH
           value: "/app/config/langgraph.json"
         - name: AWS_ACCESS_KEY_ID
@@ -272,15 +73,14 @@ spec:
               name: langgraph-secrets
               key: AWS_SECRET_ACCESS_KEY
         - name: AWS_S3_ENDPOINT_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: AWS_S3_ENDPOINT_URL
+          value: "https://s3-west.nrp-nautilus.io"
         - name: AWS_S3_BUCKET_NAME
+          value: "wildfire-kg"
+        - name: AWS_DEFAULT_REGION
           valueFrom:
             secretKeyRef:
               name: langgraph-secrets
-              key: AWS_S3_BUCKET_NAME
+              key: AWS_DEFAULT_REGION
         - name: GRAPHDB_URL
           valueFrom:
             secretKeyRef:
@@ -322,35 +122,12 @@ spec:
               name: langgraph-secrets
               key: LANGCHAIN_API_KEY
         - name: LANGCHAIN_TRACING_V2
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGCHAIN_TRACING_V2
-        - name: LANGGRAPH_ASSISTANT_ID
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_ASSISTANT_ID
-        - name: LANGGRAPH_STUDIO_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_STUDIO_URL
-        - name: LANGGRAPH_STUDIO_UI_URL
-          valueFrom:
-            secretKeyRef:
-              name: langgraph-secrets
-              key: LANGGRAPH_STUDIO_UI_URL
+          value: "true"
         command: ["/bin/sh", "-c"]
         args:
           - |
-            echo "Waiting for dependencies..."
-            until nc -z langgraph-postgres 5432 && nc -z langgraph-redis 6379; do
-              echo "Waiting for dependencies..."
-              sleep 2
-            done
-            echo "Starting LangGraph server..."
-            cd /app && uvicorn src.app:app --host 0.0.0.0 --port 8000 --workers 4
+            echo "Starting FastAPI server..."
+            uvicorn wildfire_kg_api.app:app --host 0.0.0.0 --port 8000 --workers 4
         volumeMounts:
         - name: langgraph-data
           mountPath: /data
@@ -358,7 +135,7 @@ spec:
           mountPath: /app/config
         startupProbe:
           httpGet:
-            path: /health
+            path: /health/ping
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
@@ -366,32 +143,40 @@ spec:
           failureThreshold: 10
         readinessProbe:
           httpGet:
-            path: /health
+            path: /health/ping
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /health
+            path: /health/ping
             port: 8000
           initialDelaySeconds: 20
           periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
       volumes:
       - name: langgraph-data
         emptyDir: {}
       - name: langgraph-config
         configMap:
-          name: langgraph-config
+          name: langgraph-config-ENV_PLACEHOLDER
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: langgraph
+  name: langgraph-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
 spec:
   type: ClusterIP
   selector:
     app: langgraph
+    environment: ENV_PLACEHOLDER
   ports:
   - port: 8000
     targetPort: 8000
@@ -400,8 +185,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: langgraph-ingress
+  name: langgraph-ingress-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
   annotations:
     kubernetes.io/ingress.class: haproxy
     haproxy.router.openshift.io/timeout: 60s
@@ -414,7 +202,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: langgraph
+            name: langgraph-ENV_PLACEHOLDER
             port:
               number: 8000
   tls:

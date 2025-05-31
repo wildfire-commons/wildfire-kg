@@ -4,19 +4,22 @@ metadata:
   name: wildfire-kg-frontend-ENV_PLACEHOLDER
   labels:
     app: wildfire-kg-frontend
+    environment: ENV_PLACEHOLDER
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: wildfire-kg-frontend
+      environment: ENV_PLACEHOLDER
   template:
     metadata:
       labels:
         app: wildfire-kg-frontend
+        environment: ENV_PLACEHOLDER
     spec:
       containers:
       - name: frontend
-        image: gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg/frontend:latest
+        image: gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg/frontend:IMAGE_TAG
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
@@ -29,31 +32,6 @@ spec:
         env:
           - name: NEXT_PUBLIC_API_URL
             value: "https://langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io"
-          - name: AWS_ACCESS_KEY_ID
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_ACCESS_KEY_ID
-          - name: AWS_SECRET_ACCESS_KEY
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_SECRET_ACCESS_KEY
-          - name: AWS_DEFAULT_REGION
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_DEFAULT_REGION
-          - name: AWS_S3_ENDPOINT_URL
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_S3_ENDPOINT_URL
-          - name: AWS_S3_BUCKET_NAME
-            valueFrom:
-              secretKeyRef:
-                name: frontend-secrets
-                key: AWS_S3_BUCKET_NAME
         readinessProbe:
           httpGet:
             path: /
@@ -73,6 +51,7 @@ metadata:
   name: wildfire-kg-frontend-ENV_PLACEHOLDER
   labels:
     app: wildfire-kg-frontend
+    environment: ENV_PLACEHOLDER
 spec:
   ports:
   - port: 80
@@ -80,6 +59,7 @@ spec:
     protocol: TCP
   selector:
     app: wildfire-kg-frontend
+    environment: ENV_PLACEHOLDER
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
