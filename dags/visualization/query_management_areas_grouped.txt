@@ -1,0 +1,28 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+
+CONSTRUCT {
+    ?area rdf:type wifire:FireManagementArea ;
+          rdfs:label ?label ;
+          rdfs:comment ?comment ;
+          wifire:geometry ?geometry ;
+          wifire:plotCount ?plotCount ;
+          wifire:sensorCount ?sensorCount ;
+          wifire:hasPlot ?plot ;
+          wifire:hasFireIgnitionSensor ?sensor .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/fire_management_areas_radius> {
+        ?area rdf:type wifire:FireManagementArea .
+        OPTIONAL { ?area rdfs:label ?label . }
+        OPTIONAL { ?area rdfs:comment ?comment . }
+        OPTIONAL { ?area wifire:geometry ?geometry . }
+        OPTIONAL { ?area wifire:plotCount ?plotCount . }
+        OPTIONAL { ?area wifire:sensorCount ?sensorCount . }
+        OPTIONAL { ?area wifire:hasPlot ?plot . }
+        OPTIONAL { ?area wifire:hasFireIgnitionSensor ?sensor . }
+    }
+} 
