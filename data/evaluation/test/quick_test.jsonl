@@ -1,2 +1,0 @@
-{"user_query":"What fire occurred in Santa Barbara County in 2017?","expected_tools":["web_search"],"expected_response_contains":["Thomas Fire"],"tags":["web_search"]}
-{"user_query":"What is the slope percentage of CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["10"],"tags":["kg_only","slope","fire_metrics"]}

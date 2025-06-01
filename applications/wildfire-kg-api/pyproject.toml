@@ -34,6 +34,7 @@ dependencies = [
     "requests==2.32.3",
     "click==8.1.8",
     "psutil==5.9.8",
+    "dateparser==1.2.1",
     
     # Other Tools
     "openai==1.65.2",
