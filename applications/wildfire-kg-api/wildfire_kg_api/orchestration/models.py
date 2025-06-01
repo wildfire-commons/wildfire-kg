@@ -39,6 +39,11 @@ MODEL_CONFIGS = {
         "default_temperature": None,  # o4-mini may not support temperature
         "agent_compatible": True,
     },
+    "gpt-4.1-mini": {
+        "provider": "openai",
+        "default_temperature": 0.0,
+        "agent_compatible": True,
+    },
 }
 
 # Convenience lists (derived from the MODEL_CONFIGS dictionary)
@@ -58,22 +63,23 @@ AGENT_COMPATIBLE_MODELS = [
 # Fallback model configuration for the agent and tools defaulting to Litellm models
 BEST_MODEL_FALLBACK = {
     "agent": {
-        "model": "llama3-sdsc",
-        #"model": "gpt-4o",
-        "temperature": 0.0,
+        "model": "gpt-4.1-mini",
+        # "model": "llama3-sdsc",
+        "temperature": 0.2,
     },
     "kg_tool": {
-        "model": "llama3-sdsc",
-        "temperature": 0.0,
+        "model": "gpt-4.1-mini",
+        # "model": "llama3-sdsc",
+        "temperature": 0.1,
     },
     # "web_search_tool": {
     #     "model": "llama3",
     #     "temperature": 0.0,
     # },
-    #"weather_tool": {
+    # "weather_tool": {
     #    "model": "gpt-4o",
     #    "temperature": 0.0,
-    #},
+    # },
 }
 
 
