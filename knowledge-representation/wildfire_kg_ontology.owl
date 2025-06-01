@@ -460,10 +460,10 @@
     rdfs:label "latitudePlot" ;
     rdfs:comment "Latitude coordinate of the plot" .
 
-:longitudePlot rdf:type rdf:Property ;
+:plotLongitude rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:float ;
-    rdfs:label "longitudePlot" ;
+    rdfs:label "plotLongitude" ;
     rdfs:comment "Longitude coordinate of the plot" .
 
 :city rdf:type rdf:Property ;
