@@ -15,24 +15,9 @@ import re
 import dateparser
 import urllib.parse
 import sys
+from wildfire_kg_api.orchestration.logger import get_logger
 
-# Configure logging to write to stdout
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stdout,
-)
-logger = logging.getLogger(__name__)
-
-# Force the logger to output to stdout
-for handler in logger.handlers:
-    handler.setStream(sys.stdout)
-
-file_handler = logging.FileHandler("weather_tool_debug.log")
-file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+logger = get_logger("tools.weather")
 
 API_KEY = os.getenv("WEATHER_API_KEY")
 if not API_KEY:
