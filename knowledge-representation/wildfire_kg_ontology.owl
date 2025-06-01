@@ -478,10 +478,10 @@
     rdfs:label "city" ;
     rdfs:comment "City where the plot is located" .
 
-:state rdf:type rdf:Property ;
+:plotState rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:string ;
-    rdfs:label "state" ;
+    rdfs:label "plotState" ;
     rdfs:comment "State where the plot is located" .
 
 :plotCountry rdf:type rdf:Property ;
