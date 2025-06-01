@@ -484,10 +484,10 @@
     rdfs:label "state" ;
     rdfs:comment "State where the plot is located" .
 
-:country rdf:type rdf:Property ;
+:plotCountry rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:string ;
-    rdfs:label "country" ;
+    rdfs:label "plotCountry" ;
     rdfs:comment "Country where the plot is located" .
 	
 # Relationship Properties for Subclasses of :PlotMetrics
