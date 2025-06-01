@@ -227,10 +227,10 @@
     rdfs:label "plotName" ;
     rdfs:comment "The name of the plot" .
 
-:time rdf:type rdf:Property ;
+:plotDate rdf:type rdf:Property ;
     rdfs:domain :PlotMetrics ;
     rdfs:range xsd:dateTime ;
-    rdfs:label "time" ;
+    rdfs:label "plotDate" ;
     rdfs:comment "Timestamp for the plot data" .
 
 # Properties for PlotMetrics: VegetationMetrics
@@ -337,12 +337,6 @@
     rdfs:range xsd:string ;
     rdfs:label "LF_EVT" ;
     rdfs:comment "Expected vegetation type at the site" .
-
-:LF_DISTP rdf:type rdf:Property ;
-    rdfs:domain :FireBehaviorMetrics ;
-    rdfs:range xsd:float ;
-    rdfs:label "LF_DISTP" ;
-    rdfs:comment "Distance to the nearest plot" .
 
 # Properties for PlotMetrics: TreeShrubMetrics
 :MDBH rdf:type rdf:Property ;
