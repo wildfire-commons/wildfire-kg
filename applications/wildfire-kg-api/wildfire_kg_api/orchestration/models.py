@@ -58,11 +58,11 @@ AGENT_COMPATIBLE_MODELS = [
 # Fallback model configuration for the agent and tools defaulting to Litellm models
 BEST_MODEL_FALLBACK = {
     "agent": {
-        "model": "llama3-sdsc",
+        "model": "gpt-4o",
         "temperature": 0.0,
     },
     "kg_tool": {
-        "model": "llama3-sdsc",
+        "model": "gpt-4o",
         "temperature": 0.0,
     },
     # "web_search_tool": {

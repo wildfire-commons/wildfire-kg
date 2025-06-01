@@ -11,6 +11,7 @@ import json
 import re
 from datetime import datetime, timedelta
 import dateparser
+import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
