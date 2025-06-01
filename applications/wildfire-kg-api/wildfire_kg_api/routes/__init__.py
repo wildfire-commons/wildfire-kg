@@ -19,7 +19,7 @@ ROUTE_CONFIG = {
         "tags": ["Health"],
     },
     "langgraph": {
-        "prefix": "",
+        "prefix": "/api",
         "tags": ["LangGraph"],
     },  # Add future routes here with their prefixes and tags
 }
