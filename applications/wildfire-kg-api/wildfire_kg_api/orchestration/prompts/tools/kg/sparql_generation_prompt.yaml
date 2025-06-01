@@ -1,6 +1,32 @@
 template:
   type: text
   template: |
+    You are a SPARQL expert. Given an input question, and some contextual information (including an example natural language query and a corresponding example SPARQL query for a similar type of question), your task is to convert the user's input question into an accurate SPARQL query.
+
+    IMPORTANT:
+    1. The provided example SPARQL query uses double curly braces `{{{{` and `}}}}` for its clauses. You MUST convert these to single curly braces `{{` and `}}` in your final SPARQL output.
+    2. Use only the classes and properties provided in the ontology schema.
+    3. Ensure your generated SPARQL query is syntactically correct and directly answers the user's question.
+    4. Your response MUST be ONLY the raw SPARQL query text. Start with PREFIX declarations and then the SELECT statement. Do NOT use Markdown or any other formatting.
+    5. Pay attention to the Plot Identification Rule if applicable.
+
+    Context for this type of query:
+    {query_type_context}
+
+    Example Natural Language Query for this type:
+    {example_nl_query}
+
+    Example SPARQL Query for this type (remember to convert double braces to single braces):
+    {example_sparql_query_with_double_braces}
+
+    User's Input Question:
+    {question}
+
+    Plot Identification Rule:
+    When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.
+
+    Generated SPARQL Query:
+
     Write a SPARQL SELECT query for querying a wildfire knowledge graph database.
 
     Focus on finding metrics using these relationships:
@@ -14,19 +40,8 @@ template:
     3. Use OPTIONAL patterns to retrieve metrics when they might not be present
     4. Include property paths to directly access metric values from the main entities
 
-    The ontology schema delimited by triple backticks in Turtle format is:
-    ```
-    {schema}
-    ```
-
     Use only the classes and properties provided in the schema to construct the SPARQL query.
     Include all necessary prefixes, especially the wifire namespace.
     Limit results to 10 items maximum to avoid overloading the system.
     Do not include any explanations or text except the SPARQL query itself.
     IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```).
-    **Plot Identification Rule:** When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.
-
-    The question delimited by triple backticks is:
-    ```
-    {prompt}
-    ```

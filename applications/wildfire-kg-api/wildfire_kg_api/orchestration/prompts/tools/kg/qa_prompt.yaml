@@ -12,6 +12,6 @@ template:
     Information:
     {context}
     
-    Question: {prompt}
+    Question: {question}
     
     Helpful Answer: 

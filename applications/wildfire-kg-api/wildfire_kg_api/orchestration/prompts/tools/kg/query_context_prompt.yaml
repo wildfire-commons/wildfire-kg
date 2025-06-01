@@ -1,0 +1,195 @@
+template:
+  type: text
+  template: |
+    # NOTE: All curly braces in SPARQL/code examples below are written as double braces ({{{{ and }}}}) to avoid variable parsing by the template engine.
+    # When using these examples, replace double braces with single braces to get valid SPARQL syntax.
+    
+    Based on the query type "{query_type}", provide context and example for generating SPARQL queries.
+    
+    Query Type: {query_type}
+    Confidence: {confidence}
+    Reasoning: {reasoning}
+    
+    slope_question:
+      context: "Slope percentage (LF_SLPD) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the slope percentage for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?slopePercentage
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_SLPD ?slopePercentage .
+        }}}}
+    
+    fuel_model_question:
+      context: "Fuel models (LF_FBFM13, LF_FBFM40) are properties of FireBehaviorMetrics. To access them, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the fuel model 13 for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?fuelModel
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_FBFM13 ?fuelModel .
+        }}}}
+    
+    elevation_question:
+      context: "Elevation (LF_EVEL) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the elevation for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?elevation
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_EVEL ?elevation .
+        }}}}
+    
+    aspect_question:
+      context: "Aspect (LF_ASP) is a property of FireBehaviorMetrics. To access it, you need to use hasFireBehaviorMetrics to get from the plot to the metrics."
+      example_query: "What is the aspect for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?aspect
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasFireBehaviorMetrics ?fireBehaviorMetrics .
+            ?fireBehaviorMetrics wifire:LF_ASP ?aspect .
+        }}}}
+    
+    tree_shrub_question:
+      context: "Tree and shrub metrics are properties of TreeShrubMetrics. To access them, you need to use hasTreeShrubMetrics to get from the plot to the metrics."
+      example_query: "How many trees are in plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?treeCount
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasTreeShrubMetrics ?treeShrubMetrics .
+            ?treeShrubMetrics wifire:TreesN ?treeCount .
+        }}}}
+    
+    vegetation_question:
+      context: "Vegetation metrics are properties of VegetationMetrics. To access them, you need to use hasVegetationMetrics to get from the plot to the metrics."
+      example_query: "What is the leaf area index for plot_CASBC_0011_20240913_1?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        SELECT ?lai
+        WHERE {{{{
+            wifire:plot_CASBC_0011_20240913_1 wifire:hasVegetationMetrics ?vegetationMetrics .
+            ?vegetationMetrics wifire:LAI ?lai .
+        }}}}
+    
+    prescribed_burn_impact_question:
+      context: |
+        To assess the impact of the last prescribed burn for a plot prefix (e.g., "CASBC_0012"):
+        1. Use STRSTARTS on plotName to find all plots whose names start with the prefix
+        2. For those plots, get plotDate and select the one with the latest date (ORDER BY DESC(plotDate) LIMIT 1)
+        3. Use lastMetrics to get the previous plot
+        4. For both plots, use the relationships to get metrics:
+           - hasTreeShrubMetrics for tree/shrub data
+           - hasVegetationMetrics for vegetation data
+           - hasFireBehaviorMetrics for fire behavior data
+        5. Compare specific properties between plots using OPTIONAL blocks
+      example_query: "What was the impact of the last prescribed burn at CASBC_0012?"
+      example_sparql: |
+        PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+        
+        SELECT ?metric ?beforeValue ?afterValue
+        WHERE {{{{
+          # Get latest plot
+          {{{{
+            SELECT ?afterPlot
+            WHERE {{{{
+              ?afterPlot wifire:plotName ?plotName .
+              FILTER(STRSTARTS(?plotName, "CASBC_0012"))
+              ?afterPlot wifire:plotDate ?afterDate .
+            }}}}
+            ORDER BY DESC(?afterDate)
+            LIMIT 1
+          }}}}
+          
+          # Get previous plot
+          ?afterPlot wifire:lastMetrics ?beforePlot .
+          
+          # TreeShrubMetrics comparison
+          ?afterPlot wifire:hasTreeShrubMetrics ?afterTreeShrub .
+          ?beforePlot wifire:hasTreeShrubMetrics ?beforeTreeShrub .
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:TreesN ?afterValue .
+            ?beforeTreeShrub wifire:TreesN ?beforeValue .
+            BIND("Tree Count" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:ShrubsN ?afterValue .
+            ?beforeTreeShrub wifire:ShrubsN ?beforeValue .
+            BIND("Shrub Count" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:MeanSH ?afterValue .
+            ?beforeTreeShrub wifire:MeanSH ?beforeValue .
+            BIND("Mean Shrub Height" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:MaxSH ?afterValue .
+            ?beforeTreeShrub wifire:MaxSH ?beforeValue .
+            BIND("Max Shrub Height" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:MeanSA ?afterValue .
+            ?beforeTreeShrub wifire:MeanSA ?beforeValue .
+            BIND("Mean Shrub Area" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:shrubArea ?afterValue .
+            ?beforeTreeShrub wifire:shrubArea ?beforeValue .
+            BIND("Total Shrub Area" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:LF_CBD ?afterValue .
+            ?beforeTreeShrub wifire:LF_CBD ?beforeValue .
+            BIND("Canopy Bulk Density" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterTreeShrub wifire:MeanSD ?afterValue .
+            ?beforeTreeShrub wifire:MeanSD ?beforeValue .
+            BIND("Mean Stem Density" AS ?metric)
+          }}}}
+          # VegetationMetrics comparison
+          ?afterPlot wifire:hasVegetationMetrics ?afterVeg .
+          ?beforePlot wifire:hasVegetationMetrics ?beforeVeg .
+          OPTIONAL {{{{
+            ?afterVeg wifire:LAI ?afterValue .
+            ?beforeVeg wifire:LAI ?beforeValue .
+            BIND("Leaf Area Index" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterVeg wifire:basalArea ?afterValue .
+            ?beforeVeg wifire:basalArea ?beforeValue .
+            BIND("Basal Area" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterVeg wifire:TBA ?afterValue .
+            ?beforeVeg wifire:TBA ?beforeValue .
+            BIND("Total Basal Area" AS ?metric)
+          }}}}
+          # FireBehaviorMetrics comparison
+          ?afterPlot wifire:hasFireBehaviorMetrics ?afterFB .
+          ?beforePlot wifire:hasFireBehaviorMetrics ?beforeFB .
+          OPTIONAL {{{{
+            ?afterFB wifire:LF_FBFM13 ?afterValue .
+            ?beforeFB wifire:LF_FBFM13 ?beforeValue .
+            BIND("Fuel Model 13" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterFB wifire:LF_FBFM40 ?afterValue .
+            ?beforeFB wifire:LF_FBFM40 ?beforeValue .
+            BIND("Fuel Model 40" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterFB wifire:LF_EVC ?afterValue .
+            ?beforeFB wifire:LF_EVC ?beforeValue .
+            BIND("Expected Vegetation Cover" AS ?metric)
+          }}}}
+          OPTIONAL {{{{
+            ?afterFB wifire:LF_EVT ?afterValue .
+            ?beforeFB wifire:LF_EVT ?beforeValue .
+            BIND("Expected Vegetation Type" AS ?metric)
+          }}}}
+        }}}} 
