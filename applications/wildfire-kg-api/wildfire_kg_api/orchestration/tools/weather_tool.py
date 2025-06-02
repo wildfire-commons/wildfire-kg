@@ -15,9 +15,24 @@ import re
 import dateparser
 import urllib.parse
 import sys
-from wildfire_kg_api.orchestration.logger import get_logger
 
-logger = get_logger("tools.weather")
+# Configure logging to write to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger(__name__)
+
+# Force the logger to output to stdout
+for handler in logger.handlers:
+    handler.setStream(sys.stdout)
+
+file_handler = logging.FileHandler("weather_tool_debug.log")
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 API_KEY = os.getenv("WEATHER_API_KEY")
 if not API_KEY:
@@ -305,6 +320,8 @@ def get_weather(query: str) -> str:
 
         # Default to current weather
         logger.info("Making current weather API call...")
+        if not API_KEY:
+            return "Weather API key is not set. Please set the WEATHER_API_KEY environment variable."
         data = _call_weather_api(PRO_BASE_URL, params, "current", city_label)
         if not data:
             return f"No current weather data available for {city_label}."
@@ -420,28 +437,35 @@ def _get_mock_weather_data(location: str) -> Dict[str, Any]:
 
 
 def extract_date_from_query(query):
+    # Try to extract relative dates first (e.g., "in 5 days", "5 days ago")
+    relative_match = re.search(r"(?:in|for|)\s*(\d+)\s*days?(?:\s+ago)?", query, re.IGNORECASE)
+    if relative_match:
+        days = int(relative_match.group(1))
+        if "ago" in query.lower():
+            date = datetime.utcnow() - timedelta(days=days)
+        else:
+            date = datetime.utcnow() + timedelta(days=days)
+        logger.info(f"Extracted relative date: {date}")
+        return date
+
     # Try to extract a date after the last 'on', 'for', or 'at'
-    match = re.search(r"(?:on|for|at)\s+([A-Za-z0-9, ]*\d{4})", query, re.IGNORECASE)
+    match = re.search(r"(?:on|for|at)\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})", query, re.IGNORECASE)
     if match:
         date_str = match.group(1).strip()
-        # Remove any trailing location info (e.g., "San Diego, CA on May 23, 2025")
-        date_only = re.sub(r"^[A-Za-z\s,]*", "", date_str)
-        parsed = dateparser.parse(date_only)
-        logger.info(f"Extracted date from explicit pattern: {date_only} -> {parsed}")
+        # Remove any ordinal indicators (st, nd, rd, th)
+        date_str = re.sub(r'(\d+)(?:st|nd|rd|th)', r'\1', date_str)
+        parsed = dateparser.parse(date_str)
+        logger.info(f"Extracted date from explicit pattern: {date_str} -> {parsed}")
         if parsed:
             return parsed
 
-    # Fallback: use dateparser's search_dates to find any date in the string
-    try:
-        from dateparser.search import search_dates
-
-        found = search_dates(query)
-        if found:
-            # Pick the last date found (usually the most relevant)
-            logger.info(f"Extracted date using search_dates: {found[-1][1]}")
-            return found[-1][1]
-    except Exception as e:
-        logger.warning(f"dateparser.search_dates failed: {e}")
+    # Try to extract relative dates with "ago" (e.g., "5 days ago")
+    ago_match = re.search(r"(\d+)\s*days?\s+ago", query, re.IGNORECASE)
+    if ago_match:
+        days = int(ago_match.group(1))
+        date = datetime.utcnow() - timedelta(days=days)
+        logger.info(f"Extracted 'ago' date: {date}")
+        return date
 
     # If "current" in query, return today
     if "current" in query.lower():
@@ -461,10 +485,7 @@ def extract_date_from_query(query):
         logger.info(f"Query is for forecast weather, using tomorrow: {tomorrow}")
         return tomorrow
 
-    # Final fallback: try to parse any date in the string
-    parsed = dateparser.parse(query, settings={"PREFER_DATES_FROM": "future"})
-    logger.info(f"Fallback extracted date: {parsed}")
-    return parsed
+    return None
 
 
 def extract_location_from_query(query):
