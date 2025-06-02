@@ -482,6 +482,19 @@
     rdfs:range xsd:string ;
     rdfs:label "plotCountry" ;
     rdfs:comment "Country where the plot is located" .
+
+# Relationship Properties for :PlotMetrics
+:lastMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "lastMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the previous temporally related PlotMetrics." .
+
+:nextMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "nextMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the next temporally related PlotMetrics." .
 	
 # Relationship Properties for Subclasses of :PlotMetrics
 :hasVegetationMetrics rdf:type rdf:Property ;
@@ -507,8 +520,20 @@
     rdfs:range :LocationDataPlot ;
     rdfs:label "hasLocationDataPlot" ;
     rdfs:comment "Links a plot to its location data" .
- 
+
 # Properties for FireManagementArea
+:plotCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "plotCount" ;
+    rdfs:comment "Number of plots in the fire management area." .
+
+:sensorCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "sensorCount" ;
+    rdfs:comment "Number of sensors in the fire management area." .
+
 # These properties define the relationships and the geographical information
 :hasPlot rdf:type rdf:Property ;
     rdfs:domain :FireManagementArea ;
