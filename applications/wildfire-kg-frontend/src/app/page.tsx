@@ -188,7 +188,10 @@ export default function ChatPage() {
           {/* User chat bubbles */}
           {userMessages.map((msg) => (
             <div key={msg.id} className="flex justify-end">
-              <div className="max-w-[80%] rounded-lg p-4 bg-blue-600 text-white">
+              <div
+                style={{ whiteSpace: 'pre-line' }}
+                className="max-w-[80%] rounded-lg p-4 bg-blue-600 text-white"
+              >
                 <p>{msg.content}</p>
                 <p className="text-xs mt-2 opacity-70">{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}</p>
               </div>
@@ -196,7 +199,10 @@ export default function ChatPage() {
           ))}
           {/* Final Answer */}
           {final && (
-            <div className="bg-green-50 p-4 rounded mb-2">
+            <div
+              style={{ whiteSpace: 'pre-line' }}
+              className="bg-green-50 p-4 rounded mb-2"
+            >
               <div>{final.content || <em>[no content]</em>}</div>
               <p className="text-xs mt-2 opacity-70">{final.timestamp ? new Date(final.timestamp).toLocaleTimeString() : ''}</p>
             </div>
