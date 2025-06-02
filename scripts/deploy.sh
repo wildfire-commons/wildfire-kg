@@ -119,6 +119,17 @@ if [ -f "${PROJECT_ROOT}/.env" ]; then
     export $(grep -v '^#' "${PROJECT_ROOT}/.env" | xargs)
 fi
 
+# DEBUG: Print all secret-related environment variables before manifest substitution
+if [ "$COMPONENT" = "langgraph" ]; then
+  SECRET_KEYS=(OPENAI_API_KEY WEATHER_API_KEY POSTGRES_PASSWORD LANGSMITH_API_KEY AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_S3_ENDPOINT_URL AWS_S3_BUCKET_NAME AWS_DEFAULT_REGION GRAPHDB_URL GRAPHDB_REPOSITORY GRAPHDB_USERNAME GRAPHDB_PASSWORD TAVILY_API_KEY DEBUG LOG_LEVEL LANGCHAIN_API_KEY LANGCHAIN_TRACING_V2)
+  echo "--- DEBUG: Secret values before manifest substitution ---"
+  for key in "${SECRET_KEYS[@]}"; do
+    eval value=\$$key
+    echo "$key='$value'"
+  done
+  echo "--- END DEBUG ---"
+fi
+
 # Function to add helm repo if it doesn't exist
 add_helm_repo() {
     local repo_name=$1
@@ -190,6 +201,9 @@ deploy_langgraph() {
     
     echo "Generated secrets manifest contents:"
     cat "$langgraph_secrets_manifest"
+    echo "--- DEBUG: Secret values after manifest substitution ---"
+    grep -E '^[ ]+[A-Z0-9_]+:' "$langgraph_secrets_manifest" | sed 's/^ *//'
+    echo "--- END DEBUG ---"
     
     # Force delete and recreate secrets
     echo "Deleting existing langgraph-secrets..."
