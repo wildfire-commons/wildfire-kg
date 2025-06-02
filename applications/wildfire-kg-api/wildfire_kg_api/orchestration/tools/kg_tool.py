@@ -2,8 +2,9 @@
 Knowledge Graph tool for ReAct pattern using LangChain's tool decorator.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 import os
+from pathlib import Path
 from langchain_core.tools import tool
 from langchain_community.graphs import OntotextGraphDBGraph
 from langchain_community.chains.graph_qa.ontotext_graphdb import OntotextGraphDBQAChain
@@ -19,7 +20,6 @@ from wildfire_kg_api.orchestration.models import (
 
 # Initialize logger
 logger = get_logger("tools.kg")
-
 
 @tool
 def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
@@ -72,7 +72,12 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
         logger.debug(f"Using GraphDB endpoint: {query_endpoint}")
 
         # Path to the local ontology file
-        ontology_file_path = "../../knowledge-representation/wildfire_kg_ontology.owl"
+        ontology_file_path = os.path.join(
+            os.path.dirname(__file__),
+            "knowledge-representation",
+            "wildfire_kg_ontology.owl"
+        )
+        logger.debug(f"Using ontology file at: {ontology_file_path}")
 
         # Initialize the GraphDB graph with local ontology file
         graph = OntotextGraphDBGraph(
