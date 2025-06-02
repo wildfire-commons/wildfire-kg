@@ -123,6 +123,11 @@ spec:
               key: LANGCHAIN_API_KEY
         - name: LANGCHAIN_TRACING_V2
           value: "true"
+        - name: WEATHER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: WEATHER_API_KEY
         command: ["/bin/sh", "-c"]
         args:
           - |
