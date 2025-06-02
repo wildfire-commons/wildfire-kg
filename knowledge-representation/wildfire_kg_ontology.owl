@@ -183,7 +183,7 @@
     rdfs:label "provider" ;
     rdfs:comment "Name of the organization or entity that provided the sensor data, e.g., 'Redline Safety'" .
 	
-# Relationship Properties for Sublcasses of :PlotMetrics
+# Relationship Properties for Sublcasses of :FireIgnitionSensor
 :hasSensorMetadata rdf:type rdf:Property ;
     rdfs:domain :FireIgnitionSensor ;
     rdfs:range :SensorMetadata ;
@@ -234,7 +234,6 @@
     rdfs:comment "Timestamp for the plot data" .
 
 # Properties for PlotMetrics: VegetationMetrics
-
 :basalArea rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -454,10 +453,10 @@
     rdfs:comment "Mean Stem Density (stems/ha) - Average density of trees" .
 
 # Properties for PlotMetrics: LocationDataPlot
-:latitudePlot rdf:type rdf:Property ;
+:plotLatitude rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:float ;
-    rdfs:label "latitudePlot" ;
+    rdfs:label "plotLatitude" ;
     rdfs:comment "Latitude coordinate of the plot" .
 
 :plotLongitude rdf:type rdf:Property ;
