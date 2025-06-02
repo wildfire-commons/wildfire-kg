@@ -57,7 +57,7 @@ export default function ChatPage() {
 
   const createThread = async (userInput: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/threads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -115,7 +115,7 @@ export default function ChatPage() {
         setLoading(false);
         return;
       } else {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/threads/${threadId}/runs`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/threads/${threadId}/runs`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
