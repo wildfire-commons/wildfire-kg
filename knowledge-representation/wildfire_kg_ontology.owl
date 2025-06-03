@@ -465,10 +465,10 @@
     rdfs:label "plotLongitude" ;
     rdfs:comment "Longitude coordinate of the plot" .
 
-:county rdf:type rdf:Property ;
+:plotCounty rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:string ;
-    rdfs:label "county" ;
+    rdfs:label "plotCounty" ;
     rdfs:comment "County where the plot is located" .
 
 :plotState rdf:type rdf:Property ;
