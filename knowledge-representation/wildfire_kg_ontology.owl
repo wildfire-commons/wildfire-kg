@@ -1,7 +1,8 @@
-@prefix : <http://example.org/fire-ontology#> .
+@prefix : <http://wifire.ucsd.edu/ontology/> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
 
 # Parent Classes
 :FireIgnitionSensor rdf:type rdfs:Class ;
@@ -553,3 +554,22 @@
     rdfs:range xsd:string ;
     rdfs:label "geometry" ;
     rdfs:comment "Geospatial representation of the FireManagementArea in GeoJSON or WKT format" .
+
+# Properties for PlotMetrics
+:hasVegetationMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :VegetationMetrics ;
+    rdfs:label "hasVegetationMetrics" ;
+    rdfs:comment "Links a plot to its vegetation metrics" .
+
+:hasTreeShrubMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :TreeShrubMetrics ;
+    rdfs:label "hasTreeShrubMetrics" ;
+    rdfs:comment "Links a plot to its tree and shrub metrics" .
+
+:hasFireBehaviorMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :FireBehaviorMetrics ;
+    rdfs:label "hasFireBehaviorMetrics" ;
+    rdfs:comment "Links a plot to its fire behavior metrics" .

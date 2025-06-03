@@ -1,0 +1,102 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX time: <http://www.w3.org/2006/time#>
+
+CONSTRUCT {
+    ?sensor rdf:type wifire:FireIgnitionSensor ;
+            rdfs:label "Fire Ignition Sensor" ;
+            rdfs:comment "Represents a sensor used for detecting fire ignition points" ;
+            wifire:hasSensorMetadata ?metadata ;
+            wifire:hasLocationDataSensor ?location ;
+            wifire:hasSensorTypeData ?type ;
+            wifire:hasEnvironmentalData ?env ;
+            wifire:hasParticleData ?particle ;
+            wifire:hasWindData ?wind .
+    
+    ?metadata rdf:type wifire:SensorMetadata ;
+             rdfs:label "Sensor Metadata" ;
+             rdfs:comment "Metadata related to the FireIgnitionSensor" ;
+             wifire:device_alias ?alias ;
+             wifire:time ?time ;
+             wifire:db_id ?id ;
+             wifire:model_type ?model ;
+             wifire:db_urn ?db_urn ;
+             wifire:sensor_type_id ?type_id ;
+             wifire:provider ?provider .
+              
+    ?location rdf:type wifire:LocationDataSensor ;
+             rdfs:label "Location Data Sensor" ;
+             rdfs:comment "Represents the geographical location of the FireIgnitionSensor" ;
+             wifire:longitudeSensor ?lon ;
+             wifire:latitudeSensor ?lat .
+              
+    ?type rdf:type wifire:SensorTypeData ;
+         rdfs:label "Sensor Type Data" ;
+         rdfs:comment "Represents data related to the type of fire sensor" ;
+         wifire:type ?sensor_type .
+    
+    ?env rdf:type wifire:EnvironmentalData ;
+        rdfs:label "Environmental Data" ;
+        rdfs:comment "Represents environmental data collected by the sensor" ;
+        wifire:temperatureMillidegreeC ?temp ;
+        wifire:barometricPa ?pressure ;
+        wifire:humidityRh ?humidity ;
+        wifire:CO2Ppm ?co2 ;
+        wifire:mos_gasResistance ?gas .
+         
+    ?particle rdf:type wifire:ParticleData ;
+             rdfs:label "Particle Data" ;
+             rdfs:comment "Represents particle data, such as particle density and size" ;
+             wifire:pmsensor_pm10Standard ?pm10 ;
+             wifire:pmsensor_pm25Standard ?pm25 .
+              
+    ?wind rdf:type wifire:WindData ;
+         rdfs:label "Wind Data" ;
+         rdfs:comment "Represents wind speed and direction data collected by the sensor" ;
+         wifire:wind_windDirectionDegrees ?wind_dir ;
+         wifire:wind_windSpeedCmS ?wind_speed .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/sensor_readings_location> {
+        ?sensor rdf:type wifire:FireIgnitionSensor .
+        OPTIONAL { ?sensor wifire:hasSensorMetadata ?metadata . }
+        OPTIONAL { ?sensor wifire:hasLocationDataSensor ?location . }
+        OPTIONAL { ?sensor wifire:hasSensorTypeData ?type . }
+        OPTIONAL { ?sensor wifire:hasEnvironmentalData ?env . }
+        OPTIONAL { ?sensor wifire:hasParticleData ?particle . }
+        OPTIONAL { ?sensor wifire:hasWindData ?wind . }
+        
+        OPTIONAL {
+            ?metadata wifire:device_alias ?alias ;
+                     wifire:time ?time ;
+                     wifire:db_id ?id .
+            OPTIONAL { ?metadata wifire:model_type ?model . }
+            OPTIONAL { ?metadata wifire:db_urn ?db_urn . }
+            OPTIONAL { ?metadata wifire:sensor_type_id ?type_id . }
+            OPTIONAL { ?metadata wifire:provider ?provider . }
+        }
+        OPTIONAL {
+            ?location wifire:longitudeSensor ?lon ;
+                     wifire:latitudeSensor ?lat .
+        }
+        OPTIONAL { ?type wifire:type ?sensor_type . }
+        OPTIONAL {
+            ?env wifire:temperatureMillidegreeC ?temp ;
+                 wifire:barometricPa ?pressure ;
+                 wifire:humidityRh ?humidity .
+            OPTIONAL { ?env wifire:CO2Ppm ?co2 . }
+            OPTIONAL { ?env wifire:mos_gasResistance ?gas . }
+        }
+        OPTIONAL {
+            ?particle wifire:pmsensor_pm10Standard ?pm10 .
+            OPTIONAL { ?particle wifire:pmsensor_pm25Standard ?pm25 . }
+        }
+        OPTIONAL {
+            ?wind wifire:wind_windDirectionDegrees ?wind_dir .
+            OPTIONAL { ?wind wifire:wind_windSpeedCmS ?wind_speed . }
+        }
+    }
+} 

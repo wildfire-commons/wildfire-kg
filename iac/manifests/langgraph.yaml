@@ -1,21 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: langgraph-config-ENV_PLACEHOLDER
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
+data:
+  langgraph.json: |
+    {
+      "host": "0.0.0.0",
+      "port": 8000,
+      "log_level": "info",
+      "workers": 4,
+      "timeout": 300,
+      "max_requests": 1000,
+      "max_requests_jitter": 50
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: langgraph
+  name: langgraph-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: langgraph
+      environment: ENV_PLACEHOLDER
   template:
     metadata:
       labels:
         app: langgraph
+        environment: ENV_PLACEHOLDER
     spec:
       containers:
       - name: langgraph
-        image: langchain/langgraph-server:latest
+        image: gitlab-registry.nrp-nautilus.io/wildfire-kg/wildfire-kg:langgraph-ENV_PLACEHOLDER
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         resources:
@@ -33,31 +58,127 @@ spec:
         - name: OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
-              name: api-keys
-              key: openai-api-key
+              name: langgraph-secrets
+              key: OPENAI_API_KEY
         - name: LANGGRAPH_CONFIG_PATH
           value: "/app/config/langgraph.json"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: AWS_SECRET_ACCESS_KEY
+        - name: AWS_S3_ENDPOINT_URL
+          value: "https://s3-west.nrp-nautilus.io"
+        - name: AWS_S3_BUCKET_NAME
+          value: "wildfire-kg"
+        - name: AWS_DEFAULT_REGION
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: AWS_DEFAULT_REGION
+        - name: GRAPHDB_URL
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: GRAPHDB_URL
+        - name: GRAPHDB_REPOSITORY
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: GRAPHDB_REPOSITORY
+        - name: GRAPHDB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: GRAPHDB_USERNAME
+        - name: GRAPHDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: GRAPHDB_PASSWORD
+        - name: TAVILY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: TAVILY_API_KEY
+        - name: DEBUG
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: DEBUG
+        - name: LOG_LEVEL
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: LOG_LEVEL
+        - name: LANGCHAIN_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: langgraph-secrets
+              key: LANGCHAIN_API_KEY
+        - name: LANGCHAIN_TRACING_V2
+          value: "true"
+        - name: WEATHER_API_KEY
+          value: "c5587a069510f7e4f9cfcd86a3e41427"
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Starting FastAPI server..."
+            uvicorn wildfire_kg_api.app:app --host 0.0.0.0 --port 8000 --workers 4
         volumeMounts:
         - name: langgraph-data
           mountPath: /data
         - name: langgraph-config
           mountPath: /app/config
+        startupProbe:
+          httpGet:
+            path: /health/ping
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ping
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/ping
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
       volumes:
       - name: langgraph-data
         emptyDir: {}
       - name: langgraph-config
         configMap:
-          name: langgraph-config
+          name: langgraph-config-ENV_PLACEHOLDER
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: langgraph
+  name: langgraph-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
 spec:
   type: ClusterIP
   selector:
     app: langgraph
+    environment: ENV_PLACEHOLDER
   ports:
   - port: 8000
     targetPort: 8000
@@ -66,10 +187,14 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: langgraph-ingress
+  name: langgraph-ingress-ENV_PLACEHOLDER
   namespace: wifire-kg
+  labels:
+    app: langgraph
+    environment: ENV_PLACEHOLDER
   annotations:
     kubernetes.io/ingress.class: haproxy
+    haproxy.router.openshift.io/timeout: 60s
 spec:
   rules:
   - host: langgraph-ENV_PLACEHOLDER-wifire-kg.nrp-nautilus.io
@@ -79,7 +204,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: langgraph
+            name: langgraph-ENV_PLACEHOLDER
             port:
               number: 8000
   tls:

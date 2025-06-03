@@ -1,0 +1,139 @@
+PREFIX wifire: <http://wifire.ucsd.edu/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+CONSTRUCT {
+    ?plot rdf:type wifire:PlotMetrics ;
+          rdfs:label "Plot Metrics" ;
+          rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" ;
+          wifire:plotName ?plotName ;
+          wifire:plotDate ?plotDate .
+    
+    ?plot wifire:hasLocationDataPlot ?location .
+    ?plot wifire:hasVegetationMetrics ?veg .
+    ?plot wifire:hasFireBehaviorMetrics ?fire .
+    ?plot wifire:hasTreeShrubMetrics ?tree .
+    
+    # LocationDataPlot properties
+    ?location rdf:type wifire:LocationDataPlot ;
+             rdfs:label "Location Data Plot" ;
+             rdfs:comment "Represents location data related to a plot's geographic coordinates" ;
+             wifire:plotLongitude ?longitude ;
+             wifire:plotLatitude ?latitude ;
+             wifire:plotCounty ?county ;
+             wifire:plotState ?state ;
+             wifire:plotCountry ?country .
+    
+    # VegetationMetrics properties
+    ?veg rdf:type wifire:VegetationMetrics ;
+         rdfs:label "Vegetation Metrics" ;
+         rdfs:comment "Represents vegetation data collected from a plot" ;
+         wifire:basalArea ?basalArea ;
+         wifire:LAI ?lai ;
+         wifire:TBA ?tba ;
+         wifire:OLAI ?olai ;
+         wifire:ULAI ?ulai ;
+         wifire:GCvol ?gcvol ;
+         wifire:MSvol ?msvol ;
+         wifire:OSvol ?osvol ;
+         wifire:USvol ?usvol .
+    
+    # FireBehaviorMetrics properties
+    ?fire rdf:type wifire:FireBehaviorMetrics ;
+          rdfs:label "Fire Behavior Metrics" ;
+          rdfs:comment "Captures the behavior of fire including intensity, spread, and firefront data" ;
+          wifire:LF_FBFM13 ?fbfm13 ;
+          wifire:LF_FBFM40 ?fbfm40 ;
+          wifire:LF_EVEL ?evel ;
+          wifire:LF_SLPD ?slpd ;
+          wifire:LF_ASP ?asp ;
+          wifire:LF_FDist ?fdist ;
+          wifire:LF_EVC ?evc ;
+          wifire:LF_EVT ?evt .
+    
+    # TreeShrubMetrics properties
+    ?tree rdf:type wifire:TreeShrubMetrics ;
+          rdfs:label "Tree Shrub Metrics" ;
+          rdfs:comment "Captures metrics related to trees and shrubs in a plot" ;
+          wifire:MDBH ?mdbh ;
+          wifire:MLAI ?mlai ;
+          wifire:SDHT ?sdht ;
+          wifire:SDSHT ?sdsht ;
+          wifire:SDSD ?sdsd ;
+          wifire:MaxSD ?maxsd ;
+          wifire:MaxSH ?maxsh ;
+          wifire:MaxTH ?maxth ;
+          wifire:MinSD ?minsd ;
+          wifire:TreesN ?treesn ;
+          wifire:ShrubsN ?shrubsn ;
+          wifire:MeanSA ?meansa ;
+          wifire:shrubArea ?shrubarea ;
+          wifire:scaledShrubArea ?scaledshrubarea ;
+          wifire:CBH ?cbh ;
+          wifire:MeanSH ?meansh ;
+          wifire:MeanTH ?meanth ;
+          wifire:LF_CBD ?cbd ;
+          wifire:MeanSD ?meansd .
+}
+WHERE {
+    GRAPH <http://wifire.ucsd.edu/plot_metrics_temporal_geographic> {
+        # Main PlotMetrics instance
+        ?plot rdf:type wifire:PlotMetrics ;
+              wifire:plotName ?plotName ;
+              wifire:plotDate ?plotDate .
+        
+        # LocationDataPlot
+        ?plot wifire:hasLocationDataPlot ?location .
+        ?location wifire:plotLongitude ?longitude ;
+                 wifire:plotLatitude ?latitude ;
+                 wifire:plotCounty ?county .
+        OPTIONAL { ?location wifire:plotState ?state . }
+        OPTIONAL { ?location wifire:plotCountry ?country . }
+        
+        # VegetationMetrics
+        ?plot wifire:hasVegetationMetrics ?veg .
+        ?veg wifire:basalArea ?basalArea ;
+             wifire:LAI ?lai ;
+             wifire:TBA ?tba ;
+             wifire:OLAI ?olai ;
+             wifire:ULAI ?ulai ;
+             wifire:GCvol ?gcvol ;
+             wifire:MSvol ?msvol ;
+             wifire:OSvol ?osvol ;
+             wifire:USvol ?usvol .
+        
+        # FireBehaviorMetrics
+        ?plot wifire:hasFireBehaviorMetrics ?fire .
+        ?fire wifire:LF_FBFM13 ?fbfm13 ;
+              wifire:LF_FBFM40 ?fbfm40 ;
+              wifire:LF_EVEL ?evel ;
+              wifire:LF_SLPD ?slpd ;
+              wifire:LF_ASP ?asp ;
+              wifire:LF_FDist ?fdist ;
+              wifire:LF_EVC ?evc ;
+              wifire:LF_EVT ?evt .
+        
+        # TreeShrubMetrics
+        ?plot wifire:hasTreeShrubMetrics ?tree .
+        ?tree wifire:MDBH ?mdbh ;
+              wifire:MLAI ?mlai ;
+              wifire:SDHT ?sdht ;
+              wifire:SDSHT ?sdsht ;
+              wifire:SDSD ?sdsd ;
+              wifire:MaxSD ?maxsd ;
+              wifire:MaxSH ?maxsh ;
+              wifire:MaxTH ?maxth ;
+              wifire:MinSD ?minsd ;
+              wifire:TreesN ?treesn ;
+              wifire:ShrubsN ?shrubsn ;
+              wifire:MeanSA ?meansa ;
+              wifire:shrubArea ?shrubarea ;
+              wifire:scaledShrubArea ?scaledshrubarea ;
+              wifire:CBH ?cbh ;
+              wifire:MeanSH ?meansh ;
+              wifire:MeanTH ?meanth ;
+              wifire:LF_CBD ?cbd ;
+              wifire:MeanSD ?meansd .
+    }
+}

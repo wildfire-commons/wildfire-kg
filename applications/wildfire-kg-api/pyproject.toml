@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wildfire-kg-api"
+name = "wildfire_kg_api"
 version = "0.1.0"
 description = "Wildfire Knowledge Graph API with LangGraph integration"
 readme = "README.md"
@@ -12,7 +12,6 @@ license = {text = "MIT"}
 authors = [
     {name = "Blake Crowther", email = "blakecrowther@gmail.com"}
 ]
-
 dependencies = [
     # FastAPI and server
     "fastapi==0.115.11",
@@ -20,13 +19,14 @@ dependencies = [
     "pydantic==2.10.6",
     
     # LangChain Core and Integrations
-    "langchain==0.3.19",
+    "langchain==0.3.25",
     "langchain-community==0.3.18",
     "langchain-openai==0.3.7",
-    "langchain-core==0.3.40",
+    "langchain-core==0.3.59",
+    "langchain-tavily==0.1.6",
     
     # LangGraph
-    "langgraph==0.3.2",
+    "langgraph==0.3.27",
     "langsmith==0.3.11",
     
     # Utilities
@@ -34,11 +34,13 @@ dependencies = [
     "requests==2.32.3",
     "click==8.1.8",
     "psutil==5.9.8",
+    "dateparser==1.2.1",
     
     # Other Tools
     "openai==1.65.2",
     "tavily-python==0.5.1",
     "rdflib==7.1.3",
+    "duckduckgo-search==8.0.2",
     
     # AWS
     "boto3==1.37.4",
@@ -47,7 +49,7 @@ dependencies = [
 
 # Add command-line entry points
 [project.scripts]
-wkg-api = "src.main:cli"
+wkg-api = "wildfire_kg_api.main:cli"
 
 [project.optional-dependencies]
 dev = [
@@ -57,11 +59,10 @@ dev = [
     "flake8>=7.0.0",
     "mypy>=1.8.0",
     
-    # Testing
-    "pytest>=8.0.2",
-    "pytest-cov>=4.1.0",
-    "pytest-mock>=3.12.0",
-    "streamlit>=1.42.2",
+    # Evaluation
+    "ipykernel==6.29.5",
+    "jupyter==1.1.1",
+    "pandas==2.2.3",
     
     # Documentation
     "mkdocs>=1.5.3",
@@ -74,13 +75,6 @@ dev = [
     "langgraph-checkpoint==2.0.16",
     "langgraph-prebuilt==0.1.1",
 ]
-
-# Replace the existing setuptools configuration with this
-[tool.setuptools]
-packages = ["src"]
-
-[tool.setuptools.package-data]
-"*" = ["*.json", "*.yaml", "*.yml"]
 
 # Development tool configurations
 [tool.black]

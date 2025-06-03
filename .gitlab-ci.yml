@@ -1,0 +1,250 @@
+stages:
+  - build
+  - assemble
+  - deploy
+
+# Define which files/directories should trigger deployments for each component
+variables:
+  GRAPHDB_TRIGGER_PATHS: |
+    iac/helm/values/**/graphdb.*.values.yaml
+    iac/manifests/graphdb/
+  AIRFLOW_TRIGGER_PATHS: |
+    iac/manifests/airflow/
+    applications/airflow/
+  LANGGRAPH_TRIGGER_PATHS: |
+    applications/wildfire-kg-api/
+    iac/manifests/langgraph.yaml
+  FRONTEND_TRIGGER_PATHS: |
+    applications/wildfire-kg-frontend/
+    iac/manifests/frontend.yaml
+  SUPABASE_TRIGGER_PATHS: |
+    iac/manifests/supabase.yaml
+
+# Build stage for LangGraph
+build-langgraph:
+  stage: build
+  image: python:3.9
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  script:
+    - pip install -r applications/wildfire-kg-api/requirements.txt
+    - python -m compileall applications/wildfire-kg-api
+  artifacts:
+    paths:
+      - applications/wildfire-kg-api/**/*.pyc
+    expire_in: 1 week
+
+# Build stage for Frontend
+build-frontend:
+  stage: build
+  image: node:18.17.0
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  script:
+    - cd applications/wildfire-kg-frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - applications/wildfire-kg-frontend/.next
+      - applications/wildfire-kg-frontend/public
+      - applications/wildfire-kg-frontend/package.json
+      - applications/wildfire-kg-frontend/next.config.js
+    expire_in: 1 week
+
+# Assemble stage for LangGraph
+assemble-langgraph:
+  stage: assemble
+  needs:
+    - build-langgraph
+  image: gcr.io/kaniko-project/executor:debug
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor 
+      --context $CI_PROJECT_DIR 
+      --dockerfile $CI_PROJECT_DIR/applications/wildfire-kg-api/Dockerfile 
+      --destination $CI_REGISTRY_IMAGE/langgraph:${CI_COMMIT_SHA:0:8} 
+      --destination $CI_REGISTRY_IMAGE/langgraph:latest
+
+# Assemble stage for Frontend
+assemble-frontend:
+  stage: assemble
+  needs:
+    - build-frontend
+  image: gcr.io/kaniko-project/executor:debug
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor 
+      --context $CI_PROJECT_DIR/applications/wildfire-kg-frontend
+      --dockerfile $CI_PROJECT_DIR/applications/wildfire-kg-frontend/Dockerfile 
+      --destination $CI_REGISTRY_IMAGE/frontend:${CI_COMMIT_SHA:0:8} 
+      --destination $CI_REGISTRY_IMAGE/frontend:latest
+      --build-arg NEXT_PUBLIC_API_URL=https://langgraph-${CI_ENVIRONMENT_NAME}-wifire-kg.nrp-nautilus.io
+      --cache=true
+      --cache-ttl=24h
+
+# Deploy stage template
+.deploy_template: &deploy_template
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl bash openssl
+    # Install kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
+    # Install helm
+    - curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    - chmod 700 get_helm.sh
+    - ./get_helm.sh
+  script:
+    - chmod +x ./scripts/deploy.sh
+    - bash ./scripts/deploy.sh $CI_ENVIRONMENT_NAME $COMPONENT
+
+# Development deployments
+deploy_dev_graphdb:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: graphdb
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $GRAPHDB_TRIGGER_PATHS
+  environment:
+    name: dev
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_airflow:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: airflow
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $AIRFLOW_TRIGGER_PATHS
+  environment:
+    name: dev
+    url: https://wifire-kg-airflow.nrp-nautilus.io
+
+deploy_dev_langgraph:
+  <<: *deploy_template
+  needs:
+    - assemble-langgraph
+  variables:
+    COMPONENT: langgraph
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  environment:
+    name: dev
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_frontend:
+  <<: *deploy_template
+  needs:
+    - assemble-frontend
+  variables:
+    COMPONENT: frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  environment:
+    name: dev
+    url: https://wildfire-dev.nrp-nautilus.io
+
+deploy_dev_supabase:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: supabase
+  rules:
+    - if: $CI_COMMIT_BRANCH == "dev"
+      changes:
+        - $SUPABASE_TRIGGER_PATHS
+  environment:
+    name: dev
+    url: https://supabase-dev.nrp-nautilus.io
+
+# Production deployments
+deploy_prod_graphdb:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: graphdb
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $GRAPHDB_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_airflow:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: airflow
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $AIRFLOW_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wifire-kg-airflow.nrp-nautilus.io
+
+deploy_prod_langgraph:
+  <<: *deploy_template
+  needs:
+    - assemble-langgraph
+  variables:
+    COMPONENT: langgraph
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $LANGGRAPH_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_frontend:
+  <<: *deploy_template
+  needs:
+    - assemble-frontend
+  variables:
+    COMPONENT: frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $FRONTEND_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://wildfire.nrp-nautilus.io
+
+deploy_prod_supabase:
+  <<: *deploy_template
+  needs: []
+  variables:
+    COMPONENT: supabase
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod"
+      changes:
+        - $SUPABASE_TRIGGER_PATHS
+  environment:
+    name: production
+    url: https://supabase.nrp-nautilus.io 
