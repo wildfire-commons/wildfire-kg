@@ -273,6 +273,19 @@ def get_weather(query: str) -> str:
 
         date = extract_date_from_query(query)
         location = extract_location_from_query(query)
+        if date == 'OUT_OF_RANGE':
+            return (f"📅 Weather for {location} (requested: '{query}'):\n"
+                    f"• Historical weather data is only available for the last 30 days. "
+                    f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago').")
+        if date is None:
+            # fallback for other unparseable queries
+            return (f"📅 Weather for {location} (requested: '{query}'):\n"
+                    f"• Could not extract a valid date from your query. Please specify a date within the last 30 days (historical) or next 5 days (forecast)." )
+        # Block API call if date is more than 30 days ago
+        if (today.date() - date.date()).days > 30:
+            return (f"📅 Weather for {location} (requested: '{query}'):\n"
+                    f"• Historical weather data is only available for the last 30 days. "
+                    f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago').")
         if date:
             logger.info(f"DEBUG: Requested date: {date.strftime('%Y-%m-%d')}")
             logger.info(f"DEBUG: Days from today: {(date.date() - today.date()).days}")
@@ -539,14 +552,32 @@ def extract_date_from_query(query):
         log(f"Final extracted date: {parsed.strftime('%Y-%m-%d')} for query: {query}")
         return parsed.replace(hour=0, minute=0, second=0, microsecond=0)
 
+    # Block 'years ago' and 'more than 1 month ago' (must be after all other checks)
+    if re.search(r"\d+\s*year[s]?\s*ago", query_lower) or "one year ago" in query_lower:
+        log("Year-based queries are not supported. Returning OUT_OF_RANGE.")
+        return 'OUT_OF_RANGE'
+
+    match = re.search(r'(\d+)\s*month[s]?\s*ago', query_lower)
+    if match:
+        months_ago = int(match.group(1))
+        if months_ago > 1:
+            log(f"Queries for more than one month ago ('{months_ago} months ago') are not supported. Returning OUT_OF_RANGE.")
+            return 'OUT_OF_RANGE'
+        # Allow '1 month ago' as 30 days
+        date = base_today - timedelta(days=30)
+        log(f"Extracted date for 'one month ago': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "one month ago" in query_lower:
+        date = base_today - timedelta(days=30)
+        log(f"Extracted date for 'one month ago': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+
+    # Only as a last resort
     if "historical" in query_lower:
         date = base_today - timedelta(days=1)
         log(f"Extracted date for 'historical' (default yesterday): {date.strftime('%Y-%m-%d')}")
-        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
-        return date
-    if "forecast" in query_lower:
-        date = base_today + timedelta(days=1)
-        log(f"Extracted date for 'forecast' (default tomorrow): {date.strftime('%Y-%m-%d')}")
         log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
         return date
 
