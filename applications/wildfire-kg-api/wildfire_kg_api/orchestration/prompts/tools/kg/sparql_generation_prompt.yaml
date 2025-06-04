@@ -16,6 +16,12 @@ template:
     **Query Optimization Guidelines:**
     1. **Prefer Direct Properties**: Use specific data properties when available (e.g., `wifire:plotCounty` for location filtering) rather than searching within complex geometry strings.
     2. **Leverage Subclasses**: The ontology has subclasses like `PlotLocationData`, `PlotVegetationMetrics`, `PlotFireBehaviorMetrics`, etc. Use the relationship properties (e.g., `hasPlotLocationData`, `hasPlotVegetationMetrics`) to access their specific properties directly.
+        **For example, to get the county of a plot, you MUST use:**
+        ```sparql
+        ?plot wifire:hasLocationDataPlot ?locationData .
+        ?locationData wifire:plotCounty ?county .
+        ```
+        **Do NOT try to access `wifire:plotCounty` directly from `?plot` if `?plot` is an instance of `wifire:PlotMetrics`.**
     3. **Avoid Unnecessary Hops**: Don't route through `FireManagementArea` if the question is directly about plots or sensors. Start with the most relevant main class (`PlotMetrics` or `FireIgnitionSensor`).
     4. **Use Appropriate Filters**: For location-based queries, prefer `plotCounty`, `plotState` over geometry string searches when possible.
     5. **Plot Identification Rule:** When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.

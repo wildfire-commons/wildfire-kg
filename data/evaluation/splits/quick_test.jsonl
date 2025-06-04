@@ -1,1 +1,1 @@
-{"user_query":"What's the weather like in Santa Barbara right now?","expected_tools":["get_weather"],"expected_response_contains":["Santa Barbara","Temperature","Humidity","Wind"],"tags":["weather","santa barbara"]}
+{"user_query":"What are burn bosses?","expected_tools":[],"expected_response_contains":["Certified professional", "prescribed burns", "planning", "supervising"],"tags":["definition","no_tool_expected"]}
