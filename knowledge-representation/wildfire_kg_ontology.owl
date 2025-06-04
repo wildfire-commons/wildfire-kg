@@ -184,7 +184,7 @@
     rdfs:label "provider" ;
     rdfs:comment "Name of the organization or entity that provided the sensor data, e.g., 'Redline Safety'" .
 	
-# Relationship Properties for Sublcasses of :PlotMetrics
+# Relationship Properties for Sublcasses of :FireIgnitionSensor
 :hasSensorMetadata rdf:type rdf:Property ;
     rdfs:domain :FireIgnitionSensor ;
     rdfs:range :SensorMetadata ;
@@ -228,6 +228,13 @@
     rdfs:label "plotName" ;
     rdfs:comment "The name of the plot" .
 
+:plotDate rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "plotDate" ;
+    rdfs:comment "Timestamp for the plot data" .
+
+# Properties for PlotMetrics: VegetationMetrics
 :basalArea rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -246,7 +253,6 @@
     rdfs:label "TBA" ;
     rdfs:comment "Total Basal Area" .
 
-# Properties for PlotMetrics: VegetationMetrics
 :GCvol rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -270,6 +276,18 @@
     rdfs:range xsd:float ;
     rdfs:label "USvol" ;
     rdfs:comment "Understory solid volume of vegetation" .
+
+:OLAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "OLAI" ;
+    rdfs:comment "Overstory Leaf Area Index of upper canopy" .
+
+:ULAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "ULAI" ;
+    rdfs:comment "Understory Leaf Area Index of lower canopy" .
 
 # Properties for PlotMetrics: FireBehaviorMetrics
 :LF_FBFM13 rdf:type rdf:Property ;
@@ -325,7 +343,7 @@
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "MDBH" ;
-    rdfs:comment "Mean diameter at breast height for trees" .
+    rdfs:comment "Mean diameter at breast height for trees in the plot" .
 
 :MLAI rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
@@ -337,19 +355,19 @@
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDHT" ;
-    rdfs:comment "Shrub height in the plot" .
+    rdfs:comment "Standard deviation of tree heights in the plot" .
 
 :SDSHT rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDSHT" ;
-    rdfs:comment "Standard deviation of shrub height" .
+    rdfs:comment "Standard deviation of shrub heights in the plot" .
 
 :SDSD rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
     rdfs:label "SDSD" ;
-    rdfs:comment "Standard deviation of shrub diameter" .
+    rdfs:comment "Standard deviation of shrub diameters in the plot" .
 
 :MaxSD rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
@@ -447,6 +465,37 @@
     rdfs:range xsd:float ;
     rdfs:label "plotLongitude" ;
     rdfs:comment "Longitude coordinate of the plot" .
+
+:plotCounty rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotCounty" ;
+    rdfs:comment "County where the plot is located" .
+
+:plotState rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotState" ;
+    rdfs:comment "State where the plot is located" .
+
+:plotCountry rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotCountry" ;
+    rdfs:comment "Country where the plot is located" .
+
+# Relationship Properties for :PlotMetrics
+:lastMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "lastMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the previous temporally related PlotMetrics." .
+
+:nextMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "nextMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the next temporally related PlotMetrics." .
 	
 # Relationship Properties for Subclasses of :PlotMetrics
 :hasVegetationMetrics rdf:type rdf:Property ;
@@ -472,8 +521,20 @@
     rdfs:range :LocationDataPlot ;
     rdfs:label "hasLocationDataPlot" ;
     rdfs:comment "Links a plot to its location data" .
- 
+
 # Properties for FireManagementArea
+:plotCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "plotCount" ;
+    rdfs:comment "Number of plots in the fire management area." .
+
+:sensorCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "sensorCount" ;
+    rdfs:comment "Number of sensors in the fire management area." .
+
 # These properties define the relationships and the geographical information
 :hasPlot rdf:type rdf:Property ;
     rdfs:domain :FireManagementArea ;
