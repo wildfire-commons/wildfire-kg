@@ -1,0 +1,3 @@
+{"user_query":"How many plots are there in Santa Barbara County? Are there any notable historical fires that occurred there in the past?","expected_tools":["query_knowledge_graph", "web_search"],"expected_response_contains":["62", "Thomas Fire"],"tags":["kg","web","plot_count"]}
+{"user_query":"What is the Leaf Area Index (LAI) for the plot named CASBC_0006_20240911_1? Additionally, could you provide links to any studies that mention leaf area index in mountain forest recovery?","expected_tools":["query_knowledge_graph", "web_search"],"expected_response_contains":["0.7", "leafing out"],"expected_tools":["query_knowledge_graph", "web_search"],"tags":["kg","web","plot_metrics","vegetation_metrics"]}
+
