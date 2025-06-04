@@ -5,7 +5,7 @@ Weather tool using LangChain's tool decorator.
 import os
 import logging
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Tuple, Optional
 from dotenv import load_dotenv
 from langchain_core.tools import tool
@@ -122,22 +122,22 @@ def geocode_location(location: str) -> Optional[dict]:
     # Always try 'City, USA' as a last resort
     if not location.strip().lower().endswith(", usa"):
         attempts.append(location.strip() + ", USA")
-    logger.info(f"Geocoding attempts: {attempts}")
+    #logger.info(f"Geocoding attempts: {attempts}")
     for attempt in attempts:
         params = {"q": attempt, "limit": 1, "appid": API_KEY}
-        logger.info(f"Geocoding location: {attempt}")
+        #logger.info(f"Geocoding location: {attempt}")
         resp = requests.get(GEOCODE_URL, params=params)
         if resp.status_code == 200:
             data = resp.json()
             if data:
-                logger.info(f"Geocoding result: {data[0]}")
+                #logger.info(f"Geocoding result: {data[0]}")
                 return data[0]
-            else:
-                logger.warning(f"No geocoding result for {attempt}")
-        else:
-            logger.warning(
-                f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}"
-            )
+            #else:
+                #logger.warning(f"No geocoding result for {attempt}")
+        #else:
+            #logger.warning(
+            #    f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}"
+            #)
     return None
 
 
@@ -213,8 +213,8 @@ def get_weather(query: str) -> str:
 
     Example queries and endpoint selection:
     - "current weather in San Diego, CA" → current weather endpoint
-    - "historical weather for San Diego, CA on May 23, 2025" → historical weather endpoint
-    - "forecast weather for San Diego, CA on May 27, 2025" → forecast weather endpoint
+    - "historical weather for San Diego, CA yesterday" → historical weather endpoint
+    - "forecast weather for San Diego, CA tomorrow" → forecast weather endpoint
 
     Output Outline:
     1. Weather Summary
@@ -234,7 +234,7 @@ def get_weather(query: str) -> str:
 
     Example Output (Current):
     -------------------------
-    🌡️ Weather for San Diego, CA (July 20, 2024):
+    🌡️ Weather for San Diego, CA (ExtractedDate):
     • Temperature: 92.3°F (33.5°C)
     • Conditions: Sunny
     • Humidity: 18%
@@ -249,7 +249,7 @@ def get_weather(query: str) -> str:
 
     Example Output (Historical):
     ----------------------------
-    📅 Historical Weather for San Diego, CA (September 3, 2023):
+    📅 Historical Weather for San Diego, CA (ExtractedDate):
     • Avg Temperature: 58.8°F (14.9°C)
     • Avg Humidity: 85%
     • Avg Wind Speed: 5.0 mph (2.2 m/s)
@@ -268,27 +268,42 @@ def get_weather(query: str) -> str:
     """
     logger.info(f"\n{'='*50}\nProcessing weather query: {query}")
     try:
+        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        logger.info(f"DEBUG: Current UTC date: {today.strftime('%Y-%m-%d')}")
+
         date = extract_date_from_query(query)
         location = extract_location_from_query(query)
-        today = datetime.utcnow().date()
-
-        is_historical = date and date.date() < today
-        is_forecast = date and date.date() > today
-        is_current = not date or date.date() == today
-
+        if date:
+            logger.info(f"DEBUG: Requested date: {date.strftime('%Y-%m-%d')}")
+            logger.info(f"DEBUG: Days from today: {(date.date() - today.date()).days}")
+        
+        today_date = today.date()
+        is_historical = date and date.date() < today_date
+        is_forecast = date and date.date() > today_date
+        is_current = not date or date.date() == today_date
+        
         logger.info(f"Query Analysis:")
         logger.info(f"- Date: {date}")
         logger.info(f"- Location: {location}")
-        logger.info(
-            f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}"
-        )
+        logger.info(f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}")
+
+        # Check forecast range BEFORE geocoding
+        if is_forecast:
+            max_forecast_date = today_date + timedelta(days=5)
+            logger.info(f"DEBUG: Checking forecast range - Requested date: {date.date()}, Max forecast date: {max_forecast_date}")
+            if date.date() > max_forecast_date:
+                logger.info(f"DEBUG: Forecast date {date.date()} is out of range (max: {max_forecast_date})")
+                return (
+                    f"🔮 Forecast Weather for {location} ({date.strftime('%B %d, %Y')}):\n"
+                    f"• Forecast data is only available up to {max_forecast_date.strftime('%B %d, %Y')}. "
+                    f"Please specify a date within this range for detailed forecast."
+                )
 
         # Geocode location ONCE
         geo = geocode_location(location)
         if not geo:
-            return (
-                f"Could not resolve location '{location}'. Please check the city name."
-            )
+            return f"Could not resolve location '{location}'. Please check the city name."
+        
         lat, lon = geo["lat"], geo["lon"]
         city_label = geo.get("name", location)
         city_id = geo.get("id")  # Not always present
@@ -307,7 +322,6 @@ def get_weather(query: str) -> str:
             if not data:
                 return f"No forecast weather data available for {city_label}."
             return _format_forecast_weather_data(data, city_label, date)
-
         if is_historical:
             start = int(datetime(date.year, date.month, date.day, 0, 0).timestamp())
             end = int(datetime(date.year, date.month, date.day, 23, 59, 59).timestamp())
@@ -317,7 +331,6 @@ def get_weather(query: str) -> str:
             if not data:
                 return f"No historical weather data available for {city_label} on {date.date()}."
             return _format_historical_weather_data(data, city_label, date)
-
         # Default to current weather
         logger.info("Making current weather API call...")
         if not API_KEY:
@@ -325,13 +338,13 @@ def get_weather(query: str) -> str:
         data = _call_weather_api(PRO_BASE_URL, params, "current", city_label)
         if not data:
             return f"No current weather data available for {city_label}."
-        return _format_weather_data(data, city_label)
+        return _format_weather_data(data, city_label, date)
     except Exception as e:
         logger.error(f"Error in weather query: {str(e)}", exc_info=True)
         return f"Weather information for {query} is unavailable. Error: {str(e)}"
 
 
-def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
+def _format_weather_data(data: Dict[str, Any], requested_location: str, date: Optional[datetime] = None) -> str:
     """Format weather data into a human-readable string."""
     try:
         if "main" not in data:
@@ -366,8 +379,9 @@ def _format_weather_data(data: Dict[str, Any], requested_location: str) -> str:
             and wind_speed_mph > 15
         ):
             fire_danger = "\n⚠️ Note: Low humidity and high winds may create elevated fire danger conditions."
+        date_str = f" ({date.strftime('%B %d, %Y')})" if date else ""
         response = (
-            f"🌡️ Weather for {requested_location}:\n"
+            f"🌡️ Weather for {requested_location}{date_str}:\n"
             f"• Temperature: {temp_f}°F ({temp_c}°C)\n"
             f"• Conditions: {condition}\n"
             f"• Humidity: {humidity}%\n"
@@ -437,54 +451,107 @@ def _get_mock_weather_data(location: str) -> Dict[str, Any]:
 
 
 def extract_date_from_query(query):
-    # Try to extract relative dates first (e.g., "in 5 days", "5 days ago")
-    relative_match = re.search(r"(?:in|for|)\s*(\d+)\s*days?(?:\s+ago)?", query, re.IGNORECASE)
-    if relative_match:
-        days = int(relative_match.group(1))
-        if "ago" in query.lower():
-            date = datetime.utcnow() - timedelta(days=days)
-        else:
-            date = datetime.utcnow() + timedelta(days=days)
-        logger.info(f"Extracted relative date: {date}")
+    query_lower = query.lower()
+    base_today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    def log(msg):
+        logger.info(f"WEATHERTOOL: {msg}")
+
+    # Handle natural language keywords
+    if "yesterday" in query_lower:
+        date = base_today - timedelta(days=1)
+        log(f"Extracted date for 'yesterday': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "today" in query_lower or "current" in query_lower:
+        date = base_today
+        log(f"Extracted date for 'today/current': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "tomorrow" in query_lower:
+        date = base_today + timedelta(days=1)
+        log(f"Extracted date for 'tomorrow': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
         return date
 
-    # Try to extract a date after the last 'on', 'for', or 'at'
-    match = re.search(r"(?:on|for|at)\s+([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})", query, re.IGNORECASE)
+    if "last week" in query_lower:
+        date = base_today - timedelta(days=7)
+        log(f"Extracted date for 'last week': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "next week" in query_lower:
+        date = base_today + timedelta(days=7)
+        log(f"Extracted date for 'next week': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "last month" in query_lower:
+        year = base_today.year if base_today.month > 1 else base_today.year - 1
+        month = base_today.month - 1 if base_today.month > 1 else 12
+        log(f"Extracted date for 'last month': {year}-{month:02d}-01")
+        log(f"Final extracted date: {year}-{month:02d}-01 for query: {query}")
+        return base_today.replace(year=year, month=month, day=1)
+    if "next month" in query_lower:
+        year = base_today.year if base_today.month < 12 else base_today.year + 1
+        month = base_today.month + 1 if base_today.month < 12 else 1
+        log(f"Extracted date for 'next month': {year}-{month:02d}-01")
+        log(f"Final extracted date: {year}-{month:02d}-01 for query: {query}")
+        return base_today.replace(year=year, month=month, day=1)
+
+    # Match '2 days ago', '7 days ago', etc.
+    match = re.search(r"(\d+)\s*days?\s+ago", query_lower)
     if match:
-        date_str = match.group(1).strip()
-        # Remove any ordinal indicators (st, nd, rd, th)
+        days = int(match.group(1))
+        date = base_today - timedelta(days=days)
+        log(f"Extracted date for '{days} days ago': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+
+    # Match '7 days from now' or '7 days later'
+    match = re.search(r"(\d+)\s*days?\s*(from now|later)", query_lower)
+    if match:
+        days = int(match.group(1))
+        date = base_today + timedelta(days=days)
+        log(f"Extracted date for '{days} days from now': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+
+    # Match 'in 7 days' or 'for 7 days'
+    match = re.search(r"(?:in|for)\s*(\d+)\s*days?", query_lower)
+    if match:
+        days = int(match.group(1))
+        date = base_today + timedelta(days=days)
+        log(f"Extracted date for '{days} days from now': {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+
+    match = re.search(r"([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})", query, re.IGNORECASE)
+    if match:
+        date_str = match.group(0).strip()
         date_str = re.sub(r'(\d+)(?:st|nd|rd|th)', r'\1', date_str)
         parsed = dateparser.parse(date_str)
-        logger.info(f"Extracted date from explicit pattern: {date_str} -> {parsed}")
         if parsed:
-            return parsed
+            log(f"Extracted date for explicit date '{date_str}': {parsed.strftime('%Y-%m-%d')}")
+            log(f"Final extracted date: {parsed.strftime('%Y-%m-%d')} for query: {query}")
+            return parsed.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Try to extract relative dates with "ago" (e.g., "5 days ago")
-    ago_match = re.search(r"(\d+)\s*days?\s+ago", query, re.IGNORECASE)
-    if ago_match:
-        days = int(ago_match.group(1))
-        date = datetime.utcnow() - timedelta(days=days)
-        logger.info(f"Extracted 'ago' date: {date}")
+    parsed = dateparser.parse(query)
+    if parsed:
+        log(f"Extracted date for fallback parse: {parsed.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {parsed.strftime('%Y-%m-%d')} for query: {query}")
+        return parsed.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    if "historical" in query_lower:
+        date = base_today - timedelta(days=1)
+        log(f"Extracted date for 'historical' (default yesterday): {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
+        return date
+    if "forecast" in query_lower:
+        date = base_today + timedelta(days=1)
+        log(f"Extracted date for 'forecast' (default tomorrow): {date.strftime('%Y-%m-%d')}")
+        log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
         return date
 
-    # If "current" in query, return today
-    if "current" in query.lower():
-        today = datetime.utcnow()
-        logger.info(f"Query is for current weather, using today: {today}")
-        return today
-
-    # If "historical" in query, but no date, return yesterday
-    if "historical" in query.lower():
-        yesterday = datetime.utcnow() - timedelta(days=1)
-        logger.info(f"Query is for historical weather, using yesterday: {yesterday}")
-        return yesterday
-
-    # If "forecast" in query, but no date, return tomorrow
-    if "forecast" in query.lower():
-        tomorrow = datetime.utcnow() + timedelta(days=1)
-        logger.info(f"Query is for forecast weather, using tomorrow: {tomorrow}")
-        return tomorrow
-
+    log(f"Final extracted date: None for query: {query}")
+    log("No date extracted from query.")
     return None
 
 
@@ -505,12 +572,8 @@ def extract_location_from_query(query):
 def _format_forecast_weather_data(data, city, date):
     entries = data.get("list", [])
     requested_date_str = date.strftime("%Y-%m-%d")
-    filtered = [
-        e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)
-    ]
-    logger.info(
-        f"Averaging {len(filtered)} forecast entries for {city} on {requested_date_str}"
-    )
+    filtered = [e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)]
+    logger.info(f"WEATHERTOOL: {len(filtered)} forecast entries for {city} on {requested_date_str}")
     if not filtered:
         return f"No forecast weather data available for {city} on {date.date()}."
     temps = [e["main"]["temp"] for e in filtered]
@@ -571,7 +634,7 @@ def _try_api_with_city_id(
             elif is_historical:
                 return _format_historical_weather_data(data, city, date), None
             else:
-                return _format_weather_data(data, city), None
+                return _format_weather_data(data, city, date), None
         else:
             logger.warning(
                 f"API error for city ID {city_id}: {response.status_code} - {response.text}"
@@ -591,7 +654,7 @@ def _try_api_with_city_id(
         elif is_historical:
             return _format_historical_weather_data(data, city, date), None
         else:
-            return _format_weather_data(data, city), None
+            return _format_weather_data(data, city, date), None
     else:
         logger.warning(
             f"API error for city name {city}: {response.status_code} - {response.text}"
