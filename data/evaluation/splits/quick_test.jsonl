@@ -1,1 +1,1 @@
-{"user_query":"What are burn bosses?","expected_tools":[],"expected_response_contains":["Certified professional", "prescribed burns", "planning", "supervising"],"tags":["definition","no_tool_expected"]}
+{"user_query":"How many plots are there in Santa Barbara County? Are there any notable historical fires that occurred there in the past?","expected_tools":["query_knowledge_graph", "web_search"],"expected_response_contains":["62", "Thomas Fire"],"tags":["kg","web","plot_count"]}

@@ -13,6 +13,8 @@ template:
     Do not include any explanations or text except the SPARQL query itself.
     IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```).
 
+    To prevent excessively long responses, please append `LIMIT 50` to the end of every query. This is a safe default to ensure performance and readability.
+
     **Query Optimization Guidelines:**
     1. **Prefer Direct Properties**: Use specific data properties when available (e.g., `wifire:plotCounty` for location filtering) rather than searching within complex geometry strings.
     2. **Leverage Subclasses**: The ontology has subclasses like `PlotLocationData`, `PlotVegetationMetrics`, `PlotFireBehaviorMetrics`, etc. Use the relationship properties (e.g., `hasPlotLocationData`, `hasPlotVegetationMetrics`) to access their specific properties directly.

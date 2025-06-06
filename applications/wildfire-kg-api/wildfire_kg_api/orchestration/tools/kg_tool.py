@@ -21,6 +21,7 @@ from wildfire_kg_api.orchestration.models import (
 # Initialize logger
 logger = get_logger("tools.kg")
 
+
 @tool
 def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
     """
@@ -59,9 +60,9 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
 
         # Connection parameters
         graphdb_url = os.getenv(
-            "GRAPHDB_URL", "https://graphdb-dev-wildfire-kg.nrp-nautilus.io"
+            "GRAPHDB_URL", "https://graphdb-wildfire-kg.nrp-nautilus.io"
         )
-        graphdb_repository = os.getenv("GRAPHDB_REPOSITORY", "wildfire-kg")
+        graphdb_repository = os.getenv("GRAPHDB_REPOSITORY", "wildfire-kg-prod")
 
         # TODO: Ensure graphdb prevents unauthenticated access
         graphdb_username = os.getenv("GRAPHDB_USERNAME")
@@ -75,7 +76,7 @@ def query_knowledge_graph(query: str, config: RunnableConfig) -> str:
         ontology_file_path = os.path.join(
             os.path.dirname(__file__),
             "knowledge-representation",
-            "wildfire_kg_ontology.owl"
+            "wildfire_kg_ontology.owl",
         )
         logger.debug(f"Using ontology file at: {ontology_file_path}")
 

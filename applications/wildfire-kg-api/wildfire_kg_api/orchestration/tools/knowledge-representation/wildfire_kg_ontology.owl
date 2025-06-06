@@ -508,13 +508,13 @@
     rdfs:label "hasLocationDataPlot" ;
     rdfs:comment "Links a plot to its location data" .
 
-:lastMetrics rdf:type rdf:Property ; # Assuming this was intended for PlotMetrics
+:lastMetrics rdf:type rdf:Property ;
     rdfs:domain :PlotMetrics ;
     rdfs:range :PlotMetrics ;
     rdfs:label "lastMetrics" ;
     rdfs:comment "Links a PlotMetrics instance to the previous temporally related PlotMetrics." .
 
-:nextMetrics rdf:type rdf:Property ; # Assuming this was intended for PlotMetrics
+:nextMetrics rdf:type rdf:Property ;
     rdfs:domain :PlotMetrics ;
     rdfs:range :PlotMetrics ;
     rdfs:label "nextMetrics" ;
