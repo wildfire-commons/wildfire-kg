@@ -11,7 +11,7 @@ template:
     Use only the classes, subclasses, and properties provided in the schema to construct the SPARQL query.
     Include all necessary prefixes, especially the wifire namespace.
     Do not include any explanations or text except the SPARQL query itself.
-    IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```).
+    IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```). Your response should start with `PREFIX wifire: ...` and not ` ```sparql... `.
 
     To prevent excessively long responses, please append `LIMIT 50` to the end of every query. This is a safe default to ensure performance and readability.
 
@@ -47,3 +47,5 @@ template:
     ```
     {prompt}
     ```
+
+    Remember: Do not use any markdown formatting or any other text outside of the SPARQL query.
