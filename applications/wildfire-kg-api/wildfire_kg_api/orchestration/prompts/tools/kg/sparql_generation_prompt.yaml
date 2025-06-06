@@ -3,30 +3,49 @@ template:
   template: |
     Write a SPARQL SELECT query for querying a wildfire knowledge graph database.
 
-    Focus on finding metrics using these relationships:
-    - wifire:hasTreeShrubMetrics
-    - wifire:hasVegetationMetrics
-    - wifire:hasFireBehaviorMetrics
-
-    Include ALL of the following in your query when relevant:
-    1. When querying entities that have metrics relationships, ALWAYS include a JOIN to retrieve their metrics
-    2. For any entity with metric relationships, include all metric properties in your SELECT statement
-    3. Use OPTIONAL patterns to retrieve metrics when they might not be present
-    4. Include property paths to directly access metric values from the main entities
-
     The ontology schema delimited by triple backticks in Turtle format is:
     ```
     {schema}
     ```
 
-    Use only the classes and properties provided in the schema to construct the SPARQL query.
+    Use only the classes, subclasses, and properties provided in the schema to construct the SPARQL query.
     Include all necessary prefixes, especially the wifire namespace.
-    Limit results to 10 items maximum to avoid overloading the system.
     Do not include any explanations or text except the SPARQL query itself.
-    IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```).
-    **Plot Identification Rule:** When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.
+    IMPORTANT: Your response MUST be ONLY the raw SPARQL query text. The query MUST begin with all necessary PREFIX declarations (e.g., PREFIX wifire: <...>, PREFIX rdf: <...>) followed by the SELECT statement. Do NOT use any Markdown formatting, especially do NOT enclose the query in triple backticks (```). Your response should start with `PREFIX wifire: ...` and not ` ```sparql... `.
+
+    To prevent excessively long responses, please append `LIMIT 50` to the end of every query. This is a safe default to ensure performance and readability.
+
+    **Query Optimization Guidelines:**
+    1. **Prefer Direct Properties**: Use specific data properties when available (e.g., `wifire:plotCounty` for location filtering) rather than searching within complex geometry strings.
+    2. **Leverage Subclasses**: The ontology has subclasses like `PlotLocationData`, `PlotVegetationMetrics`, `PlotFireBehaviorMetrics`, etc. Use the relationship properties (e.g., `hasPlotLocationData`, `hasPlotVegetationMetrics`) to access their specific properties directly.
+        **For example, to get the county of a plot, you MUST use:**
+        ```sparql
+        ?plot wifire:hasLocationDataPlot ?locationData .
+        ?locationData wifire:plotCounty ?county .
+        ```
+        **Do NOT try to access `wifire:plotCounty` directly from `?plot` if `?plot` is an instance of `wifire:PlotMetrics`.**
+    3. **Avoid Unnecessary Hops**: Don't route through `FireManagementArea` if the question is directly about plots or sensors. Start with the most relevant main class (`PlotMetrics` or `FireIgnitionSensor`).
+    4. **Use Appropriate Filters**: For location-based queries, prefer `plotCounty`, `plotState` over geometry string searches when possible.
+    5. **Plot Identification Rule:** When a question includes a specific plot name (e.g., 'CASBC_0011_20240913_1'), you MUST identify the plot entity by its `wifire:plotName` data property. For instance, if the question is about plot 'XYZ', your query should contain a triple like `?myPlot wifire:plotName "XYZ" .` (note the quotes for the literal name). This triple binds `?myPlot` to the correct plot entity. Do NOT use the plot name directly as the subject URI (e.g., `wifire:XYZ`) without this lookup.
+
+    **Location Search Strategy:**
+    For location-based queries (counties, states, cities), use flexible string matching:
+    - Use `FILTER(CONTAINS(LCASE(?county), LCASE("santa barbara")))` for case-insensitive partial matching
+    - Consider that location names might be stored as "Santa Barbara County", "Santa Barbara", or "SANTA BARBARA"
+    - Try both exact matches and partial contains for better coverage
+    - If searching for "santa barbara county", also try just "santa barbara" as it might be stored without "County"
+
+    **If No Results Strategy:**
+    If this query is being generated because a previous query returned no results, try these alternatives:
+    1. **Broaden Location Search**: Remove "County" suffix and search for just the location name
+    2. **Alternative Properties**: Try different location properties (plotState, geometry) if plotCounty fails
+    3. **Case Variations**: Ensure case-insensitive matching with LCASE() on both sides
+    4. **Partial Matching**: Use CONTAINS() instead of exact equality
+    5. **Remove Filters**: Try the query without location filters to see if data exists at all
 
     The question delimited by triple backticks is:
     ```
     {prompt}
     ```
+
+    Remember: Do not use any markdown formatting or any other text outside of the SPARQL query.

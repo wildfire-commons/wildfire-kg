@@ -63,13 +63,13 @@ AGENT_COMPATIBLE_MODELS = [
 # Fallback model configuration for the agent and tools defaulting to Litellm models
 BEST_MODEL_FALLBACK = {
     "agent": {
-        "model": "gpt-4.1-mini",
         # "model": "llama3-sdsc",
+        "model": "gpt-4.1-mini",
         "temperature": 0.2,
     },
     "kg_tool": {
-        "model": "gpt-4.1-mini",
         # "model": "llama3-sdsc",
+        "model": "gpt-4.1-mini",
         "temperature": 0.1,
     },
     # "web_search_tool": {
@@ -147,17 +147,14 @@ def get_llm_params_for_model(
     """
     model_config = MODEL_CONFIGS.get(model_name)
     if not model_config:
-        # Fallback to a generic config if model_name is not in MODEL_CONFIGS
-        # This might happen if a model string is passed directly
-        # For simplicity, assume it's an OpenAI model and might support temperature
-        # A more robust solution would raise an error or have better defaults
-        model_config = {
-            "provider": "openai",  # Default assumption
-            "default_temperature": 0.0,  # Default assumption
-        }
-        # Log a warning if a model not in MODEL_CONFIGS is used.
-        # Consider adding a logger instance if you have one configured.
-        # print(f"Warning: Model '{model_name}' not found in MODEL_CONFIGS. Using default assumptions.")
+        # If model_name is not in MODEL_CONFIGS, we cannot determine the
+        # provider or its capabilities. Raise an error to prevent
+        # unexpected behavior with incorrect API keys or base URLs.
+        raise ValueError(
+            f"Model '{model_name}' not found in MODEL_CONFIGS. "
+            f"Please add it to `wildfire_kg_api/orchestration/models.py` "
+            f"to ensure correct provider and settings are used."
+        )
 
     params: Dict[str, Any] = {"model": model_name}
     params.update(additional_kwargs)

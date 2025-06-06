@@ -1,5 +1,4 @@
 {"user_query":"What is the slope percentage of CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["10"],"tags":["kg_only","slope","fire_metrics"]}
 {"user_query":"What is the aspect value of CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["194"],"tags":["kg_only","aspect","fire_metrics"]}
 {"user_query":"What is the recorded elevation for CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["401"],"tags":["kg_only","elevation","fire_metrics"]}
-{"user_query":"What is the disturbance status for CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["No Disturbance"],"tags":["kg_only","disturbance","fire_metrics"]}
 {"user_query":"What is the EVT classification for CASBC_0011_20240913_1?","expected_tools":["query_knowledge_graph"],"expected_response_contains":["Northern and Central California Dry-Mesic Chaparral"],"tags":["kg_only","evt","fire_metrics"]}

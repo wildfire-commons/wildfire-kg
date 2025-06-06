@@ -4,18 +4,14 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
-# Parent Classes
+# =========================================================================
+# Concept: Fire Ignition Sensor
+# =========================================================================
+
+# Class Definition: FireIgnitionSensor
 :FireIgnitionSensor rdf:type rdfs:Class ;
     rdfs:label "Fire Ignition Sensor" ;
     rdfs:comment "Represents a sensor used for detecting fire ignition points" .
-
-:PlotMetrics rdf:type rdfs:Class ;
-    rdfs:label "Plot Metrics" ;
-    rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" .
-
-:FireManagementArea rdf:type rdfs:Class ;
-    rdfs:label "Fire Management Area" ;
-    rdfs:comment "Represents the geographical area where fire management activities are carried out" .
 
 # Subclasses of FireIgnitionSensor
 :SensorMetadata rdf:type rdfs:Class ;
@@ -48,28 +44,7 @@
     rdfs:label "Wind Data" ;
     rdfs:comment "Represents wind speed and direction data collected by the sensor" .
 
-# Subclasses of PlotMetrics
-:VegetationMetrics rdf:type rdfs:Class ;
-    rdfs:subClassOf :PlotMetrics ;
-    rdfs:label "Vegetation Metrics" ;
-    rdfs:comment "Represents vegetation data collected from a plot" .
-
-:FireBehaviorMetrics rdf:type rdfs:Class ;
-    rdfs:subClassOf :PlotMetrics ;
-    rdfs:label "Fire Behavior Metrics" ;
-    rdfs:comment "Captures the behavior of fire including intensity, spread, and firefront data" .
-
-:TreeShrubMetrics rdf:type rdfs:Class ;
-    rdfs:subClassOf :PlotMetrics ;
-    rdfs:label "Tree Shrub Metrics" ;
-    rdfs:comment "Captures metrics related to trees and shrubs in a plot" .
-
-:LocationDataPlot rdf:type rdfs:Class ;
-    rdfs:subClassOf :PlotMetrics ;
-    rdfs:label "Location Data Plot" ;
-    rdfs:comment "Represents location data related to a plot's geographic coordinates" .
-
-# Properties for FireIgnitionSensor
+# Data Properties for FireIgnitionSensor and its Subclasses
 :db_id rdf:type rdf:Property ;
     rdfs:domain :SensorMetadata ;
     rdfs:range xsd:int ;
@@ -105,6 +80,12 @@
     rdfs:range xsd:int ;
     rdfs:label "sensor_type_id" ;
     rdfs:comment "ID for the sensor type" .
+
+:provider rdf:type rdf:Property ;
+    rdfs:domain :SensorMetadata ;
+    rdfs:range xsd:string ;
+    rdfs:label "provider" ;
+    rdfs:comment "Name of the organization or entity that provided the sensor data, e.g., 'Redline Safety'" .
 
 :longitudeSensor rdf:type rdf:Property ;
     rdfs:domain :LocationDataSensor ;
@@ -178,13 +159,7 @@
     rdfs:label "wind_windSpeedCmS" ;
     rdfs:comment "Wind speed in cm/s" .
 
-:provider rdf:type rdf:Property ;
-    rdfs:domain :SensorMetadata ;
-    rdfs:range xsd:string ;
-    rdfs:label "provider" ;
-    rdfs:comment "Name of the organization or entity that provided the sensor data, e.g., 'Redline Safety'" .
-	
-# Relationship Properties for Sublcasses of :PlotMetrics
+# Relationship Properties for FireIgnitionSensor (linking to its component subclasses)
 :hasSensorMetadata rdf:type rdf:Property ;
     rdfs:domain :FireIgnitionSensor ;
     rdfs:range :SensorMetadata ;
@@ -221,13 +196,44 @@
     rdfs:label "hasWindData" ;
     rdfs:comment "Links a FireIgnitionSensor to its wind-related data" .
 
-# Properties for PlotMetrics
+# =========================================================================
+# Concept: Plot Metrics
+# =========================================================================
+
+# Class Definition: PlotMetrics
+:PlotMetrics rdf:type rdfs:Class ;
+    rdfs:label "Plot Metrics" ;
+    rdfs:comment "Represents data about a specific plot of land related to fire risk and behavior" .
+
+# Subclasses of PlotMetrics
+:VegetationMetrics rdf:type rdfs:Class ;
+    rdfs:subClassOf :PlotMetrics ;
+    rdfs:label "Vegetation Metrics" ;
+    rdfs:comment "Represents vegetation data collected from a plot" .
+
+:FireBehaviorMetrics rdf:type rdfs:Class ;
+    rdfs:subClassOf :PlotMetrics ;
+    rdfs:label "Fire Behavior Metrics" ;
+    rdfs:comment "Captures the behavior of fire including intensity, spread, and firefront data" .
+
+:TreeShrubMetrics rdf:type rdfs:Class ;
+    rdfs:subClassOf :PlotMetrics ;
+    rdfs:label "Tree Shrub Metrics" ;
+    rdfs:comment "Captures metrics related to trees and shrubs in a plot" .
+
+:LocationDataPlot rdf:type rdfs:Class ;
+    rdfs:subClassOf :PlotMetrics ;
+    rdfs:label "Location Data Plot" ;
+    rdfs:comment "Represents location data related to a plot's geographic coordinates" .
+
+# Data Properties for PlotMetrics and its Subclasses
 :plotName rdf:type rdf:Property ;
     rdfs:domain :PlotMetrics ;
     rdfs:range xsd:string ;
     rdfs:label "plotName" ;
     rdfs:comment "The name of the plot" .
 
+# Data Properties for VegetationMetrics (subclass of PlotMetrics)
 :basalArea rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -246,7 +252,6 @@
     rdfs:label "TBA" ;
     rdfs:comment "Total Basal Area" .
 
-# Properties for PlotMetrics: VegetationMetrics
 :GCvol rdf:type rdf:Property ;
     rdfs:domain :VegetationMetrics ;
     rdfs:range xsd:float ;
@@ -271,7 +276,19 @@
     rdfs:label "USvol" ;
     rdfs:comment "Understory solid volume of vegetation" .
 
-# Properties for PlotMetrics: FireBehaviorMetrics
+:OLAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "OLAI" ;
+    rdfs:comment "Overstory Leaf Area Index of upper canopy" .
+
+:ULAI rdf:type rdf:Property ;
+    rdfs:domain :VegetationMetrics ;
+    rdfs:range xsd:float ;
+    rdfs:label "ULAI" ;
+    rdfs:comment "Understory Leaf Area Index of lower canopy" .
+    
+# Data Properties for FireBehaviorMetrics (subclass of PlotMetrics)
 :LF_FBFM13 rdf:type rdf:Property ;
     rdfs:domain :FireBehaviorMetrics ;
     rdfs:range xsd:string ;
@@ -320,7 +337,7 @@
     rdfs:label "LF_EVT" ;
     rdfs:comment "Expected vegetation type at the site" .
 
-# Properties for PlotMetrics: TreeShrubMetrics
+# Data Properties for TreeShrubMetrics (subclass of PlotMetrics)
 :MDBH rdf:type rdf:Property ;
     rdfs:domain :TreeShrubMetrics ;
     rdfs:range xsd:float ;
@@ -435,7 +452,7 @@
     rdfs:label "MeanSD" ;
     rdfs:comment "Mean Stem Density (stems/ha) - Average density of trees" .
 
-# Properties for PlotMetrics: LocationDataPlot
+# Data Properties for LocationDataPlot (subclass of PlotMetrics)
 :plotLatitude rdf:type rdf:Property ;
     rdfs:domain :LocationDataPlot ;
     rdfs:range xsd:float ;
@@ -447,8 +464,26 @@
     rdfs:range xsd:float ;
     rdfs:label "plotLongitude" ;
     rdfs:comment "Longitude coordinate of the plot" .
-	
-# Relationship Properties for Subclasses of :PlotMetrics
+
+:plotCounty rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotCounty" ;
+    rdfs:comment "County where the plot is located" .
+
+:plotState rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotState" ;
+    rdfs:comment "State where the plot is located" .
+
+:plotCountry rdf:type rdf:Property ;
+    rdfs:domain :LocationDataPlot ;
+    rdfs:range xsd:string ;
+    rdfs:label "plotCountry" ;
+    rdfs:comment "Country where the plot is located" .
+    
+# Relationship Properties for PlotMetrics (linking to its component subclasses or other PlotMetrics)
 :hasVegetationMetrics rdf:type rdf:Property ;
     rdfs:domain :PlotMetrics ;
     rdfs:range :VegetationMetrics ;
@@ -472,9 +507,48 @@
     rdfs:range :LocationDataPlot ;
     rdfs:label "hasLocationDataPlot" ;
     rdfs:comment "Links a plot to its location data" .
- 
-# Properties for FireManagementArea
-# These properties define the relationships and the geographical information
+
+:lastMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "lastMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the previous temporally related PlotMetrics." .
+
+:nextMetrics rdf:type rdf:Property ;
+    rdfs:domain :PlotMetrics ;
+    rdfs:range :PlotMetrics ;
+    rdfs:label "nextMetrics" ;
+    rdfs:comment "Links a PlotMetrics instance to the next temporally related PlotMetrics." .
+
+# =========================================================================
+# Concept: Fire Management Area
+# =========================================================================
+
+# Class Definition: FireManagementArea
+:FireManagementArea rdf:type rdfs:Class ;
+    rdfs:label "Fire Management Area" ;
+    rdfs:comment "Represents the geographical area where fire management activities are carried out" .
+
+# Data Properties for FireManagementArea
+:plotCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "plotCount" ;
+    rdfs:comment "Number of plots in the fire management area." .
+
+:sensorCount rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:integer ;
+    rdfs:label "sensorCount" ;
+    rdfs:comment "Number of sensors in the fire management area." .
+
+:geometry rdf:type rdf:Property ;
+    rdfs:domain :FireManagementArea ;
+    rdfs:range xsd:string ;
+    rdfs:label "geometry" ;
+    rdfs:comment "Geospatial representation of the FireManagementArea in GeoJSON or WKT format" .
+
+# Relationship Properties for FireManagementArea
 :hasPlot rdf:type rdf:Property ;
     rdfs:domain :FireManagementArea ;
     rdfs:range :PlotMetrics ;
@@ -486,29 +560,3 @@
     rdfs:range :FireIgnitionSensor ;
     rdfs:label "hasFireIgnitionSensor" ;
     rdfs:comment "Indicates the sensors that intersect the FireManagementArea" .
-
-# Geospatial property for PlotMetrics
-:geometry rdf:type rdf:Property ;
-    rdfs:domain :FireManagementArea ;
-    rdfs:range xsd:string ;
-    rdfs:label "geometry" ;
-    rdfs:comment "Geospatial representation of the FireManagementArea in GeoJSON or WKT format" .
-
-# Properties for PlotMetrics
-:hasVegetationMetrics rdf:type rdf:Property ;
-    rdfs:domain :PlotMetrics ;
-    rdfs:range :VegetationMetrics ;
-    rdfs:label "hasVegetationMetrics" ;
-    rdfs:comment "Links a plot to its vegetation metrics" .
-
-:hasTreeShrubMetrics rdf:type rdf:Property ;
-    rdfs:domain :PlotMetrics ;
-    rdfs:range :TreeShrubMetrics ;
-    rdfs:label "hasTreeShrubMetrics" ;
-    rdfs:comment "Links a plot to its tree and shrub metrics" .
-
-:hasFireBehaviorMetrics rdf:type rdf:Property ;
-    rdfs:domain :PlotMetrics ;
-    rdfs:range :FireBehaviorMetrics ;
-    rdfs:label "hasFireBehaviorMetrics" ;
-    rdfs:comment "Links a plot to its fire behavior metrics" .

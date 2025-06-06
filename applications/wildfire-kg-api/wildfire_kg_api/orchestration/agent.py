@@ -30,6 +30,7 @@ from wildfire_kg_api.orchestration.models import (
     get_default_temperature,
     is_agent_compatible,
     get_llm_params_for_model,
+    AGENT_COMPATIBLE_MODELS,
 )
 
 # Load environment variables
@@ -86,6 +87,17 @@ def create_wildfire_react_agent(config: Optional[RunnableConfig] = None) -> Any:
     Returns:
         A ReAct agent graph that can be invoked with messages
     """
+    # Sanity check to ensure the default fallback model is agent-compatible.
+    # This prevents runtime errors if BEST_MODEL_FALLBACK is misconfigured.
+    fallback_agent_model = BEST_MODEL_FALLBACK["agent"]["model"]
+    if not is_agent_compatible(fallback_agent_model):
+        error_msg = (
+            f"The default agent model '{fallback_agent_model}' in BEST_MODEL_FALLBACK is not compatible. "
+            f"Please choose a model from: {AGENT_COMPATIBLE_MODELS} in `models.py`."
+        )
+        logger.critical(error_msg)
+        raise ModelCompatibilityError(error_msg)
+
     # Default config if none provided
     if not config:
         logger.info("No config provided, using default config")

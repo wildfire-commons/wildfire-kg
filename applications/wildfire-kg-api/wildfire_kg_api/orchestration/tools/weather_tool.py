@@ -3,7 +3,6 @@ Weather tool using LangChain's tool decorator.
 """
 
 import os
-import logging
 import requests
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Tuple, Optional
@@ -14,25 +13,11 @@ import json
 import re
 import dateparser
 import urllib.parse
-import sys
+from wildfire_kg_api.orchestration.logger import get_logger
 
-# Configure logging to write to stdout
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stdout,
-)
-logger = logging.getLogger(__name__)
+# Initialize logger
+logger = get_logger("tools.weather")
 
-# Force the logger to output to stdout
-for handler in logger.handlers:
-    handler.setStream(sys.stdout)
-
-file_handler = logging.FileHandler("weather_tool_debug.log")
-file_handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 API_KEY = os.getenv("WEATHER_API_KEY")
 if not API_KEY:
@@ -122,22 +107,22 @@ def geocode_location(location: str) -> Optional[dict]:
     # Always try 'City, USA' as a last resort
     if not location.strip().lower().endswith(", usa"):
         attempts.append(location.strip() + ", USA")
-    #logger.info(f"Geocoding attempts: {attempts}")
+    # logger.info(f"Geocoding attempts: {attempts}")
     for attempt in attempts:
         params = {"q": attempt, "limit": 1, "appid": API_KEY}
-        #logger.info(f"Geocoding location: {attempt}")
+        # logger.info(f"Geocoding location: {attempt}")
         resp = requests.get(GEOCODE_URL, params=params)
         if resp.status_code == 200:
             data = resp.json()
             if data:
-                #logger.info(f"Geocoding result: {data[0]}")
+                # logger.info(f"Geocoding result: {data[0]}")
                 return data[0]
-            #else:
-                #logger.warning(f"No geocoding result for {attempt}")
-        #else:
-            #logger.warning(
-            #    f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}"
-            #)
+            # else:
+            # logger.warning(f"No geocoding result for {attempt}")
+        # else:
+        # logger.warning(
+        #    f"Geocoding failed for {attempt}: {resp.status_code} - {resp.text}"
+        # )
     return None
 
 
@@ -268,44 +253,58 @@ def get_weather(query: str) -> str:
     """
     logger.info(f"\n{'='*50}\nProcessing weather query: {query}")
     try:
-        today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        today = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+        )
         logger.info(f"DEBUG: Current UTC date: {today.strftime('%Y-%m-%d')}")
 
         date = extract_date_from_query(query)
         location = extract_location_from_query(query)
-        if date == 'OUT_OF_RANGE':
-            return (f"📅 Weather for {location} (requested: '{query}'):\n"
-                    f"• Historical weather data is only available for the last 30 days. "
-                    f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago').")
+        if date == "OUT_OF_RANGE":
+            return (
+                f"📅 Weather for {location} (requested: '{query}'):\n"
+                f"• Historical weather data is only available for the last 30 days. "
+                f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago')."
+            )
         if date is None:
             # fallback for other unparseable queries
-            return (f"📅 Weather for {location} (requested: '{query}'):\n"
-                    f"• Could not extract a valid date from your query. Please specify a date within the last 30 days (historical) or next 5 days (forecast)." )
+            return (
+                f"📅 Weather for {location} (requested: '{query}'):\n"
+                f"• Could not extract a valid date from your query. Please specify a date within the last 30 days (historical) or next 5 days (forecast)."
+            )
         # Block API call if date is more than 30 days ago
         if (today.date() - date.date()).days > 30:
-            return (f"📅 Weather for {location} (requested: '{query}'):\n"
-                    f"• Historical weather data is only available for the last 30 days. "
-                    f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago').")
+            return (
+                f"📅 Weather for {location} (requested: '{query}'):\n"
+                f"• Historical weather data is only available for the last 30 days. "
+                f"Please specify a date within this range (e.g., 'yesterday', 'last week', 'one month ago')."
+            )
         if date:
             logger.info(f"DEBUG: Requested date: {date.strftime('%Y-%m-%d')}")
             logger.info(f"DEBUG: Days from today: {(date.date() - today.date()).days}")
-        
+
         today_date = today.date()
         is_historical = date and date.date() < today_date
         is_forecast = date and date.date() > today_date
         is_current = not date or date.date() == today_date
-        
+
         logger.info(f"Query Analysis:")
         logger.info(f"- Date: {date}")
         logger.info(f"- Location: {location}")
-        logger.info(f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}")
+        logger.info(
+            f"- Type: {'Historical' if is_historical else 'Forecast' if is_forecast else 'Current'}"
+        )
 
         # Check forecast range BEFORE geocoding
         if is_forecast:
             max_forecast_date = today_date + timedelta(days=5)
-            logger.info(f"DEBUG: Checking forecast range - Requested date: {date.date()}, Max forecast date: {max_forecast_date}")
+            logger.info(
+                f"DEBUG: Checking forecast range - Requested date: {date.date()}, Max forecast date: {max_forecast_date}"
+            )
             if date.date() > max_forecast_date:
-                logger.info(f"DEBUG: Forecast date {date.date()} is out of range (max: {max_forecast_date})")
+                logger.info(
+                    f"DEBUG: Forecast date {date.date()} is out of range (max: {max_forecast_date})"
+                )
                 return (
                     f"🔮 Forecast Weather for {location} ({date.strftime('%B %d, %Y')}):\n"
                     f"• Forecast data is only available up to {max_forecast_date.strftime('%B %d, %Y')}. "
@@ -315,8 +314,10 @@ def get_weather(query: str) -> str:
         # Geocode location ONCE
         geo = geocode_location(location)
         if not geo:
-            return f"Could not resolve location '{location}'. Please check the city name."
-        
+            return (
+                f"Could not resolve location '{location}'. Please check the city name."
+            )
+
         lat, lon = geo["lat"], geo["lon"]
         city_label = geo.get("name", location)
         city_id = geo.get("id")  # Not always present
@@ -357,7 +358,9 @@ def get_weather(query: str) -> str:
         return f"Weather information for {query} is unavailable. Error: {str(e)}"
 
 
-def _format_weather_data(data: Dict[str, Any], requested_location: str, date: Optional[datetime] = None) -> str:
+def _format_weather_data(
+    data: Dict[str, Any], requested_location: str, date: Optional[datetime] = None
+) -> str:
     """Format weather data into a human-readable string."""
     try:
         if "main" not in data:
@@ -465,7 +468,10 @@ def _get_mock_weather_data(location: str) -> Dict[str, Any]:
 
 def extract_date_from_query(query):
     query_lower = query.lower()
-    base_today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    base_today = datetime.utcnow().replace(
+        hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+    )
+
     def log(msg):
         logger.info(f"WEATHERTOOL: {msg}")
 
@@ -536,14 +542,20 @@ def extract_date_from_query(query):
         log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
         return date
 
-    match = re.search(r"([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})", query, re.IGNORECASE)
+    match = re.search(
+        r"([A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?,\s*\d{4})", query, re.IGNORECASE
+    )
     if match:
         date_str = match.group(0).strip()
-        date_str = re.sub(r'(\d+)(?:st|nd|rd|th)', r'\1', date_str)
+        date_str = re.sub(r"(\d+)(?:st|nd|rd|th)", r"\1", date_str)
         parsed = dateparser.parse(date_str)
         if parsed:
-            log(f"Extracted date for explicit date '{date_str}': {parsed.strftime('%Y-%m-%d')}")
-            log(f"Final extracted date: {parsed.strftime('%Y-%m-%d')} for query: {query}")
+            log(
+                f"Extracted date for explicit date '{date_str}': {parsed.strftime('%Y-%m-%d')}"
+            )
+            log(
+                f"Final extracted date: {parsed.strftime('%Y-%m-%d')} for query: {query}"
+            )
             return parsed.replace(hour=0, minute=0, second=0, microsecond=0)
 
     parsed = dateparser.parse(query)
@@ -555,14 +567,16 @@ def extract_date_from_query(query):
     # Block 'years ago' and 'more than 1 month ago' (must be after all other checks)
     if re.search(r"\d+\s*year[s]?\s*ago", query_lower) or "one year ago" in query_lower:
         log("Year-based queries are not supported. Returning OUT_OF_RANGE.")
-        return 'OUT_OF_RANGE'
+        return "OUT_OF_RANGE"
 
-    match = re.search(r'(\d+)\s*month[s]?\s*ago', query_lower)
+    match = re.search(r"(\d+)\s*month[s]?\s*ago", query_lower)
     if match:
         months_ago = int(match.group(1))
         if months_ago > 1:
-            log(f"Queries for more than one month ago ('{months_ago} months ago') are not supported. Returning OUT_OF_RANGE.")
-            return 'OUT_OF_RANGE'
+            log(
+                f"Queries for more than one month ago ('{months_ago} months ago') are not supported. Returning OUT_OF_RANGE."
+            )
+            return "OUT_OF_RANGE"
         # Allow '1 month ago' as 30 days
         date = base_today - timedelta(days=30)
         log(f"Extracted date for 'one month ago': {date.strftime('%Y-%m-%d')}")
@@ -577,7 +591,9 @@ def extract_date_from_query(query):
     # Only as a last resort
     if "historical" in query_lower:
         date = base_today - timedelta(days=1)
-        log(f"Extracted date for 'historical' (default yesterday): {date.strftime('%Y-%m-%d')}")
+        log(
+            f"Extracted date for 'historical' (default yesterday): {date.strftime('%Y-%m-%d')}"
+        )
         log(f"Final extracted date: {date.strftime('%Y-%m-%d')} for query: {query}")
         return date
 
@@ -603,8 +619,12 @@ def extract_location_from_query(query):
 def _format_forecast_weather_data(data, city, date):
     entries = data.get("list", [])
     requested_date_str = date.strftime("%Y-%m-%d")
-    filtered = [e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)]
-    logger.info(f"WEATHERTOOL: {len(filtered)} forecast entries for {city} on {requested_date_str}")
+    filtered = [
+        e for e in entries if e.get("dt_txt", "").startswith(requested_date_str)
+    ]
+    logger.info(
+        f"WEATHERTOOL: {len(filtered)} forecast entries for {city} on {requested_date_str}"
+    )
     if not filtered:
         return f"No forecast weather data available for {city} on {date.date()}."
     temps = [e["main"]["temp"] for e in filtered]
